@@ -1,15 +1,22 @@
 {
   "expo": {
-    "name": "steer-me-app",
+    "name": "Steer Me",
     "slug": "steer-me-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "steerme",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.duratexapplications.steerme",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Steer Me uses your camera to capture a photo of your Global Handicap card, a profile photo, or a producer verification document, only when you choose to take a photo.",
+        "NSPhotoLibraryUsageDescription": "Steer Me uses your photo library so you can select a photo of your Global Handicap card, a profile photo, or a producer verification document, only when you choose to pick one."
+      }
     },
     "android": {
+      "package": "com.duratexapplications.steerme",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -19,7 +26,31 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font",
+      "expo-splash-screen",
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Steer Me uses your photo library so you can select a photo of your Global Handicap card, a profile photo, or a producer verification document, only when you choose to pick one.",
+          "cameraPermission": "Steer Me uses your camera to capture a photo of your Global Handicap card, a profile photo, or a producer verification document, only when you choose to take a photo."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Steer Me uses your current location, only when you turn this on in Browse, to show eligible partners near where you actually are while traveling."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
