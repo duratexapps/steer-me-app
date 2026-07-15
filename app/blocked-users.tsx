@@ -1,0 +1,64 @@
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { DividerNote } from '@/src/components/ui/DividerNote';
+import { Tag } from '@/src/components/ui/Tag';
+import { colors, fonts, radii } from '@/src/theme/theme';
+import { useBlockedProfiles, useUnblockUser } from '@/src/hooks/useBlocking';
+
+export default function BlockedUsers() {
+  const { data: blocked } = useBlockedProfiles();
+  const unblock = useUnblockUser();
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <ScreenHeader
+        title="Blocked Users"
+        subtitle="They can't contact you, request you, or appear in your matches"
+        onBack={() => router.back()}
+      />
+      <ScrollView contentContainerStyle={styles.content}>
+        {!blocked || blocked.length === 0 ? (
+          <DividerNote>You haven't blocked anyone.</DividerNote>
+        ) : (
+          blocked.map((p) => (
+            <View key={p.id} style={styles.card}>
+              <Tag value={p.global_classification ?? '—'} />
+              <View style={styles.info}>
+                <Text style={styles.name}>{p.full_name}</Text>
+                <Text style={styles.meta}>{p.home_area}</Text>
+              </View>
+              <Pressable style={styles.unblockBtn} onPress={() => unblock.mutate(p.id)}>
+                <Text style={styles.unblockText}>Unblock</Text>
+              </Pressable>
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.cream },
+  content: { padding: 20 },
+  card: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+    backgroundColor: colors.tanLight,
+    borderWidth: 1,
+    borderColor: colors.rope,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.rust,
+    borderRadius: radii.lg,
+    padding: 14,
+    marginBottom: 12,
+  },
+  info: { flex: 1 },
+  name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
+  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.leather, marginTop: 2 },
+  unblockBtn: { backgroundColor: colors.leather, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12 },
+  unblockText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.cream },
+});

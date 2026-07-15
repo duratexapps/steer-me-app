@@ -7,6 +7,8 @@ import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
+import { useEligiblePartners } from '@/src/hooks/useEligiblePartners';
+import { useSentRequests } from '@/src/hooks/usePartnerRequests';
 import { publicUrlFor } from '@/src/lib/storage-upload';
 import { showToast } from '@/src/state/toast-store';
 
@@ -18,8 +20,12 @@ export default function Home() {
   const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
   const hasProducerProfile = useSessionStore((s) => s.hasProducerProfile);
   const { data: profile } = useMyProfile();
+  const { data: eligible } = useEligiblePartners(10.5, null);
+  const { data: sent } = useSentRequests();
 
   const avatarUrl = publicUrlFor('avatars', profile?.avatar_url);
+  const pendingCount = (sent ?? []).filter((r) => r.status === 'pending' || r.status === 'pending_guardian').length;
+  const bookedCount = (sent ?? []).filter((r) => r.status === 'accepted').length;
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -43,15 +49,15 @@ export default function Home() {
             </View>
             <View style={styles.statRow}>
               <View style={styles.stat}>
-                <Text style={styles.statNum}>—</Text>
+                <Text style={styles.statNum}>{eligible?.length ?? '—'}</Text>
                 <Text style={styles.statLbl}>Eligible now</Text>
               </View>
               <View style={styles.stat}>
-                <Text style={styles.statNum}>—</Text>
+                <Text style={styles.statNum}>{pendingCount}</Text>
                 <Text style={styles.statLbl}>Pending</Text>
               </View>
               <View style={styles.stat}>
-                <Text style={styles.statNum}>—</Text>
+                <Text style={styles.statNum}>{bookedCount}</Text>
                 <Text style={styles.statLbl}>Booked</Text>
               </View>
             </View>
@@ -87,7 +93,7 @@ export default function Home() {
                 icon="mail-outline"
                 title="My requests"
                 description="Track who you've reached out to"
-                onPress={() => comingSoon('My Requests')}
+                onPress={() => router.push('/my-requests')}
               />
             </>
           ) : (

@@ -133,7 +133,7 @@ export default function Profile() {
         <Button
           label="Manage blocked users"
           variant="outline"
-          onPress={() => comingSoon('Blocked users')}
+          onPress={() => router.push('/blocked-users')}
           style={styles.spacedBtn}
         />
         <Button label="Sign out" variant="ghost" onPress={handleSignOut} style={styles.spacedBtn} />
