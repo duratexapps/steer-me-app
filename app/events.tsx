@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -27,7 +27,7 @@ import { showToast } from '@/src/state/toast-store';
 // (Browse reads the eventId/division query params it's pushed with here).
 export default function Events() {
   const userId = useSessionStore((s) => s.session?.user.id);
-  const { data: events } = usePublishedEvents();
+  const { data: events, isLoading: eventsLoading } = usePublishedEvents();
   const eventIds = (events ?? []).map((e) => e.id);
   const { data: counts } = useAttendanceCounts(eventIds);
   const { data: myAttendance } = useMyAttendance(eventIds, userId);
@@ -57,7 +57,9 @@ export default function Events() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Events" subtitle="Posted by real producers - mark your plans to attend" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.content}>
-        {!events || events.length === 0 ? (
+        {eventsLoading ? (
+          <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
+        ) : !events || events.length === 0 ? (
           <DividerNote>No events posted yet.</DividerNote>
         ) : (
           events.map((event) => (

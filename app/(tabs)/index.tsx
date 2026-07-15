@@ -14,13 +14,21 @@ import { publicUrlFor } from '@/src/lib/storage-upload';
 export default function Home() {
   const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
   const hasProducerProfile = useSessionStore((s) => s.hasProducerProfile);
-  const { data: profile } = useMyProfile();
+  const { data: profile, isLoading: profileLoading } = useMyProfile();
   const { data: eligible } = useEligiblePartners(10.5, null);
   const { data: sent } = useSentRequests();
 
   const avatarUrl = publicUrlFor('avatars', profile?.avatar_url);
   const pendingCount = (sent ?? []).filter((r) => r.status === 'pending' || r.status === 'pending_guardian').length;
   const bookedCount = (sent ?? []).filter((r) => r.status === 'accepted').length;
+
+  // hasAthleteProfile flips true at session bootstrap, slightly before
+  // useMyProfile's own fetch resolves - without this guard, that gap
+  // briefly renders the "no profile yet" hero for an athlete who very much
+  // has one.
+  if (hasAthleteProfile && profileLoading) {
+    return <SafeAreaView style={styles.screen} edges={['bottom']} />;
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>

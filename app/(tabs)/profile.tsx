@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,8 +18,9 @@ import { useMyProfile } from '@/src/hooks/useMyProfile';
 // dropping the "Enable notifications" toggle since the Notifications
 // feature it would control isn't in v1 scope.
 export default function Profile() {
+  const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
   const setHasAthleteProfile = useSessionStore((s) => s.setHasAthleteProfile);
-  const { data: profile } = useMyProfile();
+  const { data: profile, isLoading } = useMyProfile();
   const [deleting, setDeleting] = useState(false);
 
   const avatarUrl = publicUrlFor('avatars', profile?.avatar_url);
@@ -62,6 +63,15 @@ export default function Profile() {
     setHasAthleteProfile(false);
     showToast('Profile and screenshot deleted');
     router.replace('/(tabs)');
+  }
+
+  if (hasAthleteProfile && isLoading) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['bottom']}>
+        <ScreenHeader title="Profile" subtitle="Your Global-issued info" />
+        <ActivityIndicator color={colors.rust} style={{ marginTop: 40 }} />
+      </SafeAreaView>
+    );
   }
 
   if (!profile) {

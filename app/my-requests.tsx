@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -88,10 +88,11 @@ function RequestCard({ request, mode }: { request: PartnerRequestWithProfile; mo
 
 export default function MyRequests() {
   const [tab, setTab] = useState<'sent' | 'received'>('sent');
-  const { data: sent } = useSentRequests();
-  const { data: received } = useReceivedRequests();
+  const { data: sent, isLoading: sentLoading } = useSentRequests();
+  const { data: received, isLoading: receivedLoading } = useReceivedRequests();
 
   const list = tab === 'sent' ? sent : received;
+  const isLoading = tab === 'sent' ? sentLoading : receivedLoading;
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -101,7 +102,9 @@ export default function MyRequests() {
         <Pill label="Received" selected={tab === 'received'} onPress={() => setTab('received')} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
-        {!list || list.length === 0 ? (
+        {isLoading ? (
+          <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
+        ) : !list || list.length === 0 ? (
           <DividerNote>
             {tab === 'sent'
               ? 'No requests sent yet. Head to Browse to find a partner.'

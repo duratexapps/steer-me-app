@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -140,13 +140,15 @@ export default function Browse() {
           />
         )}
         ListEmptyComponent={
-          !isLoading ? (
+          isLoading ? (
+            <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
+          ) : (
             <DividerNote>
               {inEventContext
                 ? 'No one else has marked attending for this division yet. Check back closer to the event.'
                 : 'No eligible partners posted right now. Try turning off a filter or widening your event.'}
             </DividerNote>
-          ) : null
+          )
         }
       />
 

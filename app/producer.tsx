@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,9 +22,21 @@ import { useMyEvents, useAttendanceCounts } from '@/src/hooks/useEvents';
 // Mirrors Screen 12 (#producer) - sign-up form when no producer profile
 // exists yet, dashboard once it does.
 export default function Producer() {
+  const hasProducerProfile = useSessionStore((s) => s.hasProducerProfile);
   const setHasProducerProfile = useSessionStore((s) => s.setHasProducerProfile);
-  const { data: producer } = useMyProducerProfile();
+  const { data: producer, isLoading } = useMyProducerProfile();
   const invalidateProducer = useInvalidateProducerProfile();
+
+  // hasProducerProfile flips true at session bootstrap, slightly before
+  // useMyProducerProfile's own fetch resolves - without this guard, that
+  // gap briefly flashes the sign-up form for a producer who already exists.
+  if (hasProducerProfile && isLoading) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['bottom']}>
+        <ActivityIndicator color={colors.rust} style={{ marginTop: 40 }} />
+      </SafeAreaView>
+    );
+  }
 
   if (producer) {
     return <ProducerDashboard producer={producer} />;
@@ -127,7 +139,7 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
 }
 
 function ProducerDashboard({ producer }: { producer: { org_name: string; verification_status: string } }) {
-  const { data: events } = useMyEvents();
+  const { data: events, isLoading: eventsLoading } = useMyEvents();
   const eventIds = (events ?? []).map((e) => e.id);
   const { data: counts } = useAttendanceCounts(eventIds);
 
@@ -150,7 +162,9 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
         <Button label="+ Create an event" onPress={() => router.push('/create-event')} style={{ marginBottom: 20 }} />
 
         <Text style={styles.eyebrow}>Your events</Text>
-        {!events || events.length === 0 ? (
+        {eventsLoading ? (
+          <ActivityIndicator color={colors.rust} style={{ marginTop: 12 }} />
+        ) : !events || events.length === 0 ? (
           <DividerNote>No events posted yet. Create your first one above.</DividerNote>
         ) : (
           events.map((e) => <EventCard key={e.id} event={{ ...e, producer_org_name: producer.org_name }} counts={counts} producerView />)
