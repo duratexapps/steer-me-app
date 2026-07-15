@@ -14,6 +14,7 @@ import { useEventPartners } from '@/src/hooks/useEvents';
 import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests';
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
+import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
 import { neededOppositePosition } from '@/src/lib/matching';
 import { getCurrentCity } from '@/src/lib/location';
 import { showToast } from '@/src/state/toast-store';
@@ -35,6 +36,7 @@ export default function Browse() {
   const inEventContext = !!eventId && eventDivision !== null;
 
   const { data: me } = useMyProfile();
+  const requireSubscription = useRequireSubscription();
   const [useLocationOn, setUseLocationOn] = useState(false);
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -71,6 +73,7 @@ export default function Browse() {
   }
 
   async function handleRequest(partner: PublicProfile) {
+    if (!requireSubscription()) return;
     try {
       await sendRequest.mutateAsync({
         recipientId: partner.id,

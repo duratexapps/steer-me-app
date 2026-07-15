@@ -19,6 +19,7 @@ import {
 } from '@/src/hooks/useEvents';
 import { useSubmitEventReport, EVENT_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useMyRatedEventIds, useSubmitRating } from '@/src/hooks/useRatings';
+import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
 import { showToast } from '@/src/state/toast-store';
 
 // Mirrors Screen 11 (#events) - athlete-facing browse, attend toggle, and
@@ -35,6 +36,7 @@ export default function Events() {
   const toggleAttendance = useToggleAttendance();
   const submitReport = useSubmitEventReport();
   const submitRating = useSubmitRating();
+  const requireSubscription = useRequireSubscription();
 
   const [reportTarget, setReportTarget] = useState<EventWithProducer | null>(null);
   const [ratingTarget, setRatingTarget] = useState<EventWithProducer | null>(null);
@@ -42,6 +44,7 @@ export default function Events() {
   async function handleToggle(event: EventWithProducer, division: number) {
     const key = `${event.id}:${division}`;
     const attending = myAttendance?.has(key) ?? false;
+    if (!attending && !requireSubscription()) return;
     try {
       await toggleAttendance.mutateAsync({ eventId: event.id, division, attending });
       showToast(attending ? 'Removed from attending' : `Marked attending - ${division} division`);

@@ -20,10 +20,15 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    npx supabase functions deploy ban-suspended-user
    ```
 4. Set secrets for the Edge Functions (Project Settings -> Edge Functions ->
-   Secrets, or via CLI):
+   Secrets, or via CLI). Generate both into shell variables and reuse the
+   variables everywhere below - don't retype/copy the raw value by hand
+   more than once, a single mistyped character here silently breaks the
+   whole webhook (it did during development; see the vault step below for
+   where the same value has to match again):
    ```
-   npx supabase secrets set REVENUECAT_WEBHOOK_AUTH="<a long random string>"
-   npx supabase secrets set DB_WEBHOOK_SECRET="<a different long random string>"
+   DB_SECRET=$(openssl rand -hex 24)
+   RC_SECRET=$(openssl rand -hex 24)
+   npx supabase secrets set DB_WEBHOOK_SECRET="$DB_SECRET" REVENUECAT_WEBHOOK_AUTH="$RC_SECRET"
    ```
    `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected - you
    don't need to set those yourself.
@@ -38,11 +43,40 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    hardcoded in a committed file, so run this once via the SQL Editor after
    `db push`:
    ```sql
-   select vault.create_secret('<the DB_WEBHOOK_SECRET value from step 4>', 'db_webhook_secret');
+   select vault.create_secret('$DB_SECRET', 'db_webhook_secret'); -- paste the actual value, not the variable name
    select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/ban-suspended-user', 'ban_suspended_user_function_url');
    ```
    Until both vault secrets exist, the trigger no-ops (profile suspension
    itself still works; only the login-ban side effect is skipped).
+
+## Setting up real subscriptions (RevenueCat + App Store/Google Play)
+
+None of this exists yet as of this build - it's an external, account-level
+setup outside this codebase that only you can do (Apple/Google require
+identity and business verification). Until it's done, the Subscription
+screen correctly shows "not available yet" and every paid-gated action
+(Browse requests, event attendance) is unpurchasable, which is expected.
+
+1. Enroll in the Apple Developer Program ($99/year) and/or a Google Play
+   Console account ($25 one-time), depending which platforms you're
+   targeting.
+2. Create your app's listing in App Store Connect / Google Play Console,
+   then create two auto-renewable subscription products there (annual
+   $39.99, monthly $6.99) - the exact product IDs don't matter as long as
+   they're consistent with what you configure in RevenueCat next.
+3. Create a RevenueCat account and project, connect it to your App Store
+   Connect / Google Play Console app, import the two products as
+   Packages inside an Offering, and create an Entitlement (any identifier)
+   that both packages unlock.
+4. RevenueCat dashboard -> Project Settings -> API Keys: copy the
+   Apple/Google public SDK keys into `.env` as
+   `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`.
+5. Wire the webhook (see step 5 in "One-time project setup" above) so
+   purchases actually sync into the `subscriptions` table.
+6. `react-native-purchases` auto-mocks itself inside Expo Go (no real
+   purchases, but the UI/flow won't crash) - real purchase testing needs an
+   EAS development build (`eas build --profile development`) installed on
+   a physical device, plus a sandbox/test account on the relevant store.
 
 ## Reviewing a producer for verification
 

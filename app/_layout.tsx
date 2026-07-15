@@ -21,6 +21,7 @@ import { supabase } from '@/src/lib/supabase';
 import { queryClient } from '@/src/lib/query-client';
 import { useSessionStore } from '@/src/state/session-store';
 import { checkProfileStatus } from '@/src/lib/profile-status';
+import { configurePurchases } from '@/src/lib/purchases';
 import { colors } from '@/src/theme/theme';
 import { ToastHost } from '@/src/components/ui/ToastHost';
 
@@ -53,6 +54,7 @@ export default function RootLayout() {
         setHasProducerProfile(false);
         return;
       }
+      configurePurchases(userId);
       const { hasAthleteProfile, hasProducerProfile } = await checkProfileStatus(userId);
       setHasAthleteProfile(hasAthleteProfile);
       setHasProducerProfile(hasProducerProfile);

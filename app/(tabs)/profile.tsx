@@ -13,10 +13,6 @@ import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 
-function comingSoon(feature: string) {
-  showToast(`${feature} is coming in a later update`);
-}
-
 // Mirrors Screen 6 (#profile). Two necessary additions beyond the
 // prototype: a real Sign Out action (the prototype has no auth at all), and
 // dropping the "Enable notifications" toggle since the Notifications
@@ -127,7 +123,7 @@ export default function Profile() {
         <Button
           label="View subscription plan"
           variant="outline"
-          onPress={() => comingSoon('Subscription')}
+          onPress={() => router.push('/subscription')}
           style={styles.spacedBtn}
         />
         <Button
