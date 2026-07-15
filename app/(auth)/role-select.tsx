@@ -12,7 +12,7 @@ import { colors, fonts } from '@/src/theme/theme';
 export default function RoleSelect() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Steer Me" subtitle="Find your own partner. Skip the ~$40 draw-in fee." big />
+      <ScreenHeader title="Steer Me" subtitle="Find your own partner. Skip the ~$40 draw-in fee." big logo />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>Get started</Text>
         <Text style={styles.h2}>How will you use Steer Me?</Text>

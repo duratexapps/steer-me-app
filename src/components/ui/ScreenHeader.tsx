@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '@/src/theme/theme';
 
@@ -7,11 +8,15 @@ type ScreenHeaderProps = {
   subtitle?: string;
   onBack?: () => void;
   big?: boolean;
+  logo?: boolean;
 };
 
 // Mirrors .topbar - the leather header bar with title + subtitle, and an
-// optional back arrow (.back-row) for pushed screens.
-export function ScreenHeader({ title, subtitle, onBack, big }: ScreenHeaderProps) {
+// optional back arrow (.back-row) for pushed screens. `logo` is only passed
+// on the two screens that show the "Steer Me" brand title (role-select,
+// sign-up) - every other screen shows its own screen name instead, per the
+// prototype, so the logo doesn't belong there.
+export function ScreenHeader({ title, subtitle, onBack, big, logo }: ScreenHeaderProps) {
   return (
     <View style={styles.bar}>
       <View style={styles.row}>
@@ -20,6 +25,7 @@ export function ScreenHeader({ title, subtitle, onBack, big }: ScreenHeaderProps
             <Ionicons name="arrow-back" size={20} color={colors.cream} />
           </Pressable>
         ) : null}
+        {logo ? <Image source={require('@/assets/logo.png')} style={styles.logo} contentFit="contain" /> : null}
         <Text style={[styles.title, big ? styles.titleBig : styles.titleSmall]}>{title}</Text>
       </View>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -36,6 +42,7 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   backBtn: { paddingRight: 4 },
+  logo: { width: 44, height: 27 },
   title: {
     fontFamily: fonts.display,
     color: colors.cream,

@@ -132,7 +132,7 @@ export default function SignUp() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Steer Me" subtitle="Find your own partner. Skip the ~$40 draw-in fee." big />
+      <ScreenHeader title="Steer Me" subtitle="Find your own partner. Skip the ~$40 draw-in fee." big logo />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>Step 1 of 1</Text>
         <Text style={styles.h2}>Set up your roper profile</Text>
