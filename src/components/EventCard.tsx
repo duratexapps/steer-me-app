@@ -10,10 +10,12 @@ type EventCardProps = {
   counts: Map<string, number> | undefined;
   producerView?: boolean;
   myAttendance?: Set<string>;
+  alreadyRated?: boolean;
   ratingSummary?: RatingSummary;
   onToggleAttend?: (division: number) => void;
   onShowPartners?: (division: number) => void;
   onReport?: () => void;
+  onRatePress?: () => void;
 };
 
 // Mirrors buildEventCard() from the prototype - shared between the producer
@@ -24,15 +26,21 @@ export function EventCard({
   counts,
   producerView,
   myAttendance,
+  alreadyRated,
   ratingSummary,
   onToggleAttend,
   onShowPartners,
   onReport,
+  onRatePress,
 }: EventCardProps) {
   const ratingText =
     ratingSummary && ratingSummary.rating_count >= RATING_MIN_TO_SHOW
       ? `★ ${ratingSummary.avg_stars?.toFixed(1)} (${ratingSummary.rating_count} rating${ratingSummary.rating_count === 1 ? '' : 's'})`
       : 'Not enough ratings yet';
+
+  const isPast = new Date(event.event_date) < new Date();
+  const attendedAnyDivision = event.divisions.some((d) => myAttendance?.has(`${event.id}:${d}`));
+  const canRate = !producerView && isPast && attendedAnyDivision && !alreadyRated;
 
   return (
     <View style={styles.card}>
@@ -74,6 +82,15 @@ export function EventCard({
           );
         })}
       </View>
+
+      {canRate ? (
+        <View style={styles.ratePrompt}>
+          <Text style={styles.ratePromptText}>You marked attending - how was it?</Text>
+          <Pressable onPress={onRatePress} style={styles.partnersBtn}>
+            <Text style={styles.partnersBtnText}>Rate this event</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {!producerView && onReport ? (
         <Pressable onPress={onReport} style={{ marginTop: 8 }}>
@@ -129,4 +146,19 @@ const styles = StyleSheet.create({
   partnersBtn: { backgroundColor: colors.leather, borderRadius: radii.sm, paddingVertical: 4, paddingHorizontal: 8 },
   partnersBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 10.5, color: colors.cream },
   reportLink: { fontFamily: fonts.body, fontSize: 11, color: '#6b5c47', textDecorationLine: 'underline' },
+  ratePrompt: {
+    backgroundColor: colors.tan,
+    borderWidth: 1.5,
+    borderColor: colors.leather,
+    borderStyle: 'dashed',
+    borderRadius: radii.md,
+    padding: 10,
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  ratePromptText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.leather, flexShrink: 1 },
 });

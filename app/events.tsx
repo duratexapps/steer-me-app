@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { EventCard } from '@/src/components/EventCard';
 import { ReportModal } from '@/src/components/ReportModal';
+import { RatingModal } from '@/src/components/RatingModal';
 import { colors } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import {
@@ -17,6 +18,7 @@ import {
   type EventWithProducer,
 } from '@/src/hooks/useEvents';
 import { useSubmitEventReport, EVENT_REPORT_OFFENSES } from '@/src/hooks/useReporting';
+import { useMyRatedEventIds, useSubmitRating } from '@/src/hooks/useRatings';
 import { showToast } from '@/src/state/toast-store';
 
 // Mirrors Screen 11 (#events) - athlete-facing browse, attend toggle, and
@@ -29,10 +31,13 @@ export default function Events() {
   const { data: counts } = useAttendanceCounts(eventIds);
   const { data: myAttendance } = useMyAttendance(eventIds, userId);
   const { data: ratingSummaries } = useRatingSummaries(eventIds);
+  const { data: ratedEventIds } = useMyRatedEventIds();
   const toggleAttendance = useToggleAttendance();
   const submitReport = useSubmitEventReport();
+  const submitRating = useSubmitRating();
 
   const [reportTarget, setReportTarget] = useState<EventWithProducer | null>(null);
+  const [ratingTarget, setRatingTarget] = useState<EventWithProducer | null>(null);
 
   async function handleToggle(event: EventWithProducer, division: number) {
     const key = `${event.id}:${division}`;
@@ -58,12 +63,14 @@ export default function Events() {
               event={event}
               counts={counts}
               myAttendance={myAttendance}
+              alreadyRated={ratedEventIds?.has(event.id)}
               ratingSummary={ratingSummaries?.get(event.id)}
               onToggleAttend={(division) => handleToggle(event, division)}
               onShowPartners={(division) =>
                 router.push({ pathname: '/(tabs)/browse', params: { eventId: event.id, division: String(division), eventName: event.name } })
               }
               onReport={() => setReportTarget(event)}
+              onRatePress={() => setRatingTarget(event)}
             />
           ))
         )}
@@ -78,6 +85,22 @@ export default function Events() {
           offenses={EVENT_REPORT_OFFENSES}
           submitting={submitReport.isPending}
           onSubmit={(offense, description) => submitReport.mutateAsync({ eventId: reportTarget.id, offense, description })}
+        />
+      ) : null}
+
+      {ratingTarget ? (
+        <RatingModal
+          visible
+          onClose={() => setRatingTarget(null)}
+          submitting={submitRating.isPending}
+          onSubmit={async (stars, review) => {
+            try {
+              await submitRating.mutateAsync({ eventId: ratingTarget.id, stars, review });
+              showToast(`Rated ${ratingTarget.name} — ${stars}★`);
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Could not submit rating');
+            }
+          }}
         />
       ) : null}
     </SafeAreaView>
