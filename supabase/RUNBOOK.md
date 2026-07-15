@@ -31,12 +31,18 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    Webhooks): set the webhook URL to your deployed `revenuecat-webhook`
    function URL, and set the "Authorization header" value to the same string
    you used for `REVENUECAT_WEBHOOK_AUTH` above.
-6. In Supabase Studio -> Database -> Webhooks: create a new webhook named
-   `ban-suspended-user`, table `profiles`, event `Update`, "Type of update"
-   filtered to the `suspended` column if the UI offers a column filter
-   (otherwise the function's own no-op check handles the false case safely),
-   target the deployed `ban-suspended-user` Edge Function, and add an HTTP
-   header `x-webhook-secret: <the DB_WEBHOOK_SECRET value from step 4>`.
+6. `profiles.suspended -> ban-suspended-user` is wired via a `pg_net`
+   trigger in migration `0014_ban_suspended_webhook.sql` (no manual Studio
+   Database Webhook click-through needed) - but the trigger reads its target
+   URL and shared secret from Supabase Vault rather than having them
+   hardcoded in a committed file, so run this once via the SQL Editor after
+   `db push`:
+   ```sql
+   select vault.create_secret('<the DB_WEBHOOK_SECRET value from step 4>', 'db_webhook_secret');
+   select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/ban-suspended-user', 'ban_suspended_user_function_url');
+   ```
+   Until both vault secrets exist, the trigger no-ops (profile suspension
+   itself still works; only the login-ban side effect is skipped).
 
 ## Reviewing a producer for verification
 
