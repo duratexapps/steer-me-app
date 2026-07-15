@@ -66,8 +66,18 @@ export function useReceivedRequests() {
 export function useSendRequest() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ recipientId, division }: { recipientId: string; division: number }) => {
-      const { error } = await supabase.from('partner_requests').insert({ recipient_id: recipientId, division });
+    mutationFn: async ({
+      recipientId,
+      division,
+      eventId,
+    }: {
+      recipientId: string;
+      division: number;
+      eventId?: string;
+    }) => {
+      const { error } = await supabase
+        .from('partner_requests')
+        .insert({ recipient_id: recipientId, division, event_id: eventId ?? null });
       if (error) throw error;
     },
     onSuccess: () => {

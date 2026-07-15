@@ -10,11 +10,6 @@ import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useEligiblePartners } from '@/src/hooks/useEligiblePartners';
 import { useSentRequests } from '@/src/hooks/usePartnerRequests';
 import { publicUrlFor } from '@/src/lib/storage-upload';
-import { showToast } from '@/src/state/toast-store';
-
-function comingSoon(feature: string) {
-  showToast(`${feature} is coming in a later update`);
-}
 
 export default function Home() {
   const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
@@ -109,7 +104,7 @@ export default function Home() {
             icon="calendar-outline"
             title="Browse events"
             description="Find ropings from real producers and mark your plans to attend"
-            onPress={() => comingSoon('Events')}
+            onPress={() => router.push('/events')}
           />
           <ActionTile
             icon="pricetag-outline"
@@ -117,7 +112,7 @@ export default function Home() {
             description={
               hasProducerProfile ? 'Manage your events' : 'Set up a producer profile to list your own events'
             }
-            onPress={() => comingSoon('Producer tools')}
+            onPress={() => router.push('/producer')}
           />
         </View>
       </ScrollView>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { ToggleRow } from '@/src/components/ui/ToggleRow';
@@ -10,6 +10,7 @@ import { ReportModal } from '@/src/components/ReportModal';
 import { colors, fonts } from '@/src/theme/theme';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useEligiblePartners, type PublicProfile } from '@/src/hooks/useEligiblePartners';
+import { useEventPartners } from '@/src/hooks/useEvents';
 import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests';
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
@@ -20,16 +21,30 @@ import { showToast } from '@/src/state/toast-store';
 // Mirrors Screen 4 (#browse). The "my groups only" toggle from the
 // prototype is omitted - Groups is a deferred feature. Location uses real
 // expo-location + reverse geocoding instead of the prototype's fake timer.
+// When pushed from Events' "Partners" button (eventId/division params),
+// this switches to event-scoped matching instead of the raw cap filter.
 export default function Browse() {
-  const { cap: capParam } = useLocalSearchParams<{ cap?: string }>();
+  const { cap: capParam, eventId, division: divisionParam, eventName } = useLocalSearchParams<{
+    cap?: string;
+    eventId?: string;
+    division?: string;
+    eventName?: string;
+  }>();
   const cap = capParam ? parseFloat(capParam) : 10.5;
+  const eventDivision = divisionParam ? parseFloat(divisionParam) : null;
+  const inEventContext = !!eventId && eventDivision !== null;
 
   const { data: me } = useMyProfile();
   const [useLocationOn, setUseLocationOn] = useState(false);
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  const { data: partners, isLoading } = useEligiblePartners(cap, useLocationOn ? currentCity : null);
+  const oppositePosition = me ? neededOppositePosition(me.position) : 'Heeler';
+
+  const capResult = useEligiblePartners(cap, useLocationOn ? currentCity : null);
+  const eventResult = useEventPartners(eventId ?? '', eventDivision ?? 0, oppositePosition);
+  const { data: partners, isLoading } = inEventContext ? eventResult : capResult;
+
   const { data: sentRequests } = useSentRequests();
   const sendRequest = useSendRequest();
   const blockUser = useBlockUser();
@@ -57,7 +72,11 @@ export default function Browse() {
 
   async function handleRequest(partner: PublicProfile) {
     try {
-      await sendRequest.mutateAsync({ recipientId: partner.id, division: cap });
+      await sendRequest.mutateAsync({
+        recipientId: partner.id,
+        division: inEventContext ? eventDivision! : cap,
+        eventId: inEventContext ? eventId : undefined,
+      });
       showToast(
         partner.is_minor ? `Request routed to ${partner.full_name}'s guardian for approval` : `Request sent to ${partner.full_name}`
       );
@@ -68,7 +87,6 @@ export default function Browse() {
 
   if (!me) return null;
 
-  const oppositePosition = neededOppositePosition(me.position);
   const areaLabel = useLocationOn && currentCity ? `near ${currentCity} (current location)` : `near your home area (${me.home_area})`;
 
   return (
@@ -80,17 +98,32 @@ export default function Browse() {
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
           <>
-            <ToggleRow
-              title="Use my current location"
-              description="Traveling? Find partners near where you are, not just home"
-              value={useLocationOn}
-              onToggle={toggleLocation}
-            />
-            <Text style={styles.sub}>
-              {locationLoading
-                ? 'Requesting location access...'
-                : `Eligible ${oppositePosition.toLowerCase()}s for a ${cap} roping, ${areaLabel}`}
-            </Text>
+            {inEventContext ? (
+              <View style={styles.eventBanner}>
+                <Text style={styles.eventBannerText}>
+                  Showing {oppositePosition.toLowerCase()}s attending{' '}
+                  <Text style={{ fontFamily: fonts.bodyBold }}>{eventName}</Text> ({eventDivision} division) who
+                  are also marked attending.
+                </Text>
+                <Pressable onPress={() => router.replace('/(tabs)/browse')}>
+                  <Text style={styles.clearLink}>Clear and browse everyone eligible</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <ToggleRow
+                  title="Use my current location"
+                  description="Traveling? Find partners near where you are, not just home"
+                  value={useLocationOn}
+                  onToggle={toggleLocation}
+                />
+                <Text style={styles.sub}>
+                  {locationLoading
+                    ? 'Requesting location access...'
+                    : `Eligible ${oppositePosition.toLowerCase()}s for a ${cap} roping, ${areaLabel}`}
+                </Text>
+              </>
+            )}
           </>
         }
         renderItem={({ item }) => (
@@ -105,7 +138,11 @@ export default function Browse() {
         )}
         ListEmptyComponent={
           !isLoading ? (
-            <DividerNote>No eligible partners posted right now. Try turning off a filter or widening your event.</DividerNote>
+            <DividerNote>
+              {inEventContext
+                ? 'No one else has marked attending for this division yet. Check back closer to the event.'
+                : 'No eligible partners posted right now. Try turning off a filter or widening your event.'}
+            </DividerNote>
           ) : null
         }
       />
@@ -136,4 +173,18 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
   content: { padding: 20 },
   sub: { fontFamily: fonts.body, fontSize: 12, color: '#6b5c47', marginBottom: 14 },
+  eventBanner: {
+    backgroundColor: colors.leather,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  eventBannerText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.cream, lineHeight: 17 },
+  clearLink: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: colors.rope,
+    textDecorationLine: 'underline',
+    marginTop: 8,
+  },
 });
