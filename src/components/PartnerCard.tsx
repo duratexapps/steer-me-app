@@ -7,13 +7,16 @@ type PartnerCardProps = {
   partner: PublicProfile;
   alreadyRequested: boolean;
   nearby?: boolean;
-  onRequest: () => void;
+  onRequest?: () => void;
   onReport: () => void;
   onBlock: () => void;
 };
 
 // Mirrors the Browse .card rows - tag/name/area/position badge, guardian
-// note for minors, report/block links, and the request button.
+// note for minors, report/block links, and the request button. The request
+// button is omitted entirely when onRequest isn't provided - used for Goat
+// Roping's "who else is interested" discovery list, which has no
+// header/heeler team or classification-cap concept to request against.
 export function PartnerCard({ partner, alreadyRequested, nearby, onRequest, onReport, onBlock }: PartnerCardProps) {
   return (
     <View style={styles.card}>
@@ -35,13 +38,15 @@ export function PartnerCard({ partner, alreadyRequested, nearby, onRequest, onRe
           </Pressable>
         </View>
       </View>
-      <Pressable
-        onPress={onRequest}
-        disabled={alreadyRequested}
-        style={[styles.reqBtn, alreadyRequested && styles.reqBtnDisabled]}
-      >
-        <Text style={styles.reqBtnText}>{alreadyRequested ? 'Sent' : 'Request'}</Text>
-      </Pressable>
+      {onRequest ? (
+        <Pressable
+          onPress={onRequest}
+          disabled={alreadyRequested}
+          style={[styles.reqBtn, alreadyRequested && styles.reqBtnDisabled]}
+        >
+          <Text style={styles.reqBtnText}>{alreadyRequested ? 'Sent' : 'Request'}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

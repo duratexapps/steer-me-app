@@ -11,6 +11,7 @@ import { colors, fonts } from '@/src/theme/theme';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useEligiblePartners, type PublicProfile } from '@/src/hooks/useEligiblePartners';
 import { useEventPartners } from '@/src/hooks/useEvents';
+import { useGoatRopingInterest } from '@/src/hooks/useGoatRopingInterest';
 import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests';
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
@@ -25,15 +26,17 @@ import { showToast } from '@/src/state/toast-store';
 // When pushed from Events' "Partners" button (eventId/division params),
 // this switches to event-scoped matching instead of the raw cap filter.
 export default function Browse() {
-  const { cap: capParam, eventId, division: divisionParam, eventName } = useLocalSearchParams<{
+  const { cap: capParam, eventId, division: divisionParam, eventName, goatRoping } = useLocalSearchParams<{
     cap?: string;
     eventId?: string;
     division?: string;
     eventName?: string;
+    goatRoping?: string;
   }>();
   const cap = capParam ? parseFloat(capParam) : 10.5;
   const eventDivision = divisionParam ? parseFloat(divisionParam) : null;
   const inEventContext = !!eventId && eventDivision !== null;
+  const inGoatRopingContext = goatRoping === '1';
 
   const { data: me } = useMyProfile();
   const requireSubscription = useRequireSubscription();
@@ -45,7 +48,8 @@ export default function Browse() {
 
   const capResult = useEligiblePartners(cap, useLocationOn ? currentCity : null);
   const eventResult = useEventPartners(eventId ?? '', eventDivision ?? 0, oppositePosition);
-  const { data: partners, isLoading } = inEventContext ? eventResult : capResult;
+  const goatRopingResult = useGoatRopingInterest();
+  const { data: partners, isLoading } = inGoatRopingContext ? goatRopingResult : inEventContext ? eventResult : capResult;
 
   const { data: sentRequests } = useSentRequests();
   const sendRequest = useSendRequest();
@@ -94,14 +98,27 @@ export default function Browse() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Eligible Partners" subtitle="Showing ropers you can legally partner with" />
+      <ScreenHeader
+        title={inGoatRopingContext ? 'Goat Roping' : 'Eligible Partners'}
+        subtitle={inGoatRopingContext ? 'Everyone else interested - not bound by the number system' : 'Showing ropers you can legally partner with'}
+      />
       <FlatList
         contentContainerStyle={styles.content}
         data={partners ?? []}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
           <>
-            {inEventContext ? (
+            {inGoatRopingContext ? (
+              <View style={styles.eventBanner}>
+                <Text style={styles.eventBannerText}>
+                  Goat roping isn't bound by the classification number system, so this shows everyone who's
+                  posted interest - not a header/heeler match.
+                </Text>
+                <Pressable onPress={() => router.replace('/(tabs)/browse')}>
+                  <Text style={styles.clearLink}>Clear and browse everyone eligible</Text>
+                </Pressable>
+              </View>
+            ) : inEventContext ? (
               <View style={styles.eventBanner}>
                 <Text style={styles.eventBannerText}>
                   Showing {oppositePosition.toLowerCase()}s attending{' '}
@@ -134,7 +151,7 @@ export default function Browse() {
             partner={item}
             alreadyRequested={requestedIds.has(item.id)}
             nearby={useLocationOn && item.home_area === currentCity}
-            onRequest={() => handleRequest(item)}
+            onRequest={inGoatRopingContext ? undefined : () => handleRequest(item)}
             onReport={() => setReportTarget(item)}
             onBlock={() => blockUser.mutate(item.id)}
           />
@@ -144,9 +161,11 @@ export default function Browse() {
             <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
           ) : (
             <DividerNote>
-              {inEventContext
-                ? 'No one else has marked attending for this division yet. Check back closer to the event.'
-                : 'No eligible partners posted right now. Try turning off a filter or widening your event.'}
+              {inGoatRopingContext
+                ? 'No one else has posted interest in goat roping yet. Check back later.'
+                : inEventContext
+                  ? 'No one else has marked attending for this division yet. Check back closer to the event.'
+                  : 'No eligible partners posted right now. Try turning off a filter or widening your event.'}
             </DividerNote>
           )
         }

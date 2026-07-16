@@ -10,4 +10,17 @@ export function maxAllowedFor(cap: number, myNumber: number) {
   return Math.round((cap - myNumber) * 10) / 10;
 }
 
-export const COMMON_CAPS = [10, 10.5, 11, 12, 13, 15];
+export const COMMON_CAPS = [
+  3, 4, 4.5, 5, 5.5, 6, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5,
+];
+
+// "Open" is an industry term, not a real restriction: the highest a header
+// can be rated is a 9 and the highest a heeler can be rated is a 10, so a
+// #19 team is already the maximum possible combination under the numbering
+// system. Modeling Open as a cap of 19 makes the existing eligibility math
+// (cap - my number) naturally resolve to "everyone in the opposite
+// position qualifies" without any special-cased logic.
+export const OPEN_CAP = 19;
+
+export const MAX_HEADER_NUMBER = 9;
+export const MAX_HEELER_NUMBER = 10;
