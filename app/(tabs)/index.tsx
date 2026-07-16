@@ -83,7 +83,7 @@ export default function Home() {
               <ActionTile
                 icon="flag-outline"
                 title="Post that you need a partner"
-                description="Set your event and let the cap do the filtering"
+                description="Share your event details and see who else is eligible"
                 onPress={() => router.push('/(tabs)/post')}
               />
               <ActionTile

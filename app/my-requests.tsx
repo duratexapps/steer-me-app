@@ -45,7 +45,7 @@ function RequestCard({ request, mode }: { request: PartnerRequestWithProfile; mo
       <View style={styles.info}>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.meta}>
-          {request.division} roping · {request.counterpart?.home_area}
+          {request.is_goat_roping ? 'Goat Roping' : `${request.division} roping`} · {request.counterpart?.home_area}
         </Text>
         <Text style={styles.status}>{STATUS_LABEL[request.status]}</Text>
 

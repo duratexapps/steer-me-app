@@ -1,126 +1,120 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
-import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { DividerNote } from '@/src/components/ui/DividerNote';
-import { colors, fonts, radii } from '@/src/theme/theme';
-import { useMyProfile } from '@/src/hooks/useMyProfile';
-import { COMMON_CAPS, OPEN_CAP, maxAllowedFor, neededOppositePosition } from '@/src/lib/matching';
-import { useRegisterGoatRopingInterest, useMyGoatRopingInterest } from '@/src/hooks/useGoatRopingInterest';
+import { NeedPostCard } from '@/src/components/NeedPostCard';
+import { ReportModal } from '@/src/components/ReportModal';
+import { colors, fonts } from '@/src/theme/theme';
+import { useOpenNeedPosts, useMyNeedPosts, useDeleteNeedPost, type NeedPostWithPoster } from '@/src/hooks/useNeedPosts';
+import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests';
+import { useBlockUser } from '@/src/hooks/useBlocking';
+import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
 import { showToast } from '@/src/state/toast-store';
 
-type Selection = { kind: 'cap'; value: number } | { kind: 'goat' } | null;
-
-// Mirrors Screen 3 (#post). Numeric caps (plus "Open", which is really just
-// the industry term for a #19 team - the max possible header(9) + heeler(10)
-// combination, so it needs no special-cased math) still work exactly like
-// the prototype: no database write, just the classification calculator
-// handing off to Browse pre-filtered to the chosen cap. Goat Roping is
-// different - it isn't bound by the number system at all, so selecting it
-// registers interest and shows everyone else interested instead of running
-// any classification math.
+// Mirrors Screen 3 (#post), reimagined as a real browsable listing per user
+// feedback: posting a need now captures the actual event (date, name,
+// producer, optional flier/Facebook link) so other eligible athletes can
+// judge schedule/availability before responding - not just a private
+// classification calculator. Creation lives in create-need-post.tsx; this
+// screen is the "everyone eligible can browse it" list, plus your own
+// posted needs with the ability to take one down once it's filled.
 export default function Post() {
-  const { data: me } = useMyProfile();
-  const [selection, setSelection] = useState<Selection>(null);
-  const registerGoatRoping = useRegisterGoatRopingInterest();
-  const { data: alreadyInterested } = useMyGoatRopingInterest();
+  const { data: openPosts, isLoading: openLoading } = useOpenNeedPosts();
+  const { data: myPosts, isLoading: myLoading } = useMyNeedPosts();
+  const { data: sentRequests } = useSentRequests();
+  const sendRequest = useSendRequest();
+  const deleteNeedPost = useDeleteNeedPost();
+  const blockUser = useBlockUser();
+  const submitReport = useSubmitUserReport();
   const requireSubscription = useRequireSubscription();
 
-  if (!me) return null;
+  const [reportTarget, setReportTarget] = useState<NeedPostWithPoster | null>(null);
 
-  const cap = selection?.kind === 'cap' ? selection.value : null;
-  const maxAllowed = cap !== null ? maxAllowedFor(cap, me.global_classification ?? 0) : null;
-  const oppositePosition = neededOppositePosition(me.position);
-  const capLabel = cap === OPEN_CAP ? 'Open' : cap;
+  const requestedNeedPostIds = useMemo(
+    () => new Set((sentRequests ?? []).filter((r) => r.need_post_id).map((r) => r.need_post_id)),
+    [sentRequests]
+  );
 
-  async function handleSubmit() {
+  async function handleRequest(post: NeedPostWithPoster) {
+    if (!post.poster) return;
     if (!requireSubscription()) return;
-
-    if (selection?.kind === 'cap') {
+    try {
+      await sendRequest.mutateAsync({
+        recipientId: post.poster.id,
+        division: post.division,
+        needPostId: post.id,
+        isGoatRoping: post.is_goat_roping,
+      });
       showToast(
-        `Posted: need a ${oppositePosition.toLowerCase()} for the ${selection.value === OPEN_CAP ? 'Open' : selection.value} - showing your matches`
+        post.poster.is_minor
+          ? `Request routed to ${post.poster.full_name}'s guardian for approval`
+          : `Request sent to ${post.poster.full_name}`
       );
-      router.push({ pathname: '/(tabs)/browse', params: { cap: String(selection.value) } });
-      return;
-    }
-
-    if (selection?.kind === 'goat') {
-      try {
-        await registerGoatRoping.mutateAsync();
-        showToast('Posted: interested in Goat Roping - showing everyone else interested');
-        router.push({ pathname: '/(tabs)/browse', params: { goatRoping: '1' } });
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : 'Could not post');
-      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not send request');
     }
   }
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Post a Need" subtitle="We'll do the classification math for you" />
+      <ScreenHeader title="Post a Need" subtitle="Post your event, or find one to fill" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.eyebrow}>Choose your event</Text>
-        <View style={styles.pillRow}>
-          {COMMON_CAPS.map((c) => (
-            <Pill
-              key={c}
-              label={`#${c}`}
-              selected={selection?.kind === 'cap' && selection.value === c}
-              onPress={() => setSelection({ kind: 'cap', value: c })}
-            />
-          ))}
-          <Pill
-            label="Open"
-            selected={selection?.kind === 'cap' && selection.value === OPEN_CAP}
-            onPress={() => setSelection({ kind: 'cap', value: OPEN_CAP })}
-          />
-          <Pill label="Goat Roping" selected={selection?.kind === 'goat'} onPress={() => setSelection({ kind: 'goat' })} />
-        </View>
+        <Button label="+ Post a need" onPress={() => router.push('/create-need-post')} style={{ marginBottom: 20 }} />
 
-        {selection?.kind === 'cap' ? (
+        {myPosts && myPosts.length > 0 ? (
           <>
-            <View style={styles.capBanner}>
-              <Text style={styles.capNum}>{maxAllowed}</Text>
-              <Text style={styles.capLbl}>Max partner number allowed</Text>
-            </View>
-            <View style={styles.explain}>
-              <Text style={styles.explainText}>
-                {cap === OPEN_CAP ? (
-                  <>
-                    Open is capped at a #19 team - the highest possible combination (header 9 + heeler 10),
-                    so every {oppositePosition.toLowerCase()} qualifies. Typically entered by professional
-                    and/or elite athletes.
-                  </>
-                ) : (
-                  <>
-                    You're a {me.global_classification} {me.position.toLowerCase()}. In a #{capLabel} roping,
-                    your {oppositePosition.toLowerCase()} needs to be classified at {maxAllowed} or lower.
-                  </>
-                )}
-              </Text>
-            </View>
-            <Button label="Post & show me matches" onPress={handleSubmit} />
+            <Text style={styles.eyebrow}>Your posted needs</Text>
+            {myPosts.map((post) => (
+              <NeedPostCard
+                key={post.id}
+                post={{ ...post, poster: null }}
+                onDelete={() => deleteNeedPost.mutate(post.id)}
+              />
+            ))}
           </>
         ) : null}
 
-        {selection?.kind === 'goat' ? (
-          <>
-            <DividerNote>
-              Goat roping is usually a youth event and isn't bound by the classification number system.
-              Posting here shows you everyone else interested in goat roping - not a header/heeler match.
-            </DividerNote>
-            <Button
-              label={alreadyInterested ? "You're already posted - show me everyone interested" : 'Post & show me everyone interested'}
-              onPress={handleSubmit}
-              loading={registerGoatRoping.isPending}
+        <Text style={styles.eyebrow}>Open needs you can fill</Text>
+        {openLoading || myLoading ? (
+          <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
+        ) : !openPosts || openPosts.length === 0 ? (
+          <DividerNote>No open needs match your position and classification right now. Check back soon.</DividerNote>
+        ) : (
+          openPosts.map((post) => (
+            <NeedPostCard
+              key={post.id}
+              post={post}
+              alreadyRequested={requestedNeedPostIds.has(post.id)}
+              onRequest={() => handleRequest(post)}
+              onReport={() => setReportTarget(post)}
+              onBlock={() => post.poster && blockUser.mutate(post.poster.id)}
             />
-          </>
-        ) : null}
+          ))
+        )}
       </ScrollView>
+
+      {reportTarget?.poster ? (
+        <ReportModal
+          visible
+          onClose={() => setReportTarget(null)}
+          targetName={reportTarget.poster.full_name}
+          contentRef={`Posted need — ${reportTarget.event_name}, by ${reportTarget.poster.full_name}`}
+          offenses={USER_REPORT_OFFENSES}
+          submitting={submitReport.isPending}
+          onSubmit={(offense, description) =>
+            submitReport.mutateAsync({
+              targetUserId: reportTarget.poster!.id,
+              offense,
+              description,
+              contentRef: `Posted need — ${reportTarget.event_name}, by ${reportTarget.poster!.full_name}`,
+            })
+          }
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -135,35 +129,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: colors.rust,
     marginBottom: 8,
+    marginTop: 4,
   },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  capBanner: {
-    backgroundColor: colors.tan,
-    borderWidth: 1.5,
-    borderColor: colors.leather,
-    borderStyle: 'dashed',
-    borderRadius: radii.lg,
-    padding: 14,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  capNum: { fontFamily: fonts.mono, fontSize: 26, color: colors.rust },
-  capLbl: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11.5,
-    color: colors.leather,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginTop: 2,
-  },
-  explain: {
-    backgroundColor: colors.tan,
-    borderWidth: 1,
-    borderColor: colors.rope,
-    borderStyle: 'dashed',
-    borderRadius: radii.lg,
-    padding: 12,
-    marginBottom: 16,
-  },
-  explainText: { fontFamily: fonts.body, fontSize: 12, color: colors.leather, lineHeight: 17 },
 });

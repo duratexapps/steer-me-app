@@ -6,7 +6,9 @@ import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
 export type PartnerRequestRow = {
   id: string;
   event_id: string | null;
-  division: number;
+  need_post_id: string | null;
+  division: number | null;
+  is_goat_roping: boolean;
   requester_id: string;
   recipient_id: string;
   status: 'pending' | 'pending_guardian' | 'accepted' | 'declined';
@@ -70,14 +72,22 @@ export function useSendRequest() {
       recipientId,
       division,
       eventId,
+      needPostId,
+      isGoatRoping,
     }: {
       recipientId: string;
-      division: number;
+      division: number | null;
       eventId?: string;
+      needPostId?: string;
+      isGoatRoping?: boolean;
     }) => {
-      const { error } = await supabase
-        .from('partner_requests')
-        .insert({ recipient_id: recipientId, division, event_id: eventId ?? null });
+      const { error } = await supabase.from('partner_requests').insert({
+        recipient_id: recipientId,
+        division,
+        event_id: eventId ?? null,
+        need_post_id: needPostId ?? null,
+        is_goat_roping: isGoatRoping ?? false,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
