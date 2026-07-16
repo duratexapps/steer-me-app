@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { publicUrlFor } from '@/src/lib/storage-upload';
-import { formatDivision } from '@/src/lib/matching';
+import { formatDivision, formatPosition } from '@/src/lib/matching';
 import { formatDateDisplay } from '@/src/lib/date';
 import type { NeedPostWithPoster } from '@/src/hooks/useNeedPosts';
 
@@ -35,7 +35,7 @@ export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBl
           </Text>
           {post.poster ? (
             <Text style={styles.posterLine}>
-              Posted by {post.poster.full_name} · {post.poster.position} · {post.poster.home_area}
+              Posted by {post.poster.full_name} · {formatPosition(post.poster.position)} · {post.poster.home_area}
             </Text>
           ) : null}
           <Text style={styles.divisionBadge}>{formatDivision(post.division, post.is_goat_roping)}</Text>

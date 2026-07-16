@@ -2,11 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/state/session-store';
 import { showToast } from '@/src/state/toast-store';
+import type { Position } from '@/src/lib/matching';
 
 export type BlockedProfile = {
   id: string;
   full_name: string;
-  position: 'Header' | 'Heeler';
+  position: Position;
   home_area: string;
   global_classification: number | null;
   avatar_url: string | null;

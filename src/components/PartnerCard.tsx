@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
+import { formatPosition } from '@/src/lib/matching';
 import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
 
 type PartnerCardProps = {
@@ -25,7 +26,7 @@ export function PartnerCard({ partner, alreadyRequested, nearby, onRequest, onRe
         <Text style={styles.name}>{partner.full_name}</Text>
         <Text style={styles.meta}>{partner.home_area}</Text>
         <View style={styles.badgeRow}>
-          <Text style={styles.posBadge}>{partner.position}</Text>
+          <Text style={styles.posBadge}>{formatPosition(partner.position)}</Text>
           {partner.is_minor ? <Text style={[styles.posBadge, styles.rustBadge]}>Guardian approval</Text> : null}
           {nearby ? <Text style={[styles.posBadge, styles.greenBadge]}>Nearby now</Text> : null}
         </View>

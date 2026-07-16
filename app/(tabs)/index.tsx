@@ -10,6 +10,7 @@ import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useEligiblePartners } from '@/src/hooks/useEligiblePartners';
 import { useSentRequests } from '@/src/hooks/usePartnerRequests';
 import { publicUrlFor } from '@/src/lib/storage-upload';
+import { formatPosition } from '@/src/lib/matching';
 
 export default function Home() {
   const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
@@ -45,7 +46,7 @@ export default function Home() {
               <View>
                 <Text style={styles.who}>{profile.full_name}</Text>
                 <Text style={styles.role}>
-                  {profile.position} · {profile.home_area}
+                  {formatPosition(profile.position)} · {profile.home_area}
                 </Text>
                 {profile.is_minor ? <Text style={styles.minorBadge}>Guardian-managed profile</Text> : null}
               </View>

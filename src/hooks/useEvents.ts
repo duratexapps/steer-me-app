@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/state/session-store';
+import type { Position } from '@/src/lib/matching';
 import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
 
 export type EventRow = {
@@ -148,9 +149,9 @@ export function useToggleAttendance() {
   });
 }
 
-export function useEventPartners(eventId: string, division: number, oppositePosition: 'Header' | 'Heeler') {
+export function useEventPartners(eventId: string, division: number, myPosition: Position) {
   return useQuery({
-    queryKey: ['event-partners', eventId, division, oppositePosition],
+    queryKey: ['event-partners', eventId, division, myPosition],
     queryFn: async () => {
       const { data: attendance, error: attendanceError } = await supabase
         .from('event_attendance')
@@ -162,11 +163,15 @@ export function useEventPartners(eventId: string, division: number, oppositePosi
       const athleteIds = (attendance as { athlete_id: string }[]).map((a) => a.athlete_id);
       if (athleteIds.length === 0) return [];
 
-      const { data, error } = await supabase
-        .from('public_profiles')
-        .select('*')
-        .in('id', athleteIds)
-        .eq('position', oppositePosition);
+      // Same canPair() reasoning as useEligiblePartners: exclude only my
+      // own exclusive position server-side; a Switch Ender sees everyone
+      // attending, regardless of their position.
+      let query = supabase.from('public_profiles').select('*').in('id', athleteIds);
+      if (myPosition !== 'Switch') {
+        query = query.neq('position', myPosition);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as PublicProfile[];
     },

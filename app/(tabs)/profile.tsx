@@ -12,6 +12,7 @@ import { publicUrlFor, removeUserFile } from '@/src/lib/storage-upload';
 import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
+import { formatPosition } from '@/src/lib/matching';
 
 // Mirrors Screen 6 (#profile). Two necessary additions beyond the
 // prototype: a real Sign Out action (the prototype has no auth at all), and
@@ -107,7 +108,7 @@ export default function Profile() {
           <View>
             <Text style={styles.name}>{profile.full_name}</Text>
             <Text style={styles.sub}>
-              {profile.position} · {profile.home_area}
+              {formatPosition(profile.position)} · {profile.home_area}
             </Text>
             {profile.is_minor ? <Text style={styles.minorBadge}>Guardian-managed profile</Text> : null}
           </View>
@@ -123,10 +124,18 @@ export default function Profile() {
         </View>
 
         <Button
+          label="Edit profile"
+          variant="outline"
+          onPress={() => router.push('/edit-profile')}
+          style={styles.updateBtn}
+        />
+        <Text style={styles.retentionNote}>Name, position, home area, avatar, and contact info.</Text>
+
+        <Button
           label="Update my classification"
           variant="outline"
           onPress={() => router.push('/update-classification')}
-          style={styles.updateBtn}
+          style={styles.spacedBtn}
         />
         <Text style={styles.retentionNote}>Uploading a new screenshot replaces and deletes the old one.</Text>
 

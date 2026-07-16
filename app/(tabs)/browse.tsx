@@ -16,7 +16,7 @@ import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests'
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
-import { neededOppositePosition, formatDivision, DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
+import { formatDivision, DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { getCurrentCity } from '@/src/lib/location';
 import { showToast } from '@/src/state/toast-store';
 
@@ -48,10 +48,8 @@ export default function Browse() {
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  const oppositePosition = me ? neededOppositePosition(me.position) : 'Heeler';
-
   const capResult = useEligiblePartners(cap, useLocationOn ? currentCity : null);
-  const eventResult = useEventPartners(eventId ?? '', eventDivision ?? 0, oppositePosition);
+  const eventResult = useEventPartners(eventId ?? '', eventDivision ?? 0, me?.position ?? 'Header');
   const { data: partners, isLoading } = inEventContext ? eventResult : capResult;
 
   const { data: sentRequests } = useSentRequests();
@@ -111,7 +109,7 @@ export default function Browse() {
             {inEventContext ? (
               <View style={styles.eventBanner}>
                 <Text style={styles.eventBannerText}>
-                  Showing {oppositePosition.toLowerCase()}s attending{' '}
+                  Showing partners attending{' '}
                   <Text style={{ fontFamily: fonts.bodyBold }}>{eventName}</Text> ({formatDivision(eventDivision)} division) who
                   are also marked attending.
                 </Text>
@@ -136,7 +134,7 @@ export default function Browse() {
                 <Text style={styles.sub}>
                   {locationLoading
                     ? 'Requesting location access...'
-                    : `Eligible ${oppositePosition.toLowerCase()}s for a ${formatDivision(cap)} roping, ${areaLabel}`}
+                    : `Eligible partners for a ${formatDivision(cap)} roping, ${areaLabel}`}
                 </Text>
               </>
             )}

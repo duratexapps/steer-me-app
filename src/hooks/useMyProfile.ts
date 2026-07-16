@@ -1,13 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/state/session-store';
+import type { Position } from '@/src/lib/matching';
 
 export type MyProfile = {
   id: string;
   full_name: string;
   is_minor: boolean;
   guardian_name: string | null;
-  position: 'Header' | 'Heeler';
+  guardian_contact: string | null;
+  position: Position;
   home_area: string;
   contact: string | null;
   avatar_url: string | null;

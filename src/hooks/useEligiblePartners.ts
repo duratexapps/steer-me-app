@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
-import { neededOppositePosition, maxAllowedFor } from '@/src/lib/matching';
+import { maxAllowedFor, type Position } from '@/src/lib/matching';
 
 export type PublicProfile = {
   id: string;
   full_name: string;
-  position: 'Header' | 'Heeler';
+  position: Position;
   home_area: string;
   global_classification: number;
   avatar_url: string | null;
@@ -23,13 +23,21 @@ export function useEligiblePartners(cap: number, nearCity: string | null) {
       if (!me?.global_classification) return [];
       const maxAllowed = maxAllowedFor(cap, me.global_classification);
 
-      const { data, error } = await supabase
+      // canPair(): a Header can't pair with a Header, a Heeler can't pair
+      // with a Heeler, but a Switch Ender is compatible with everyone - so
+      // the only DB-side filter needed is "exclude my own exclusive
+      // position" when I'm not a Switch Ender myself; a Switch Ender sees
+      // everyone regardless of their position.
+      let query = supabase
         .from('public_profiles')
         .select('*')
-        .eq('position', neededOppositePosition(me.position))
         .lte('global_classification', maxAllowed)
-        .neq('id', me.id)
-        .order('global_classification', { ascending: false });
+        .neq('id', me.id);
+      if (me.position !== 'Switch') {
+        query = query.neq('position', me.position);
+      }
+
+      const { data, error } = await query.order('global_classification', { ascending: false });
 
       if (error) throw error;
       const partners = (data ?? []) as PublicProfile[];

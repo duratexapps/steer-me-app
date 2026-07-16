@@ -17,6 +17,7 @@ import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
 import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
+import type { Position } from '@/src/lib/matching';
 
 type PhotoTarget = 'avatar' | 'screenshot' | null;
 
@@ -43,7 +44,7 @@ export default function SignUp() {
   const [globalMembershipId, setGlobalMembershipId] = useState('');
   const [classification, setClassification] = useState('');
 
-  const [position, setPosition] = useState<'Header' | 'Heeler'>('Heeler');
+  const [position, setPosition] = useState<Position>('Heeler');
   const [homeArea, setHomeArea] = useState('');
   const [contact, setContact] = useState('');
   const [guidelinesAccepted, setGuidelinesAccepted] = useState(false);
@@ -226,7 +227,11 @@ export default function SignUp() {
         <View style={styles.pillRow}>
           <Pill label="Header" selected={position === 'Header'} onPress={() => setPosition('Header')} />
           <Pill label="Heeler" selected={position === 'Heeler'} onPress={() => setPosition('Heeler')} />
+          <Pill label="Switch Ender" selected={position === 'Switch'} onPress={() => setPosition('Switch')} />
         </View>
+        {position === 'Switch' ? (
+          <Text style={styles.helper}>You'll be shown potential partners for both ends - header and heeler.</Text>
+        ) : null}
 
         <TextField label="Home area" value={homeArea} onChangeText={setHomeArea} placeholder="e.g. Payson, AZ" />
 

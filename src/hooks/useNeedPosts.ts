@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile, type MyProfile } from '@/src/hooks/useMyProfile';
-import { maxAllowedFor, neededOppositePosition } from '@/src/lib/matching';
+import { maxAllowedFor, canPair } from '@/src/lib/matching';
 import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
 
 export type NeedPostRow = {
@@ -29,14 +29,14 @@ async function withPosters(rows: NeedPostRow[]): Promise<NeedPostWithPoster[]> {
   return rows.map((r) => ({ ...r, poster: byId.get(r.athlete_id) ?? null }));
 }
 
-// A viewer is eligible to respond to a posted need if they're in the
-// opposite position from the poster and their own number fits under the
-// poster's cap - same math as eligiblePartners(), just evaluated against
-// the poster's number instead of the viewer's. Goat roping posts have no
-// cap at all, so every opposite-interest athlete can see them.
+// A viewer is eligible to respond to a posted need if canPair() allows
+// their position to fill the opposite end from the poster's and their own
+// number fits under the poster's cap - same math as eligiblePartners(),
+// just evaluated against the poster's number instead of the viewer's.
+// Goat roping posts have no cap or position constraint at all.
 function isEligibleForPost(post: NeedPostRow, poster: PublicProfile, me: MyProfile) {
   if (post.is_goat_roping) return true;
-  if (poster.position === me.position) return false;
+  if (!canPair(poster.position, me.position)) return false;
   if (post.division == null) return false;
   return me.global_classification != null && me.global_classification <= maxAllowedFor(post.division, poster.global_classification);
 }

@@ -1,9 +1,22 @@
-// The entire eligibility algorithm: for a roping with cap C, a header's
-// eligible heelers (or vice versa) are anyone in the OPPOSITE position whose
-// classification number is <= (C - my number). Mirrors the prototype's
-// neededOppositePosition()/eligiblePartners() exactly.
-export function neededOppositePosition(position: 'Header' | 'Heeler') {
-  return position === 'Header' ? 'Heeler' : 'Header';
+export type Position = 'Header' | 'Heeler' | 'Switch';
+
+// The classification-cap math (cap - my number = max partner number
+// allowed) only ever depends on the SUM of both people's numbers, never on
+// which end is labeled which. So the only real constraint on whether two
+// people can pair up is "not both exclusively the same end" - a Header
+// can't pair with a Header, a Heeler can't pair with a Heeler, but a
+// Switch Ender is compatible with everyone, including another Switch
+// Ender (between two flexible ropers, either can take either end and the
+// math comes out the same regardless of who ropes which). This one rule
+// replaces the old strict "opposite position" check everywhere, with no
+// need to separately declare a role per request or posted need.
+export function canPair(a: Position, b: Position) {
+  if (a === 'Switch' || b === 'Switch') return true;
+  return a !== b;
+}
+
+export function formatPosition(position: Position) {
+  return position === 'Switch' ? 'Switch Ender' : position;
 }
 
 export function maxAllowedFor(cap: number, myNumber: number) {
