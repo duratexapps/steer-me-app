@@ -70,7 +70,7 @@ export default function Profile() {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
         <ScreenHeader title="Profile" subtitle="Your Global-issued info" />
-        <ActivityIndicator color={colors.rust} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={colors.brass} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
   }
@@ -165,16 +165,16 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, paddingBottom: 36 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
   avatar: { width: 96, height: 96, borderRadius: 48 },
-  name: { fontFamily: fonts.display, fontSize: 20, color: colors.leather },
-  sub: { fontFamily: fonts.body, fontSize: 12.5, color: '#6b5c47', marginTop: 2 },
+  name: { fontFamily: fonts.displayBold, fontSize: 20, color: colors.espresso },
+  sub: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginTop: 2 },
   minorBadge: {
     fontFamily: fonts.bodyBold,
     fontSize: 10.5,
-    color: colors.rust,
+    color: colors.brass,
     textTransform: 'uppercase',
     marginTop: 4,
     letterSpacing: 0.4,
@@ -182,14 +182,14 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.tanLight,
     borderWidth: 1,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     borderLeftWidth: 4,
-    borderLeftColor: colors.leather,
+    borderLeftColor: colors.espresso,
     borderRadius: radii.md,
     padding: 14,
     marginBottom: 12,
   },
-  cardMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.leather },
+  cardMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.espresso },
   cardValueMono: { fontFamily: fonts.monoRegular, fontSize: 14, color: colors.ink, marginTop: 2 },
   cardValue: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink, marginTop: 2 },
   updateBtn: { marginTop: 8 },
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontStyle: 'italic',
     fontSize: 11,
-    color: '#6b5c47',
+    color: colors.saddle,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 14,

@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginBottom: 6,
   },
   input: {
@@ -85,11 +85,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radii.md,
     borderWidth: 1.5,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     backgroundColor: colors.tanLight,
   },
   valueText: { fontFamily: fonts.body, fontSize: 14, color: colors.ink },
-  placeholderText: { fontFamily: fonts.body, fontSize: 14, color: '#9c8a6b' },
+  placeholderText: { fontFamily: fonts.body, fontSize: 14, color: colors.placeholder },
   overlay: { flex: 1, backgroundColor: 'rgba(42,35,28,0.6)', justifyContent: 'flex-end' },
-  card: { backgroundColor: colors.cream, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, padding: 18 },
+  card: { backgroundColor: colors.bone, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, padding: 18 },
 });

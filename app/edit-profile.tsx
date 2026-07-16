@@ -103,7 +103,7 @@ export default function EditProfile() {
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
             ) : (
-              <Ionicons name="person-outline" size={22} color={colors.rope} />
+              <Ionicons name="person-outline" size={22} color={colors.saddle} />
             )}
           </View>
           <View style={{ flex: 1 }}>
@@ -164,17 +164,17 @@ export default function EditProfile() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, paddingBottom: 36 },
   label: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginBottom: 6,
   },
-  helper: { fontFamily: fonts.body, fontSize: 12.5, color: '#6b5c47', marginBottom: 16, lineHeight: 17, marginTop: -8 },
+  helper: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginBottom: 16, lineHeight: 17, marginTop: -8 },
   pillRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
   avatarCircle: {
@@ -182,14 +182,13 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.tanLight,
-    borderWidth: 2,
-    borderColor: colors.rope,
-    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: colors.brass,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   avatarImage: { width: '100%', height: '100%' },
-  avatarTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.leather },
-  avatarSub: { fontFamily: fonts.body, fontSize: 11, color: '#6b5c47', marginTop: 1, lineHeight: 15 },
+  avatarTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.espresso },
+  avatarSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 1, lineHeight: 15 },
 });

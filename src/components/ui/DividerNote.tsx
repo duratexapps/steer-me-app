@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radii } from '@/src/theme/theme';
 
-// Mirrors .divider-note - the dashed-border callout box used throughout the
+// Mirrors .divider-note - the hairline callout box used throughout the
 // prototype for guideline text, pricing notes, and empty states.
 export function DividerNote({ children }: { children: React.ReactNode }) {
   return (
@@ -15,8 +15,7 @@ const styles = StyleSheet.create({
   wrap: {
     backgroundColor: colors.tan,
     borderWidth: 1,
-    borderColor: colors.rope,
-    borderStyle: 'dashed',
+    borderColor: colors.brass,
     borderRadius: radii.lg,
     padding: 12,
     marginBottom: 14,
@@ -24,7 +23,7 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: colors.leather,
+    color: colors.espresso,
     lineHeight: 17,
   },
 });

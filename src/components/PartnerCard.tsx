@@ -27,7 +27,7 @@ export function PartnerCard({ partner, alreadyRequested, nearby, onRequest, onRe
         <Text style={styles.meta}>{partner.home_area}</Text>
         <View style={styles.badgeRow}>
           <Text style={styles.posBadge}>{formatPosition(partner.position)}</Text>
-          {partner.is_minor ? <Text style={[styles.posBadge, styles.rustBadge]}>Guardian approval</Text> : null}
+          {partner.is_minor ? <Text style={[styles.posBadge, styles.brassBadge]}>Guardian approval</Text> : null}
           {nearby ? <Text style={[styles.posBadge, styles.greenBadge]}>Nearby now</Text> : null}
         </View>
         <View style={styles.linkRow}>
@@ -59,39 +59,39 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: colors.tanLight,
     borderWidth: 1,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     borderLeftWidth: 4,
-    borderLeftColor: colors.rust,
+    borderLeftColor: colors.brass,
     borderRadius: radii.lg,
     padding: 14,
     marginBottom: 12,
   },
   info: { flex: 1 },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
-  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.leather, marginTop: 2 },
+  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.espresso, marginTop: 2 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   posBadge: {
     fontFamily: fonts.bodyBold,
     fontSize: 10,
     textTransform: 'uppercase',
-    color: colors.cream,
+    color: colors.bone,
     backgroundColor: colors.green,
     paddingVertical: 2,
     paddingHorizontal: 7,
     borderRadius: 4,
     overflow: 'hidden',
   },
-  rustBadge: { backgroundColor: colors.rust },
+  brassBadge: { backgroundColor: colors.brass },
   greenBadge: { backgroundColor: colors.green },
   linkRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  reportLink: { fontFamily: fonts.body, fontSize: 11, color: '#6b5c47', textDecorationLine: 'underline' },
+  reportLink: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, textDecorationLine: 'underline' },
   blockLink: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 11,
-    color: colors.rust,
+    color: colors.brass,
     textDecorationLine: 'underline',
   },
-  reqBtn: { backgroundColor: colors.leather, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12 },
-  reqBtnDisabled: { backgroundColor: colors.rope },
-  reqBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.cream },
+  reqBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12 },
+  reqBtnDisabled: { backgroundColor: colors.saddle },
+  reqBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.bone },
 });

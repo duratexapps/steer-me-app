@@ -14,7 +14,7 @@ export function Checkbox({ checked, onToggle, children }: CheckboxProps) {
   return (
     <Pressable onPress={onToggle} style={styles.row}>
       <View style={[styles.box, checked && styles.boxChecked]}>
-        {checked ? <Ionicons name="checkmark" size={13} color={colors.cream} /> : null}
+        {checked ? <Ionicons name="checkmark" size={13} color={colors.bone} /> : null}
       </View>
       <Text style={styles.label}>{children}</Text>
     </Pressable>
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     height: 19,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     backgroundColor: colors.tanLight,
     alignItems: 'center',
     justifyContent: 'center',

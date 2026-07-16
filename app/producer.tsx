@@ -33,7 +33,7 @@ export default function Producer() {
   if (hasProducerProfile && isLoading) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
-        <ActivityIndicator color={colors.rust} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={colors.brass} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
   }
@@ -122,7 +122,7 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
             </>
           ) : (
             <>
-              <Ionicons name="document-text-outline" size={26} color={colors.leather} />
+              <Ionicons name="document-text-outline" size={26} color={colors.espresso} />
               <Text style={styles.dropzoneText}>
                 Upload a business license, insurance certificate, or sanctioning-body affiliation letter
               </Text>
@@ -163,7 +163,7 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
 
         <Text style={styles.eyebrow}>Your events</Text>
         {eventsLoading ? (
-          <ActivityIndicator color={colors.rust} style={{ marginTop: 12 }} />
+          <ActivityIndicator color={colors.brass} style={{ marginTop: 12 }} />
         ) : !events || events.length === 0 ? (
           <DividerNote>No events posted yet. Create your first one above.</DividerNote>
         ) : (
@@ -175,14 +175,14 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, paddingBottom: 36 },
   eyebrow: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: colors.rust,
+    color: colors.brass,
     marginBottom: 8,
   },
   label: {
@@ -190,14 +190,13 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginBottom: 6,
   },
-  required: { color: colors.rust, textTransform: 'none' },
+  required: { color: colors.brass, textTransform: 'none' },
   dropzone: {
-    borderWidth: 2,
-    borderColor: colors.rope,
-    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: colors.brass,
     borderRadius: radii.lg,
     backgroundColor: colors.tanLight,
     padding: 18,
@@ -205,7 +204,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   dropzoneImage: { width: '100%', height: 130, borderRadius: radii.md, marginBottom: 8 },
-  dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.leather, marginTop: 6, textAlign: 'center' },
-  dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: '#6b5c47', marginTop: 2, textAlign: 'center' },
+  dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso, marginTop: 6, textAlign: 'center' },
+  dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2, textAlign: 'center' },
   dropzoneDone: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.green },
 });

@@ -58,7 +58,7 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20 },
   submit: { marginTop: 8 },
 });

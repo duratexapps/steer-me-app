@@ -76,8 +76,8 @@ export default function CreateAccount() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20 },
-  helper: { fontFamily: fonts.body, fontSize: 12.5, color: '#6b5c47', marginBottom: 16, lineHeight: 17 },
+  helper: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginBottom: 16, lineHeight: 17 },
   submit: { marginTop: 8 },
 });

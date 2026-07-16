@@ -28,7 +28,7 @@ export function Button({ label, onPress, variant = 'primary', disabled, loading,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.cream : colors.leather} />
+        <ActivityIndicator color={variant === 'primary' ? colors.bone : colors.espresso} />
       ) : (
         <Text style={[styles.label, variantTextStyles[variant]]}>{label}</Text>
       )}
@@ -54,15 +54,15 @@ const styles = StyleSheet.create({
 });
 
 const variantStyles = StyleSheet.create({
-  primary: { backgroundColor: colors.rust },
-  outline: { backgroundColor: 'transparent', borderWidth: 2, borderColor: colors.leather },
-  ghost: { backgroundColor: colors.tanLight, borderWidth: 1, borderColor: colors.rope },
-  danger: { backgroundColor: 'transparent', borderWidth: 2, borderColor: colors.rust },
+  primary: { backgroundColor: colors.brass },
+  outline: { backgroundColor: 'transparent', borderWidth: 2, borderColor: colors.espresso },
+  ghost: { backgroundColor: colors.tanLight, borderWidth: 1, borderColor: colors.saddle },
+  danger: { backgroundColor: 'transparent', borderWidth: 2, borderColor: colors.oxblood },
 });
 
 const variantTextStyles = StyleSheet.create({
-  primary: { color: colors.cream },
-  outline: { color: colors.leather },
-  ghost: { color: colors.leather },
-  danger: { color: colors.rust },
+  primary: { color: colors.bone },
+  outline: { color: colors.espresso },
+  ghost: { color: colors.espresso },
+  danger: { color: colors.oxblood },
 });

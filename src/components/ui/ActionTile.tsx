@@ -9,13 +9,13 @@ type ActionTileProps = {
   onPress: () => void;
 };
 
-// Mirrors .action-tile - the tappable rows on Home/Producer with a rust icon
+// Mirrors .action-tile - the tappable rows on Home/Producer with a brass icon
 // square, bold title, and helper description.
 export function ActionTile({ icon, title, description, onPress }: ActionTileProps) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
       <View style={styles.icon}>
-        <Ionicons name={icon} size={20} color={colors.cream} />
+        <Ionicons name={icon} size={20} color={colors.bone} />
       </View>
       <View style={styles.text}>
         <Text style={styles.title}>{title}</Text>
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     gap: 14,
     backgroundColor: colors.tanLight,
     borderWidth: 1,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     borderRadius: radii.lg,
     padding: 16,
     marginBottom: 12,
@@ -42,11 +42,11 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: radii.md,
-    backgroundColor: colors.rust,
+    backgroundColor: colors.brass,
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: { flex: 1 },
-  title: { fontFamily: fonts.bodyBold, fontSize: 14.5, color: colors.leather },
-  description: { fontFamily: fonts.body, fontSize: 11.5, color: '#6b5c47', marginTop: 1 },
+  title: { fontFamily: fonts.bodyBold, fontSize: 14.5, color: colors.espresso },
+  description: { fontFamily: fonts.body, fontSize: 11.5, color: colors.saddle, marginTop: 1 },
 });

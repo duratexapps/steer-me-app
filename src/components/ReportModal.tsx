@@ -55,7 +55,7 @@ export function ReportModal({
           <View style={styles.header}>
             <Text style={styles.title}>Report {targetName}</Text>
             <Pressable onPress={handleClose} hitSlop={10}>
-              <Ionicons name="close" size={24} color={colors.leather} />
+              <Ionicons name="close" size={24} color={colors.espresso} />
             </Pressable>
           </View>
 
@@ -105,35 +105,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  card: { backgroundColor: colors.cream, borderRadius: radii.xl, padding: 18, width: '100%' },
+  card: { backgroundColor: colors.bone, borderRadius: radii.xl, padding: 18, width: '100%' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  title: { fontFamily: fonts.display, fontSize: 19, color: colors.leather, letterSpacing: 0.4 },
+  title: { fontFamily: fonts.displayBold, fontSize: 19, color: colors.espresso, letterSpacing: 0.4 },
   label: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginTop: 12,
     marginBottom: 6,
   },
-  required: { color: colors.rust, textTransform: 'none' },
+  required: { color: colors.brass, textTransform: 'none' },
   offenseRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   radio: {
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 1.5,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioSelected: { borderColor: colors.rust },
-  radioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.rust },
+  radioSelected: { borderColor: colors.brass },
+  radioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.brass },
   offenseText: { fontFamily: fonts.body, fontSize: 13, color: colors.ink, flex: 1 },
   textarea: {
     borderWidth: 1.5,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     borderRadius: radii.md,
     backgroundColor: colors.tanLight,
     padding: 12,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   contentRef: {
     fontFamily: fonts.monoRegular,
     fontSize: 11.5,
-    color: '#6b5c47',
+    color: colors.saddle,
     backgroundColor: colors.tanLight,
     borderRadius: radii.sm,
     padding: 10,

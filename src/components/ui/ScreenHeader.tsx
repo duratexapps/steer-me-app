@@ -11,7 +11,7 @@ type ScreenHeaderProps = {
   logo?: boolean;
 };
 
-// Mirrors .topbar - the leather header bar with title + subtitle, and an
+// Mirrors .topbar - the espresso header bar with title + subtitle, and an
 // optional back arrow (.back-row) for pushed screens. `logo` is only passed
 // on the two screens that show the "Steer Me" brand title (role-select,
 // sign-up) - every other screen shows its own screen name instead, per the
@@ -22,7 +22,7 @@ export function ScreenHeader({ title, subtitle, onBack, big, logo }: ScreenHeade
       <View style={styles.row}>
         {onBack ? (
           <Pressable onPress={onBack} hitSlop={10} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={20} color={colors.cream} />
+            <Ionicons name="arrow-back" size={20} color={colors.bone} />
           </Pressable>
         ) : null}
         {logo ? <Image source={require('@/assets/logo.png')} style={styles.logo} contentFit="contain" /> : null}
@@ -35,7 +35,7 @@ export function ScreenHeader({ title, subtitle, onBack, big, logo }: ScreenHeade
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: colors.leather,
+    backgroundColor: colors.espresso,
     paddingTop: 22,
     paddingBottom: 16,
     paddingHorizontal: 20,
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   logo: { width: 44, height: 27 },
   title: {
     fontFamily: fonts.display,
-    color: colors.cream,
+    color: colors.bone,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   titleSmall: { fontSize: 22 },
   subtitle: {
     fontSize: 12,
-    color: colors.rope,
+    color: colors.saddle,
     marginTop: 2,
     fontFamily: fonts.bodyMedium,
   },

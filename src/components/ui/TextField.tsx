@@ -6,7 +6,7 @@ type TextFieldProps = TextInputProps & {
   required?: boolean;
 };
 
-// Mirrors the prototype's label + input pairing (uppercase leather label,
+// Mirrors the prototype's label + input pairing (uppercase espresso label,
 // tan-light input with rope border).
 export function TextField({ label, required, style, ...inputProps }: TextFieldProps) {
   return (
@@ -31,17 +31,17 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginBottom: 6,
   },
-  required: { color: colors.rust, textTransform: 'none' },
+  required: { color: colors.brass, textTransform: 'none' },
   input: {
     width: '100%',
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: radii.md,
     borderWidth: 1.5,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     backgroundColor: colors.tanLight,
     fontFamily: fonts.body,
     fontSize: 14,

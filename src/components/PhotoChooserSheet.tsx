@@ -33,7 +33,7 @@ export function PhotoChooserSheet({ visible, onClose, onPicked }: PhotoChooserSh
           <View style={styles.header}>
             <Text style={styles.title}>Add a photo</Text>
             <Pressable onPress={onClose} hitSlop={10}>
-              <Ionicons name="close" size={24} color={colors.leather} />
+              <Ionicons name="close" size={24} color={colors.espresso} />
             </Pressable>
           </View>
           <Button label="Take a photo" variant="outline" onPress={handleCamera} style={styles.firstButton} />
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   card: {
-    backgroundColor: colors.cream,
+    backgroundColor: colors.bone,
     borderRadius: radii.xl,
     padding: 18,
     width: '100%',
@@ -67,14 +67,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  title: { fontFamily: fonts.display, fontSize: 19, color: colors.leather, letterSpacing: 0.4 },
+  title: { fontFamily: fonts.displayBold, fontSize: 19, color: colors.espresso, letterSpacing: 0.4 },
   firstButton: { marginTop: 0 },
   button: { marginTop: 10 },
   note: {
     fontFamily: fonts.body,
     fontStyle: 'italic',
     fontSize: 11,
-    color: '#6b5c47',
+    color: colors.saddle,
     textAlign: 'center',
     marginTop: 10,
   },

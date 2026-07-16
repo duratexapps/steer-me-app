@@ -145,7 +145,7 @@ export default function SignUp() {
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
             ) : (
-              <Ionicons name="person-outline" size={22} color={colors.rope} />
+              <Ionicons name="person-outline" size={22} color={colors.saddle} />
             )}
           </View>
           <View style={{ flex: 1 }}>
@@ -198,7 +198,7 @@ export default function SignUp() {
             </>
           ) : (
             <>
-              <Ionicons name="camera-outline" size={26} color={colors.leather} />
+              <Ionicons name="camera-outline" size={26} color={colors.espresso} />
               <Text style={styles.dropzoneText}>Tap to upload a screenshot of your Global Handicap card</Text>
               <Text style={styles.dropzoneSub}>From globalhandicaps.com or your WSTR/USTRC login</Text>
             </>
@@ -274,28 +274,28 @@ export default function SignUp() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, paddingBottom: 36 },
   eyebrow: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: colors.rust,
+    color: colors.brass,
     marginBottom: 6,
   },
-  h2: { fontFamily: fonts.display, fontSize: 22, color: colors.leather, marginBottom: 4 },
-  helper: { fontFamily: fonts.body, fontSize: 12.5, color: '#6b5c47', marginBottom: 16, lineHeight: 17 },
+  h2: { fontFamily: fonts.displayBold, fontSize: 22, color: colors.espresso, marginBottom: 4 },
+  helper: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginBottom: 16, lineHeight: 17 },
   label: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginBottom: 6,
     marginTop: 2,
   },
-  required: { color: colors.rust, textTransform: 'none' },
+  required: { color: colors.brass, textTransform: 'none' },
   pillRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
   avatarCircle: {
@@ -303,20 +303,18 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.tanLight,
-    borderWidth: 2,
-    borderColor: colors.rope,
-    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: colors.brass,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   avatarImage: { width: '100%', height: '100%' },
-  avatarTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.leather },
-  avatarSub: { fontFamily: fonts.body, fontSize: 11, color: '#6b5c47', marginTop: 1, lineHeight: 15 },
+  avatarTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.espresso },
+  avatarSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 1, lineHeight: 15 },
   dropzone: {
-    borderWidth: 2,
-    borderColor: colors.rope,
-    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: colors.brass,
     borderRadius: radii.lg,
     backgroundColor: colors.tanLight,
     padding: 18,
@@ -327,17 +325,17 @@ const styles = StyleSheet.create({
   dropzoneText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    color: colors.leather,
+    color: colors.espresso,
     marginTop: 6,
     textAlign: 'center',
   },
-  dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: '#6b5c47', marginTop: 2, textAlign: 'center' },
+  dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2, textAlign: 'center' },
   dropzoneDone: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.green },
   retentionNote: {
     fontFamily: fonts.body,
     fontStyle: 'italic',
     fontSize: 11,
-    color: '#6b5c47',
+    color: colors.saddle,
     marginTop: 2,
     marginBottom: 14,
     lineHeight: 15,

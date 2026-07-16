@@ -41,7 +41,7 @@ export default function BlockedUsers() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20 },
   card: {
     flexDirection: 'row',
@@ -49,16 +49,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.tanLight,
     borderWidth: 1,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     borderLeftWidth: 4,
-    borderLeftColor: colors.rust,
+    borderLeftColor: colors.brass,
     borderRadius: radii.lg,
     padding: 14,
     marginBottom: 12,
   },
   info: { flex: 1 },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
-  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.leather, marginTop: 2 },
-  unblockBtn: { backgroundColor: colors.leather, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12 },
-  unblockText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.cream },
+  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.espresso, marginTop: 2 },
+  unblockBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12 },
+  unblockText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.bone },
 });

@@ -42,14 +42,14 @@ export function RatingModal({ visible, onClose, onSubmit, submitting }: RatingMo
           <View style={styles.header}>
             <Text style={styles.title}>Rate this event</Text>
             <Pressable onPress={handleClose} hitSlop={10}>
-              <Ionicons name="close" size={24} color={colors.leather} />
+              <Ionicons name="close" size={24} color={colors.espresso} />
             </Pressable>
           </View>
 
           <View style={styles.starRow}>
             {[1, 2, 3, 4, 5].map((n) => (
               <Pressable key={n} onPress={() => setStars(n)} hitSlop={4}>
-                <Ionicons name={n <= stars ? 'star' : 'star-outline'} size={36} color={colors.rust} style={styles.star} />
+                <Ionicons name={n <= stars ? 'star' : 'star-outline'} size={36} color={colors.brass} style={styles.star} />
               </Pressable>
             ))}
           </View>
@@ -85,9 +85,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  card: { backgroundColor: colors.cream, borderRadius: radii.xl, padding: 18, width: '100%' },
+  card: { backgroundColor: colors.bone, borderRadius: radii.xl, padding: 18, width: '100%' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  title: { fontFamily: fonts.display, fontSize: 19, color: colors.leather, letterSpacing: 0.4 },
+  title: { fontFamily: fonts.displayBold, fontSize: 19, color: colors.espresso, letterSpacing: 0.4 },
   starRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginVertical: 6 },
   star: { marginHorizontal: 2 },
   label: {
@@ -95,13 +95,13 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginTop: 14,
     marginBottom: 6,
   },
   textarea: {
     borderWidth: 1.5,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     borderRadius: radii.md,
     backgroundColor: colors.tanLight,
     padding: 12,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   note: {
     fontFamily: fonts.body,
     fontSize: 11,
-    color: '#6b5c47',
+    color: colors.saddle,
     marginTop: 8,
     lineHeight: 15,
   },

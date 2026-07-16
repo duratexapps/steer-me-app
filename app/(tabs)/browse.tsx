@@ -8,7 +8,7 @@ import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
 import { PartnerCard } from '@/src/components/PartnerCard';
 import { ReportModal } from '@/src/components/ReportModal';
-import { colors, fonts } from '@/src/theme/theme';
+import { colors, fonts, radii } from '@/src/theme/theme';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useEligiblePartners, type PublicProfile } from '@/src/hooks/useEligiblePartners';
 import { useEventPartners } from '@/src/hooks/useEvents';
@@ -152,7 +152,7 @@ export default function Browse() {
         )}
         ListEmptyComponent={
           isLoading ? (
-            <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
+            <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
           ) : (
             <DividerNote>
               {inEventContext
@@ -186,29 +186,29 @@ export default function Browse() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20 },
   eyebrow: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: colors.rust,
+    color: colors.brass,
     marginBottom: 8,
   },
   pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  sub: { fontFamily: fonts.body, fontSize: 12, color: '#6b5c47', marginBottom: 14 },
+  sub: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginBottom: 14 },
   eventBanner: {
-    backgroundColor: colors.leather,
-    borderRadius: 10,
+    backgroundColor: colors.espresso,
+    borderRadius: radii.lg,
     padding: 12,
     marginBottom: 16,
   },
-  eventBannerText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.cream, lineHeight: 17 },
+  eventBannerText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.bone, lineHeight: 17 },
   clearLink: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
-    color: colors.rope,
+    color: colors.saddle,
     textDecorationLine: 'underline',
     marginTop: 8,
   },

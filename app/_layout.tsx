@@ -3,7 +3,7 @@ import { Slot } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
-import { Staatliches_400Regular } from '@expo-google-fonts/staatliches';
+import { PlayfairDisplay_700Bold, PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display';
 import {
   JetBrainsMono_400Regular,
   JetBrainsMono_600SemiBold,
@@ -31,7 +31,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    Staatliches_400Regular,
+    PlayfairDisplay_700Bold,
+    PlayfairDisplay_900Black,
     JetBrainsMono_400Regular,
     JetBrainsMono_600SemiBold,
     JetBrainsMono_700Bold,
@@ -85,7 +86,7 @@ export default function RootLayout() {
   }, [onLayoutRootView]);
 
   if (!fontsLoaded || !isReady) {
-    return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.bone }} />;
   }
 
   return (

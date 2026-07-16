@@ -110,7 +110,7 @@ export default function UpdateClassification() {
             </>
           ) : (
             <>
-              <Ionicons name="camera-outline" size={26} color={colors.leather} />
+              <Ionicons name="camera-outline" size={26} color={colors.espresso} />
               <Text style={styles.dropzoneText}>Tap to upload a new screenshot</Text>
             </>
           )}
@@ -138,21 +138,20 @@ export default function UpdateClassification() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20 },
   label: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginBottom: 6,
   },
-  required: { color: colors.rust, textTransform: 'none' },
+  required: { color: colors.brass, textTransform: 'none' },
   dropzone: {
-    borderWidth: 2,
-    borderColor: colors.rope,
-    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: colors.brass,
     borderRadius: radii.lg,
     backgroundColor: colors.tanLight,
     padding: 18,
@@ -160,6 +159,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dropzoneImage: { width: '100%', height: 130, borderRadius: radii.md, marginBottom: 8 },
-  dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.leather, marginTop: 6 },
+  dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso, marginTop: 6 },
   dropzoneDone: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.green },
 });

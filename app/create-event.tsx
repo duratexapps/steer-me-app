@@ -122,7 +122,7 @@ export default function CreateEvent() {
             </>
           ) : (
             <>
-              <Ionicons name="image-outline" size={26} color={colors.leather} />
+              <Ionicons name="image-outline" size={26} color={colors.espresso} />
               <Text style={styles.dropzoneText}>Upload your event flier</Text>
               <Text style={styles.dropzoneSub}>Shown to everyone browsing Events</Text>
             </>
@@ -137,21 +137,21 @@ export default function CreateEvent() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, paddingBottom: 36 },
-  helper: { fontFamily: fonts.body, fontSize: 12, color: '#6b5c47', marginBottom: 14, lineHeight: 16 },
+  helper: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginBottom: 14, lineHeight: 16 },
   pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   label: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 11.5,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: colors.leather,
+    color: colors.espresso,
     marginBottom: 6,
   },
   textarea: {
     borderWidth: 1.5,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     borderRadius: radii.md,
     backgroundColor: colors.tanLight,
     padding: 12,
@@ -162,9 +162,8 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   dropzone: {
-    borderWidth: 2,
-    borderColor: colors.rope,
-    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: colors.brass,
     borderRadius: radii.lg,
     backgroundColor: colors.tanLight,
     padding: 18,
@@ -172,7 +171,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dropzoneImage: { width: '100%', height: 140, borderRadius: radii.md, marginBottom: 8 },
-  dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.leather, marginTop: 6 },
-  dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: '#6b5c47', marginTop: 2 },
+  dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso, marginTop: 6 },
+  dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2 },
   dropzoneDone: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.green },
 });

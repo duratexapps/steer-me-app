@@ -118,7 +118,7 @@ export default function Post() {
         />
         {locationLoading ? <Text style={styles.locationNote}>Requesting location access...</Text> : null}
         {openLoading || myLoading ? (
-          <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
+          <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
         ) : !sortedOpenPosts || sortedOpenPosts.length === 0 ? (
           <DividerNote>No open needs match your position and classification right now. Check back soon.</DividerNote>
         ) : (
@@ -158,16 +158,16 @@ export default function Post() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20 },
   eyebrow: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: colors.rust,
+    color: colors.brass,
     marginBottom: 8,
     marginTop: 4,
   },
-  locationNote: { fontFamily: fonts.body, fontSize: 12, color: '#6b5c47', marginBottom: 14 },
+  locationNote: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginBottom: 14 },
 });

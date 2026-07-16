@@ -58,7 +58,7 @@ export default function Events() {
       <ScreenHeader title="Events" subtitle="Posted by real producers - mark your plans to attend" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.content}>
         {eventsLoading ? (
-          <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
+          <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
         ) : !events || events.length === 0 ? (
           <DividerNote>No events posted yet.</DividerNote>
         ) : (
@@ -113,6 +113,6 @@ export default function Events() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20 },
 });

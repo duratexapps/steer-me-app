@@ -140,7 +140,7 @@ export default function MyRequests() {
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         {isLoading ? (
-          <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
+          <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
         ) : !list || list.length === 0 ? (
           <DividerNote>
             {tab === 'sent'
@@ -156,7 +156,7 @@ export default function MyRequests() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 16 },
   content: { padding: 20 },
   card: {
@@ -165,20 +165,20 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: colors.tanLight,
     borderWidth: 1,
-    borderColor: colors.rope,
+    borderColor: colors.saddle,
     borderRadius: radii.lg,
     padding: 14,
     marginBottom: 12,
   },
   info: { flex: 1 },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
-  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.leather, marginTop: 2 },
+  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.espresso, marginTop: 2 },
   status: {
     fontFamily: fonts.bodyBold,
     fontSize: 10,
     textTransform: 'uppercase',
-    color: colors.cream,
-    backgroundColor: colors.rust,
+    color: colors.bone,
+    backgroundColor: colors.brass,
     paddingVertical: 2,
     paddingHorizontal: 7,
     borderRadius: 4,
@@ -189,13 +189,13 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
   actionBtn: { borderRadius: radii.sm, paddingVertical: 7, paddingHorizontal: 14 },
   acceptBtn: { backgroundColor: colors.green },
-  acceptText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.cream },
-  declineBtn: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.rust },
-  declineText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.rust },
+  acceptText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.bone },
+  declineBtn: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.brass },
+  declineText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.brass },
   contactRow: { marginTop: 8 },
-  contactLabel: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.rust },
+  contactLabel: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.brass },
   contactLinks: { flexDirection: 'row', gap: 14, marginTop: 4 },
-  callLink: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.leather },
-  textLink: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.rust },
+  callLink: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso },
+  textLink: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.brass },
   cardImage: { width: '100%', height: 200, borderRadius: radii.md, marginTop: 8 },
 });

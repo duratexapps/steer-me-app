@@ -49,23 +49,23 @@ export default function RoleSelect() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20 },
   eyebrow: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: colors.rust,
+    color: colors.brass,
     marginBottom: 6,
   },
-  h2: { fontFamily: fonts.display, fontSize: 22, color: colors.leather, marginBottom: 4 },
-  helper: { fontFamily: fonts.body, fontSize: 12.5, color: '#6b5c47', marginBottom: 16, lineHeight: 17 },
+  h2: { fontFamily: fonts.displayBold, fontSize: 22, color: colors.espresso, marginBottom: 4 },
+  helper: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginBottom: 16, lineHeight: 17 },
   signInLink: { marginTop: 8, alignItems: 'center', padding: 10 },
   signInText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    color: colors.leather,
+    color: colors.espresso,
     textDecorationLine: 'underline',
   },
 });
