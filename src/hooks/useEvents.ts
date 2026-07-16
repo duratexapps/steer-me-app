@@ -13,6 +13,7 @@ export type EventRow = {
   entry_fee: string | null;
   description: string | null;
   divisions: number[];
+  flier_path: string | null;
   status: 'pending_review' | 'published' | 'removed';
 };
 
@@ -74,12 +75,54 @@ export function useCreateEvent() {
       entry_fee: string;
       divisions: number[];
       description: string;
+      flier_path: string | null;
     }) => {
       const { error } = await supabase.from('events').insert(input);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+// Backs the "search for your event" step in create-need-post.tsx - lets an
+// athlete link their posted need to a real, already-listed event instead
+// of retyping its details, so multiple athletes posting for the SAME event
+// end up genuinely consolidated (queryable by shared event_id) rather than
+// each creating a disconnected copy.
+export function useSearchPublishedEvents(query: string) {
+  return useQuery({
+    queryKey: ['events', 'search', query],
+    enabled: query.trim().length >= 2,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('status', 'published')
+        .ilike('name', `%${query.trim()}%`)
+        .order('event_date', { ascending: true })
+        .limit(10);
+      if (error) throw error;
+      return withProducerNames(data as EventRow[]);
+    },
+  });
+}
+
+// Shown alongside a matched event during that same search step - lets the
+// poster see "N others already posted for this event" before deciding to
+// add their own.
+export function useNeedPostCountForEvent(eventId: string | null) {
+  return useQuery({
+    queryKey: ['need-posts', 'count-for-event', eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('need_posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId);
+      if (error) throw error;
+      return count ?? 0;
     },
   });
 }

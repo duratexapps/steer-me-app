@@ -16,27 +16,56 @@ import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
+import { formatDateDisplay } from '@/src/lib/date';
 import { useCreateNeedPost } from '@/src/hooks/useNeedPosts';
+import { useSearchPublishedEvents, useNeedPostCountForEvent, type EventWithProducer } from '@/src/hooks/useEvents';
 import { showToast } from '@/src/state/toast-store';
 
 type Selection = { kind: 'cap'; value: number } | { kind: 'goat' } | null;
 
 // The event details this collects (date, event name, producer name,
-// optional flier + Facebook link) are what makes a posted need a real
-// browsable listing instead of a private calculator - other athletes use
-// them to judge schedule/availability, and a producer who isn't on Steer
-// Me yet still gets surfaced to everyone who sees the post.
+// location, optional flier + Facebook link) are what makes a posted need a
+// real browsable listing instead of a private calculator - other athletes
+// use them to judge schedule/availability, and a producer who isn't on
+// Steer Me yet still gets surfaced to everyone who sees the post.
+//
+// Searching for and linking an already-listed event is optional, not
+// required - it exists so multiple athletes posting a need for the SAME
+// real event end up genuinely consolidated (queryable by shared event_id)
+// instead of each typing a disconnected copy of the same event's details.
+// Fields stay editable either way, matching the "review before you
+// submit" pattern used everywhere else a form gets pre-filled.
 export default function CreateNeedPost() {
   const createNeedPost = useCreateNeedPost();
   const [selection, setSelection] = useState<Selection>(null);
+
+  const [eventSearch, setEventSearch] = useState('');
+  const [linkedEvent, setLinkedEvent] = useState<EventWithProducer | null>(null);
+  const { data: searchResults, isLoading: searching } = useSearchPublishedEvents(eventSearch);
+  const { data: otherPostCount } = useNeedPostCountForEvent(linkedEvent?.id ?? null);
+
   const [eventDate, setEventDate] = useState<string | null>(null);
   const [eventName, setEventName] = useState('');
   const [producerName, setProducerName] = useState('');
+  const [location, setLocation] = useState('');
   const [facebookLink, setFacebookLink] = useState('');
   const [flierOpen, setFlierOpen] = useState(false);
   const [flierUri, setFlierUri] = useState<string | null>(null);
   const [flierPath, setFlierPath] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function handleLinkEvent(event: EventWithProducer) {
+    setLinkedEvent(event);
+    setEventSearch('');
+    setEventName(event.name);
+    setEventDate(event.event_date);
+    setProducerName(event.producer_org_name ?? '');
+    setLocation(event.location);
+  }
+
+  function handleUnlink() {
+    setLinkedEvent(null);
+  }
 
   async function handleFlierPicked(image: PickedImage) {
     const {
@@ -52,7 +81,12 @@ export default function CreateNeedPost() {
     }
   }
 
-  const canSubmit = selection !== null && !!eventDate && eventName.trim().length > 0 && producerName.trim().length > 0;
+  const canSubmit =
+    selection !== null &&
+    !!eventDate &&
+    eventName.trim().length > 0 &&
+    producerName.trim().length > 0 &&
+    location.trim().length > 0;
 
   async function handleSubmit() {
     if (!canSubmit || !selection || !eventDate) return;
@@ -61,9 +95,11 @@ export default function CreateNeedPost() {
       await createNeedPost.mutateAsync({
         is_goat_roping: selection.kind === 'goat',
         division: selection.kind === 'cap' ? selection.value : null,
+        event_id: linkedEvent?.id ?? null,
         event_date: eventDate,
         event_name: eventName.trim(),
         producer_name: producerName.trim(),
+        location: location.trim(),
         flier_path: flierPath,
         facebook_link: facebookLink.trim() || null,
       });
@@ -100,9 +136,54 @@ export default function CreateNeedPost() {
           ))}
         </View>
 
+        {linkedEvent ? (
+          <View style={styles.linkedCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkedName}>✓ Linked to {linkedEvent.name}</Text>
+              <Text style={styles.linkedMeta}>
+                {linkedEvent.producer_org_name} · {formatDateDisplay(linkedEvent.event_date)}
+              </Text>
+              {otherPostCount ? (
+                <Text style={styles.linkedCount}>
+                  {otherPostCount} other athlete{otherPostCount === 1 ? ' has' : 's have'} also posted for this event
+                </Text>
+              ) : null}
+            </View>
+            <Pressable onPress={handleUnlink}>
+              <Text style={styles.unlinkLink}>Unlink</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <TextField
+              label="Is your event already listed here? (optional)"
+              value={eventSearch}
+              onChangeText={setEventSearch}
+              placeholder="Search events already listed on Steer Me..."
+            />
+            {searching ? <Text style={styles.helperNote}>Searching...</Text> : null}
+            {searchResults && searchResults.length > 0 ? (
+              <View style={styles.resultsWrap}>
+                {searchResults.map((event) => (
+                  <Pressable key={event.id} style={styles.resultRow} onPress={() => handleLinkEvent(event)}>
+                    <Text style={styles.resultName}>{event.name}</Text>
+                    <Text style={styles.resultMeta}>
+                      {event.producer_org_name} · {formatDateDisplay(event.event_date)} · {event.location}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            <Text style={styles.helperNote}>
+              Not listed, or saw it elsewhere? No problem - just fill in the details below yourself.
+            </Text>
+          </>
+        )}
+
         <DateField label="Event date" value={eventDate} onChange={setEventDate} minimumDate={new Date()} />
         <TextField label="Event name" value={eventName} onChangeText={setEventName} placeholder="e.g. Fall Qualifier" />
         <TextField label="Producer name" value={producerName} onChangeText={setProducerName} placeholder="e.g. Mathews Land & Cattle" />
+        <TextField label="Location" value={location} onChangeText={setLocation} placeholder="e.g. Wickenburg, AZ" />
         <TextField
           label="Facebook event link (optional)"
           value={facebookLink}
@@ -156,6 +237,34 @@ const styles = StyleSheet.create({
     color: colors.leather,
     marginBottom: 6,
   },
+  helperNote: { fontFamily: fonts.body, fontSize: 12, color: '#6b5c47', marginBottom: 14, lineHeight: 16 },
+  resultsWrap: { marginBottom: 8 },
+  resultRow: {
+    backgroundColor: colors.tanLight,
+    borderWidth: 1,
+    borderColor: colors.rope,
+    borderRadius: radii.md,
+    padding: 10,
+    marginBottom: 6,
+  },
+  resultName: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.leather },
+  resultMeta: { fontFamily: fonts.body, fontSize: 11.5, color: '#6b5c47', marginTop: 2 },
+  linkedCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: colors.tan,
+    borderWidth: 1.5,
+    borderColor: colors.leather,
+    borderStyle: 'dashed',
+    borderRadius: radii.md,
+    padding: 12,
+    marginBottom: 16,
+  },
+  linkedName: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.leather },
+  linkedMeta: { fontFamily: fonts.body, fontSize: 11.5, color: '#6b5c47', marginTop: 2 },
+  linkedCount: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.rust, marginTop: 4 },
+  unlinkLink: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.rust, textDecorationLine: 'underline' },
   dropzone: {
     borderWidth: 2,
     borderColor: colors.rope,

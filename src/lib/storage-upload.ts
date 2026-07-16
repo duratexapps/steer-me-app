@@ -3,7 +3,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/lib/supabase';
 import type { PickedImage } from '@/src/lib/image-picker';
 
-type Bucket = 'verification-screenshots' | 'avatars' | 'producer-docs' | 'need-fliers';
+type Bucket = 'verification-screenshots' | 'avatars' | 'producer-docs' | 'need-fliers' | 'event-fliers';
 
 function extensionFor(mimeType: string) {
   if (mimeType.includes('png')) return 'png';

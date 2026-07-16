@@ -8,11 +8,13 @@ import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
 export type NeedPostRow = {
   id: string;
   athlete_id: string;
+  event_id: string | null;
   is_goat_roping: boolean;
   division: number | null;
   event_date: string;
   event_name: string;
   producer_name: string;
+  location: string | null;
   flier_path: string | null;
   facebook_link: string | null;
   created_at: string;
@@ -85,9 +87,11 @@ export function useCreateNeedPost() {
     mutationFn: async (input: {
       is_goat_roping: boolean;
       division: number | null;
+      event_id: string | null;
       event_date: string;
       event_name: string;
       producer_name: string;
+      location: string | null;
       flier_path: string | null;
       facebook_link: string | null;
     }) => {

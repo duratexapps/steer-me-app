@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { Button } from '@/src/components/ui/Button';
 import { DividerNote } from '@/src/components/ui/DividerNote';
+import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { NeedPostCard } from '@/src/components/NeedPostCard';
 import { ReportModal } from '@/src/components/ReportModal';
 import { colors, fonts } from '@/src/theme/theme';
@@ -13,6 +14,7 @@ import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests'
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
+import { getCurrentCity } from '@/src/lib/location';
 import { showToast } from '@/src/state/toast-store';
 
 // Mirrors Screen 3 (#post), reimagined as a real browsable listing per user
@@ -33,11 +35,40 @@ export default function Post() {
   const requireSubscription = useRequireSubscription();
 
   const [reportTarget, setReportTarget] = useState<NeedPostWithPoster | null>(null);
+  const [useLocationOn, setUseLocationOn] = useState(false);
+  const [currentCity, setCurrentCity] = useState<string | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const requestedNeedPostIds = useMemo(
     () => new Set((sentRequests ?? []).filter((r) => r.need_post_id).map((r) => r.need_post_id)),
     [sentRequests]
   );
+
+  // Not the same thing as an event's actual venue - this toggle (same
+  // pattern as Browse's) only ever compares YOUR current city against a
+  // post's stored location string. No real geocoding/distance math, same
+  // as everywhere else in the app that sorts by location.
+  const sortedOpenPosts = useMemo(() => {
+    if (!openPosts) return openPosts;
+    if (!useLocationOn || !currentCity) return openPosts;
+    return [...openPosts].sort((a, b) => Number(b.location === currentCity) - Number(a.location === currentCity));
+  }, [openPosts, useLocationOn, currentCity]);
+
+  async function toggleLocation() {
+    if (useLocationOn) {
+      setUseLocationOn(false);
+      setCurrentCity(null);
+      return;
+    }
+    setLocationLoading(true);
+    const city = await getCurrentCity();
+    setLocationLoading(false);
+    if (city) {
+      setUseLocationOn(true);
+      setCurrentCity(city);
+      showToast(`Showing needs near ${city} first`);
+    }
+  }
 
   async function handleRequest(post: NeedPostWithPoster) {
     if (!post.poster) return;
@@ -79,12 +110,19 @@ export default function Post() {
         ) : null}
 
         <Text style={styles.eyebrow}>Open needs you can fill</Text>
+        <ToggleRow
+          title="Use my current location"
+          description="Show needs near where you are right now first, not just your home area"
+          value={useLocationOn}
+          onToggle={toggleLocation}
+        />
+        {locationLoading ? <Text style={styles.locationNote}>Requesting location access...</Text> : null}
         {openLoading || myLoading ? (
           <ActivityIndicator color={colors.rust} style={{ marginTop: 20 }} />
-        ) : !openPosts || openPosts.length === 0 ? (
+        ) : !sortedOpenPosts || sortedOpenPosts.length === 0 ? (
           <DividerNote>No open needs match your position and classification right now. Check back soon.</DividerNote>
         ) : (
-          openPosts.map((post) => (
+          sortedOpenPosts.map((post) => (
             <NeedPostCard
               key={post.id}
               post={post}
@@ -131,4 +169,5 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
   },
+  locationNote: { fontFamily: fonts.body, fontSize: 12, color: '#6b5c47', marginBottom: 14 },
 });

@@ -33,12 +33,16 @@ export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBl
           <Text style={styles.meta}>
             {formatDateDisplay(post.event_date)} · {post.producer_name}
           </Text>
+          {post.location ? <Text style={styles.meta}>{post.location}</Text> : null}
           {post.poster ? (
             <Text style={styles.posterLine}>
               Posted by {post.poster.full_name} · {formatPosition(post.poster.position)} · {post.poster.home_area}
             </Text>
           ) : null}
-          <Text style={styles.divisionBadge}>{formatDivision(post.division, post.is_goat_roping)}</Text>
+          <View style={styles.badgeRow}>
+            <Text style={styles.divisionBadge}>{formatDivision(post.division, post.is_goat_roping)}</Text>
+            {post.event_id ? <Text style={styles.listedBadge}>✓ Listed event</Text> : null}
+          </View>
         </View>
       </View>
 
@@ -92,6 +96,7 @@ const styles = StyleSheet.create({
   eventName: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.leather },
   meta: { fontFamily: fonts.body, fontSize: 12, color: colors.ink, marginTop: 2 },
   posterLine: { fontFamily: fonts.body, fontSize: 11.5, color: '#6b5c47', marginTop: 4 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   divisionBadge: {
     fontFamily: fonts.bodyBold,
     fontSize: 10,
@@ -101,8 +106,17 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 7,
     borderRadius: 4,
-    alignSelf: 'flex-start',
-    marginTop: 6,
+    overflow: 'hidden',
+  },
+  listedBadge: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    textTransform: 'uppercase',
+    color: colors.cream,
+    backgroundColor: colors.leather,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   flier: { width: '100%', height: 140, borderRadius: radii.md, marginTop: 10 },

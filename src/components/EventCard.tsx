@@ -1,8 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { formatDivision } from '@/src/lib/matching';
 import { formatDateDisplay } from '@/src/lib/date';
+import { publicUrlFor } from '@/src/lib/storage-upload';
 import type { EventWithProducer, RatingSummary } from '@/src/hooks/useEvents';
 
 const RATING_MIN_TO_SHOW = 3;
@@ -43,6 +45,7 @@ export function EventCard({
   const isPast = new Date(event.event_date) < new Date();
   const attendedAnyDivision = event.divisions.some((d) => myAttendance?.has(`${event.id}:${d}`));
   const canRate = !producerView && isPast && attendedAnyDivision && !alreadyRated;
+  const flierUrl = publicUrlFor('event-fliers', event.flier_path);
 
   return (
     <View style={styles.card}>
@@ -59,6 +62,7 @@ export function EventCard({
         </Text>
       ) : null}
       {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+      {flierUrl ? <Image source={{ uri: flierUrl }} style={styles.flier} contentFit="cover" /> : null}
 
       <View style={styles.divisionRow}>
         {event.divisions.map((d) => {
@@ -119,6 +123,7 @@ const styles = StyleSheet.create({
   ratingActive: { color: colors.rust },
   ratingMuted: { color: '#6b5c47' },
   description: { fontFamily: fonts.body, fontSize: 12.5, color: colors.ink, marginTop: 8, lineHeight: 17 },
+  flier: { width: '100%', height: 160, borderRadius: radii.md, marginTop: 10 },
   divisionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   divisionPill: {
     flexDirection: 'row',
