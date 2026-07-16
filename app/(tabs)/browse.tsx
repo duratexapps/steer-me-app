@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { ToggleRow } from '@/src/components/ui/ToggleRow';
+import { Pill } from '@/src/components/ui/Pill';
 import { PartnerCard } from '@/src/components/PartnerCard';
 import { ReportModal } from '@/src/components/ReportModal';
 import { colors, fonts } from '@/src/theme/theme';
@@ -15,7 +16,7 @@ import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests'
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
-import { neededOppositePosition } from '@/src/lib/matching';
+import { neededOppositePosition, formatDivision, DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { getCurrentCity } from '@/src/lib/location';
 import { showToast } from '@/src/state/toast-store';
 
@@ -34,12 +35,15 @@ export default function Browse() {
     division?: string;
     eventName?: string;
   }>();
-  const cap = capParam ? parseFloat(capParam) : 10.5;
   const eventDivision = divisionParam ? parseFloat(divisionParam) : null;
   const inEventContext = !!eventId && eventDivision !== null;
 
   const { data: me } = useMyProfile();
   const requireSubscription = useRequireSubscription();
+  // Post a Need used to drive this via the cap param; now that Post is its
+  // own browsable feed, Browse needs its own picker so there's still a way
+  // to change which cap you're browsing eligible partners for.
+  const [cap, setCap] = useState(capParam ? parseFloat(capParam) : 10.5);
   const [useLocationOn, setUseLocationOn] = useState(false);
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -108,7 +112,7 @@ export default function Browse() {
               <View style={styles.eventBanner}>
                 <Text style={styles.eventBannerText}>
                   Showing {oppositePosition.toLowerCase()}s attending{' '}
-                  <Text style={{ fontFamily: fonts.bodyBold }}>{eventName}</Text> ({eventDivision} division) who
+                  <Text style={{ fontFamily: fonts.bodyBold }}>{eventName}</Text> ({formatDivision(eventDivision)} division) who
                   are also marked attending.
                 </Text>
                 <Pressable onPress={() => router.replace('/(tabs)/browse')}>
@@ -117,6 +121,12 @@ export default function Browse() {
               </View>
             ) : (
               <>
+                <Text style={styles.eyebrow}>Choose your event cap</Text>
+                <View style={styles.pillWrap}>
+                  {DIVISION_OPTIONS.map((c) => (
+                    <Pill key={c} label={c === OPEN_CAP ? 'Open' : `#${c}`} selected={cap === c} onPress={() => setCap(c)} />
+                  ))}
+                </View>
                 <ToggleRow
                   title="Use my current location"
                   description="Traveling? Find partners near where you are, not just home"
@@ -126,7 +136,7 @@ export default function Browse() {
                 <Text style={styles.sub}>
                   {locationLoading
                     ? 'Requesting location access...'
-                    : `Eligible ${oppositePosition.toLowerCase()}s for a ${cap} roping, ${areaLabel}`}
+                    : `Eligible ${oppositePosition.toLowerCase()}s for a ${formatDivision(cap)} roping, ${areaLabel}`}
                 </Text>
               </>
             )}
@@ -180,6 +190,15 @@ export default function Browse() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
   content: { padding: 20 },
+  eyebrow: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: colors.rust,
+    marginBottom: 8,
+  },
+  pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   sub: { fontFamily: fonts.body, fontSize: 12, color: '#6b5c47', marginBottom: 14 },
   eventBanner: {
     backgroundColor: colors.leather,

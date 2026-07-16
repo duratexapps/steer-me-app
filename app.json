@@ -47,7 +47,8 @@
         {
           "locationWhenInUsePermission": "Steer Me uses your current location, only when you turn this on in Browse, to show eligible partners near where you actually are while traveling."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

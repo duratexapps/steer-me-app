@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
+import { formatDivision } from '@/src/lib/matching';
+import { formatDateDisplay } from '@/src/lib/date';
 import type { EventWithProducer, RatingSummary } from '@/src/hooks/useEvents';
 
 const RATING_MIN_TO_SHOW = 3;
@@ -46,7 +48,7 @@ export function EventCard({
     <View style={styles.card}>
       <Text style={styles.name}>{event.name}</Text>
       <Text style={styles.producerLine}>
-        {event.producer_org_name} · {event.event_date}
+        {event.producer_org_name} · {formatDateDisplay(event.event_date)}
       </Text>
       <Text style={styles.meta}>
         {event.location} · {event.entry_fee ?? 'See listing'}
@@ -71,7 +73,7 @@ export function EventCard({
                 </Pressable>
               ) : null}
               <Text style={styles.divisionText}>
-                {d} <Text style={styles.divisionCount}>{count} attending</Text>
+                {formatDivision(d)} <Text style={styles.divisionCount}>{count} attending</Text>
               </Text>
               {!producerView ? (
                 <Pressable onPress={() => onShowPartners?.(d)} style={styles.partnersBtn}>

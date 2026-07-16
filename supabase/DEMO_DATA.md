@@ -33,15 +33,22 @@ WSTR-sanctioned.
 
 ## Seed events (all under Desert Classic Ropers)
 
-- **Cottonwood Summer Jackpot** - ~18 days in the past, divisions 10.5/12.
+- **Cottonwood Summer Jackpot** - ~18 days in the past, divisions #10.5/#12.5.
   Has 4 backdated attendance rows and 4 ratings (4.5★ average) so the
   rating badge and "not enough ratings" threshold are both demonstrable.
-- **Fall Qualifier** - ~25 days out, divisions 10.5/12/15. 5 seed athletes
-  already marked attending across divisions, so tapping "Partners" from
-  this event shows real matches immediately.
-- **Payson Xtreme Roping** - ~55 days out, divisions 12/15/20. 3 seed
-  athletes marked attending (including Rylan Combs in the 20, useful for
-  showing the guardian-managed badge in an event-partners context too).
+- **Fall Qualifier** - ~25 days out, divisions #10.5/#12.5/#15.5. 5 seed
+  athletes already marked attending across divisions, so tapping "Partners"
+  from this event shows real matches immediately.
+- **Payson Xtreme Roping** - ~55 days out, divisions #12.5/#15.5/Open. 3
+  seed athletes marked attending (including Rylan Combs in the Open
+  division, useful for showing the guardian-managed badge in an
+  event-partners context too).
+
+(Corrected after launch feedback: the original seed data used #12/#15/#20,
+which aren't real caps - there's no roping above a #19 team, and anything
+at or above that enters Open instead. Divisions and their matching
+attendance rows were updated directly in the database; this file reflects
+the corrected values.)
 
 ## Demoing on your own phone/account
 

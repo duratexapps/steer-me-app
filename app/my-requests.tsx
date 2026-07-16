@@ -16,6 +16,7 @@ import {
   type PartnerRequestWithProfile,
 } from '@/src/hooks/usePartnerRequests';
 import { signedUrlFor } from '@/src/lib/storage-upload';
+import { formatDivision } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
 
 const STATUS_LABEL: Record<PartnerRequestWithProfile['status'], string> = {
@@ -70,7 +71,7 @@ function RequestCard({ request, mode }: { request: PartnerRequestWithProfile; mo
       <View style={styles.info}>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.meta}>
-          {request.is_goat_roping ? 'Goat Roping' : `${request.division} roping`} · {request.counterpart?.home_area}
+          {request.is_goat_roping ? 'Goat Roping' : `${formatDivision(request.division)} roping`} · {request.counterpart?.home_area}
         </Text>
         <Text style={styles.status}>{STATUS_LABEL[request.status]}</Text>
 

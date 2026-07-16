@@ -24,3 +24,19 @@ export const OPEN_CAP = 19;
 
 export const MAX_HEADER_NUMBER = 9;
 export const MAX_HEELER_NUMBER = 10;
+
+// The full set of valid selectable options, in order - Create Event reuses
+// this exact list so a producer can never introduce a division that isn't
+// also selectable on Post a Need (e.g. a bare "12" or "15", or a "20" -
+// there's no roping above a #19 team; anything at or above that cap enters
+// Open instead).
+export const DIVISION_OPTIONS = [...COMMON_CAPS, OPEN_CAP];
+
+// Every screen that displays a division number (event cards, posted needs,
+// My Requests) needs to show "Open" instead of the literal 19 - centralized
+// here so that mapping only exists in one place.
+export function formatDivision(division: number | null, isGoatRoping?: boolean) {
+  if (isGoatRoping) return 'Goat Roping';
+  if (division == null) return '';
+  return division === OPEN_CAP ? 'Open' : `#${division}`;
+}

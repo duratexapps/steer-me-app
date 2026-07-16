@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { TextField } from '@/src/components/ui/TextField';
+import { DateField } from '@/src/components/ui/DateField';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { DividerNote } from '@/src/components/ui/DividerNote';
@@ -14,7 +15,7 @@ import { colors, fonts, radii } from '@/src/theme/theme';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
-import { COMMON_CAPS, OPEN_CAP } from '@/src/lib/matching';
+import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { useCreateNeedPost } from '@/src/hooks/useNeedPosts';
 import { showToast } from '@/src/state/toast-store';
 
@@ -28,7 +29,7 @@ type Selection = { kind: 'cap'; value: number } | { kind: 'goat' } | null;
 export default function CreateNeedPost() {
   const createNeedPost = useCreateNeedPost();
   const [selection, setSelection] = useState<Selection>(null);
-  const [eventDate, setEventDate] = useState('');
+  const [eventDate, setEventDate] = useState<string | null>(null);
   const [eventName, setEventName] = useState('');
   const [producerName, setProducerName] = useState('');
   const [facebookLink, setFacebookLink] = useState('');
@@ -51,16 +52,16 @@ export default function CreateNeedPost() {
     }
   }
 
-  const canSubmit = selection !== null && eventDate.trim().length > 0 && eventName.trim().length > 0 && producerName.trim().length > 0;
+  const canSubmit = selection !== null && !!eventDate && eventName.trim().length > 0 && producerName.trim().length > 0;
 
   async function handleSubmit() {
-    if (!canSubmit || !selection) return;
+    if (!canSubmit || !selection || !eventDate) return;
     setSubmitting(true);
     try {
       await createNeedPost.mutateAsync({
         is_goat_roping: selection.kind === 'goat',
         division: selection.kind === 'cap' ? selection.value : null,
-        event_date: eventDate.trim(),
+        event_date: eventDate,
         event_name: eventName.trim(),
         producer_name: producerName.trim(),
         flier_path: flierPath,
@@ -89,7 +90,7 @@ export default function CreateNeedPost() {
         </View>
         <Text style={styles.eyebrow}>Or a classification cap</Text>
         <View style={styles.pillWrap}>
-          {[...COMMON_CAPS, OPEN_CAP].map((c) => (
+          {DIVISION_OPTIONS.map((c) => (
             <Pill
               key={c}
               label={c === OPEN_CAP ? 'Open' : `#${c}`}
@@ -99,7 +100,7 @@ export default function CreateNeedPost() {
           ))}
         </View>
 
-        <TextField label="Event date" value={eventDate} onChangeText={setEventDate} placeholder="e.g. Sep 20, 2026" />
+        <DateField label="Event date" value={eventDate} onChange={setEventDate} minimumDate={new Date()} />
         <TextField label="Event name" value={eventName} onChangeText={setEventName} placeholder="e.g. Fall Qualifier" />
         <TextField label="Producer name" value={producerName} onChangeText={setProducerName} placeholder="e.g. Mathews Land & Cattle" />
         <TextField
