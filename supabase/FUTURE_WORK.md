@@ -46,3 +46,31 @@ retrofit a role column onto `partner_requests` or `need_posts`, since
 those represent the *matching* step, not the *entry* step, and a single
 match could in principle be used to enter multiple events/divisions over
 time with the same or different role assignment each time.
+
+## Map view for browsing events by location
+
+**Status:** explicitly deferred by the user (not enough listed events yet
+to justify it) - revisit once the marketplace has grown.
+
+**Feasibility findings, so this doesn't need to be re-researched:**
+
+- **Auto-plotting is easy and free.** `events.location` (and
+  `need_posts.location`) are free text today, not coordinates. Geocoding
+  them (text -> lat/long) for a Create Event submission can use
+  `expo-location`'s built-in `Location.geocodeAsync()` - no paid API, no
+  separate account. Fully automatic: geocode in the background right after
+  a producer submits the form, store on two new nullable columns
+  (`latitude`/`longitude`) on `events`. Same approach would work for
+  `need_posts.location` if posted needs ever need plotting too.
+- **This is worth doing independently of the map UI itself**, since real
+  coordinates would also let the existing "sort by location" toggles
+  (Browse, Post feed) do actual distance math instead of the current
+  exact-city-string-match heuristic - a natural, low-cost upgrade whenever
+  this gets picked back up.
+- **The map view has a real platform wrinkle.** `react-native-maps` works
+  in Expo Go on iOS with no setup (Apple Maps, no API key). On Android, a
+  properly rendered map needs a Google Cloud Maps API key wired into the
+  native build - Expo Go can't fully support that, so a working Android
+  map means an EAS development build at that point, not continued
+  Expo-Go-only testing. Confirmed against the versioned Expo SDK 57 docs
+  directly, not assumed.
