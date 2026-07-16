@@ -37,3 +37,15 @@ export function publicUrlFor(bucket: Bucket, path: string | null | undefined) {
   if (!path) return null;
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }
+
+// verification-screenshots is a private bucket - getPublicUrl() would
+// return a URL that doesn't actually work (or worse, shouldn't work) without
+// going through RLS. createSignedUrl() is itself RLS-checked (only an owner
+// or, per migration 0022, a confirmed team partner can generate one), so
+// this is the only correct way to display a card that isn't your own.
+export async function signedUrlFor(bucket: Bucket, path: string | null | undefined, expiresInSeconds = 120) {
+  if (!path) return null;
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresInSeconds);
+  if (error) return null;
+  return data.signedUrl;
+}

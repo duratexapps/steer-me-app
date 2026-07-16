@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import {
   fetchRequestContact,
   type PartnerRequestWithProfile,
 } from '@/src/hooks/usePartnerRequests';
+import { signedUrlFor } from '@/src/lib/storage-upload';
 import { showToast } from '@/src/state/toast-store';
 
 const STATUS_LABEL: Record<PartnerRequestWithProfile['status'], string> = {
@@ -35,6 +36,30 @@ function RequestCard({ request, mode }: { request: PartnerRequestWithProfile; mo
     enabled: request.status === 'accepted',
     queryFn: () => fetchRequestContact(request.id),
   });
+
+  const [cardOpen, setCardOpen] = useState(false);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [cardUrl, setCardUrl] = useState<string | null>(null);
+
+  async function handleToggleCard() {
+    if (cardOpen) {
+      setCardOpen(false);
+      return;
+    }
+    if (!cardUrl) {
+      setCardLoading(true);
+      // Signed URLs expire quickly (see signedUrlFor) - fetch a fresh one
+      // each time this is opened rather than caching it indefinitely.
+      const url = await signedUrlFor('verification-screenshots', contact?.verification_screenshot_path);
+      setCardLoading(false);
+      if (!url) {
+        showToast('Could not load verification card');
+        return;
+      }
+      setCardUrl(url);
+    }
+    setCardOpen(true);
+  }
 
   const name = request.counterpart?.full_name ?? 'Unknown';
   const canRespond = mode === 'received' && (request.status === 'pending' || request.status === 'pending_guardian');
@@ -79,6 +104,17 @@ function RequestCard({ request, mode }: { request: PartnerRequestWithProfile; mo
                 <Text style={styles.textLink}>Text</Text>
               </Pressable>
             </View>
+          </View>
+        ) : null}
+
+        {request.status === 'accepted' && contact?.verification_screenshot_path ? (
+          <View style={styles.contactRow}>
+            <Pressable onPress={handleToggleCard}>
+              <Text style={styles.callLink}>
+                {cardLoading ? 'Loading card...' : cardOpen ? 'Hide verification card' : 'View verification card'}
+              </Text>
+            </Pressable>
+            {cardOpen && cardUrl ? <Image source={{ uri: cardUrl }} style={styles.cardImage} /> : null}
           </View>
         ) : null}
       </View>
@@ -160,4 +196,5 @@ const styles = StyleSheet.create({
   contactLinks: { flexDirection: 'row', gap: 14, marginTop: 4 },
   callLink: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.leather },
   textLink: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.rust },
+  cardImage: { width: '100%', height: 200, borderRadius: radii.md, marginTop: 8 },
 });

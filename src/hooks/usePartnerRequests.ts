@@ -113,5 +113,12 @@ export function useRespondToRequest() {
 export async function fetchRequestContact(requestId: string) {
   const { data, error } = await supabase.rpc('get_request_contact', { request_id: requestId });
   if (error) throw error;
-  return data?.[0] as { contact: string | null; is_guardian: boolean; guardian_name: string | null } | undefined;
+  return data?.[0] as
+    | {
+        contact: string | null;
+        is_guardian: boolean;
+        guardian_name: string | null;
+        verification_screenshot_path: string | null;
+      }
+    | undefined;
 }
