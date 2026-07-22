@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/lib/supabase';
@@ -18,9 +19,19 @@ function extensionFor(mimeType: string) {
 // Policy section 5) a single call instead of a separate delete step.
 export async function uploadUserFile(bucket: Bucket, userId: string, image: PickedImage, filename: string) {
   const path = `${userId}/${filename}.${extensionFor(image.mimeType)}`;
-  const base64 = await new File(image.uri).base64();
 
-  const { error } = await supabase.storage.from(bucket).upload(path, decode(base64), {
+  // expo-image-picker hands back a real file:// path on native, which
+  // expo-file-system's File class reads fine - but on web it hands back a
+  // blob: URL instead, which File was never built to handle (it throws).
+  // fetch() against a blob: URL works in every browser and gives the raw
+  // bytes directly, so there's no need for the native base64 round-trip
+  // at all on this platform.
+  const body =
+    Platform.OS === 'web'
+      ? await (await fetch(image.uri)).arrayBuffer()
+      : decode(await new File(image.uri).base64());
+
+  const { error } = await supabase.storage.from(bucket).upload(path, body, {
     contentType: image.mimeType,
     upsert: true,
   });
