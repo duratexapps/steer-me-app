@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
+import { AutocompleteField } from '@/src/components/ui/AutocompleteField';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { DividerNote } from '@/src/components/ui/DividerNote';
@@ -128,7 +129,7 @@ export default function EditProfile() {
             : `You'll be shown potential ${position === 'Header' ? 'heeler' : 'header'} matches.`}
         </Text>
 
-        <TextField label="Home area" value={homeArea} onChangeText={setHomeArea} placeholder="e.g. Payson, AZ" />
+        <AutocompleteField label="Home area" value={homeArea} onChange={setHomeArea} placeholder="e.g. Payson" required />
 
         {isMinor ? (
           <View>
