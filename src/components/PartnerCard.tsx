@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     color: colors.brass,
     textDecorationLine: 'underline',
   },
-  reqBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12 },
-  reqBtnDisabled: { backgroundColor: colors.saddle },
+  reqBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer' },
+  reqBtnDisabled: { backgroundColor: colors.saddle, cursor: 'auto' },
   reqBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.bone },
 });

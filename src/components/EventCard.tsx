@@ -99,7 +99,7 @@ export function EventCard({
       ) : null}
 
       {!producerView && onReport ? (
-        <Pressable onPress={onReport} style={{ marginTop: 8 }}>
+        <Pressable onPress={onReport} style={{ marginTop: 8, cursor: 'pointer' }}>
           <Text style={styles.reportLink}>Report this event</Text>
         </Pressable>
       ) : null}
@@ -146,11 +146,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bone,
     alignItems: 'center',
     justifyContent: 'center',
+    cursor: 'pointer',
   },
   attendCheckOn: { backgroundColor: colors.green, borderColor: colors.green },
   divisionText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.espresso },
   divisionCount: { fontSize: 10, color: colors.brass, fontFamily: fonts.bodyBold },
-  partnersBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 4, paddingHorizontal: 8 },
+  partnersBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 4, paddingHorizontal: 8, cursor: 'pointer' },
   partnersBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 10.5, color: colors.bone },
   reportLink: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, textDecorationLine: 'underline' },
   ratePrompt: {

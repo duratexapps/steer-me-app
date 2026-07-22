@@ -43,13 +43,14 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    cursor: 'pointer',
   },
   label: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
     letterSpacing: 0.2,
   },
-  disabled: { opacity: 0.45 },
+  disabled: { opacity: 0.45, cursor: 'auto' },
   pressed: { opacity: 0.85 },
 });
 

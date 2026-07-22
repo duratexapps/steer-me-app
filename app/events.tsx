@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -21,6 +21,7 @@ import {
 import { useSubmitEventReport, EVENT_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useMyRatedEventIds, useSubmitRating } from '@/src/hooks/useRatings';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
+import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 import { showToast } from '@/src/state/toast-store';
 
 // Mirrors Screen 11 (#events) - athlete-facing browse, attend toggle, and
@@ -38,6 +39,8 @@ export default function Events() {
   const submitReport = useSubmitEventReport();
   const submitRating = useSubmitRating();
   const requireSubscription = useRequireSubscription();
+  const numColumns = useResponsiveColumns();
+  const itemWidth = gridItemWidthPercent(numColumns);
 
   const [reportTarget, setReportTarget] = useState<EventWithProducer | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -64,22 +67,25 @@ export default function Events() {
         ) : !events || events.length === 0 ? (
           <DividerNote>No events posted yet.</DividerNote>
         ) : (
-          events.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              counts={counts}
-              myAttendance={myAttendance}
-              alreadyRated={ratedEventIds?.has(event.id)}
-              ratingSummary={ratingSummaries?.get(event.id)}
-              onToggleAttend={(division) => handleToggle(event, division)}
-              onShowPartners={(division) =>
-                router.push({ pathname: '/(tabs)/browse', params: { eventId: event.id, division: String(division), eventName: event.name } })
-              }
-              onReport={() => setReportTarget(event)}
-              onRatePress={() => setRatingTarget(event)}
-            />
-          ))
+          <View style={styles.grid}>
+            {events.map((event) => (
+              <View key={event.id} style={{ width: itemWidth }}>
+                <EventCard
+                  event={event}
+                  counts={counts}
+                  myAttendance={myAttendance}
+                  alreadyRated={ratedEventIds?.has(event.id)}
+                  ratingSummary={ratingSummaries?.get(event.id)}
+                  onToggleAttend={(division) => handleToggle(event, division)}
+                  onShowPartners={(division) =>
+                    router.push({ pathname: '/(tabs)/browse', params: { eventId: event.id, division: String(division), eventName: event.name } })
+                  }
+                  onReport={() => setReportTarget(event)}
+                  onRatePress={() => setRatingTarget(event)}
+                />
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
 
@@ -117,5 +123,6 @@ export default function Events() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20 },
+  content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
 });

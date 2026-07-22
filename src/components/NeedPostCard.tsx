@@ -49,24 +49,24 @@ export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBl
       {flierUrl ? <Image source={{ uri: flierUrl }} style={styles.flier} contentFit="cover" /> : null}
 
       {post.facebook_link ? (
-        <Pressable onPress={() => Linking.openURL(post.facebook_link!)}>
+        <Pressable onPress={() => Linking.openURL(post.facebook_link!)} style={styles.cursorPointer}>
           <Text style={styles.fbLink}>View event on Facebook</Text>
         </Pressable>
       ) : null}
 
       <View style={styles.actionRow}>
         {onReport ? (
-          <Pressable onPress={onReport}>
+          <Pressable onPress={onReport} style={styles.cursorPointer}>
             <Text style={styles.reportLink}>Report</Text>
           </Pressable>
         ) : null}
         {onBlock ? (
-          <Pressable onPress={onBlock}>
+          <Pressable onPress={onBlock} style={styles.cursorPointer}>
             <Text style={styles.blockLink}>Block</Text>
           </Pressable>
         ) : null}
         {onDelete ? (
-          <Pressable onPress={onDelete}>
+          <Pressable onPress={onDelete} style={styles.cursorPointer}>
             <Text style={styles.blockLink}>Delete</Text>
           </Pressable>
         ) : null}
@@ -124,7 +124,8 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 10, flexWrap: 'wrap' },
   reportLink: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, textDecorationLine: 'underline' },
   blockLink: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brass, textDecorationLine: 'underline' },
-  reqBtn: { marginLeft: 'auto', backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12 },
-  reqBtnDisabled: { backgroundColor: colors.saddle },
+  reqBtn: { marginLeft: 'auto', backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer' },
+  reqBtnDisabled: { backgroundColor: colors.saddle, cursor: 'auto' },
   reqBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.bone },
+  cursorPointer: { cursor: 'pointer' },
 });

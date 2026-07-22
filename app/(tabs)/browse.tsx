@@ -18,6 +18,7 @@ import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
+import { useResponsiveColumns } from '@/src/hooks/useResponsiveColumns';
 import { formatDivision, DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { getCurrentCity } from '@/src/lib/location';
 import { showToast } from '@/src/state/toast-store';
@@ -42,6 +43,7 @@ export default function Browse() {
 
   const { data: me } = useMyProfile();
   const requireSubscription = useRequireSubscription();
+  const numColumns = useResponsiveColumns();
   // Post a Need used to drive this via the cap param; now that Post is its
   // own browsable feed, Browse needs its own picker so there's still a way
   // to change which cap you're browsing eligible partners for.
@@ -107,9 +109,12 @@ export default function Browse() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Eligible Partners" subtitle="Showing ropers you can legally partner with" onHelp={() => setHelpOpen(true)} />
       <FlatList
+        key={numColumns}
         contentContainerStyle={styles.content}
         data={partners ?? []}
         keyExtractor={(item) => item.id}
+        numColumns={numColumns}
+        columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
         ListHeaderComponent={
           <>
             {inEventContext ? (
@@ -147,16 +152,18 @@ export default function Browse() {
           </>
         }
         renderItem={({ item }) => (
-          <PartnerCard
-            partner={item}
-            alreadyRequested={requestedIds.has(item.id)}
-            nearby={useLocationOn && item.home_area === currentCity}
-            isFavorite={favoriteIds.has(item.id)}
-            onToggleFavorite={() => toggleFavorite.mutate({ favoriteId: item.id, isFavorite: favoriteIds.has(item.id) })}
-            onRequest={() => handleRequest(item)}
-            onReport={() => setReportTarget(item)}
-            onBlock={() => blockUser.mutate(item.id)}
-          />
+          <View style={numColumns > 1 ? styles.gridItem : undefined}>
+            <PartnerCard
+              partner={item}
+              alreadyRequested={requestedIds.has(item.id)}
+              nearby={useLocationOn && item.home_area === currentCity}
+              isFavorite={favoriteIds.has(item.id)}
+              onToggleFavorite={() => toggleFavorite.mutate({ favoriteId: item.id, isFavorite: favoriteIds.has(item.id) })}
+              onRequest={() => handleRequest(item)}
+              onReport={() => setReportTarget(item)}
+              onBlock={() => blockUser.mutate(item.id)}
+            />
+          </View>
         )}
         ListEmptyComponent={
           isLoading ? (
@@ -196,7 +203,9 @@ export default function Browse() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20 },
+  content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
+  columnWrapper: { gap: 14 },
+  gridItem: { flex: 1 },
   eyebrow: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,

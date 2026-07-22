@@ -9,6 +9,7 @@ import { DividerNote } from '@/src/components/ui/DividerNote';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { colors, fonts, radii } from '@/src/theme/theme';
+import { webMaxWidth } from '@/src/theme/web-layout';
 import { fetchOfferings } from '@/src/lib/purchases';
 import { useSubscriptionStatus, useInvalidateSubscriptionStatus } from '@/src/hooks/useSubscriptionStatus';
 import { showToast } from '@/src/state/toast-store';
@@ -144,7 +145,7 @@ export default function Subscription() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20 },
+  content: { padding: 20, ...webMaxWidth },
   capBanner: {
     backgroundColor: colors.tan,
     borderWidth: 1,

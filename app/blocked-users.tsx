@@ -7,6 +7,7 @@ import { HelpModal } from '@/src/components/HelpModal';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
+import { webMaxWidth } from '@/src/theme/web-layout';
 import { useBlockedProfiles, useUnblockUser } from '@/src/hooks/useBlocking';
 
 export default function BlockedUsers() {
@@ -47,7 +48,7 @@ export default function BlockedUsers() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20 },
+  content: { padding: 20, ...webMaxWidth },
   card: {
     flexDirection: 'row',
     gap: 14,

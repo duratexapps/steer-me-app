@@ -36,6 +36,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: 16,
     marginBottom: 12,
+    cursor: 'pointer',
   },
   pressed: { opacity: 0.8 },
   icon: {

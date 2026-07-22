@@ -13,6 +13,7 @@ import { useEligiblePartners } from '@/src/hooks/useEligiblePartners';
 import { useSentRequests } from '@/src/hooks/usePartnerRequests';
 import { publicUrlFor } from '@/src/lib/storage-upload';
 import { formatPosition } from '@/src/lib/matching';
+import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 
 export default function Home() {
   const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
@@ -21,6 +22,10 @@ export default function Home() {
   const { data: eligible } = useEligiblePartners(10.5, null);
   const { data: sent } = useSentRequests();
   const [helpOpen, setHelpOpen] = useState(false);
+  // Home's tiles are a handful of dashboard shortcuts, not a long list, so
+  // this uses a tighter 2-column breakpoint than Browse/Post/Events' 3.
+  const numColumns = useResponsiveColumns({ md: 560, lg: 900 }) === 1 ? 1 : 2;
+  const tileWidth = gridItemWidthPercent(numColumns);
 
   const avatarUrl = publicUrlFor('avatars', profile?.avatar_url);
   const pendingCount = (sent ?? []).filter((r) => r.status === 'pending' || r.status === 'pending_guardian').length;
@@ -85,51 +90,63 @@ export default function Home() {
         )}
 
         <View style={styles.tiles}>
-          <ActionTile
-            icon="calendar-outline"
-            title="Browse events"
-            description="Find ropings from real producers and mark your plans to attend"
-            onPress={() => router.push('/events')}
-          />
+          <View style={{ width: tileWidth }}>
+            <ActionTile
+              icon="calendar-outline"
+              title="Browse events"
+              description="Find ropings from real producers and mark your plans to attend"
+              onPress={() => router.push('/events')}
+            />
+          </View>
 
           {hasAthleteProfile ? (
             <>
-              <ActionTile
-                icon="search-outline"
-                title="Browse ropers seeking partners"
-                description="Only see people you're actually eligible with"
-                onPress={() => router.push('/(tabs)/browse')}
-              />
-              <ActionTile
-                icon="flag-outline"
-                title="Post that you need a partner"
-                description="Share your event details and see who else is eligible"
-                onPress={() => router.push('/(tabs)/post')}
-              />
-              <ActionTile
-                icon="mail-outline"
-                title="My requests"
-                description="Track who you've reached out to"
-                onPress={() => router.push('/my-requests')}
-              />
+              <View style={{ width: tileWidth }}>
+                <ActionTile
+                  icon="search-outline"
+                  title="Browse ropers seeking partners"
+                  description="Only see people you're actually eligible with"
+                  onPress={() => router.push('/(tabs)/browse')}
+                />
+              </View>
+              <View style={{ width: tileWidth }}>
+                <ActionTile
+                  icon="flag-outline"
+                  title="Post that you need a partner"
+                  description="Share your event details and see who else is eligible"
+                  onPress={() => router.push('/(tabs)/post')}
+                />
+              </View>
+              <View style={{ width: tileWidth }}>
+                <ActionTile
+                  icon="mail-outline"
+                  title="My requests"
+                  description="Track who you've reached out to"
+                  onPress={() => router.push('/my-requests')}
+                />
+              </View>
             </>
           ) : (
-            <ActionTile
-              icon="trophy-outline"
-              title="Set up an athlete profile"
-              description="Verify your Global classification to find and post partner needs"
-              onPress={() => router.push('/(auth)/sign-up')}
-            />
+            <View style={{ width: tileWidth }}>
+              <ActionTile
+                icon="trophy-outline"
+                title="Set up an athlete profile"
+                description="Verify your Global classification to find and post partner needs"
+                onPress={() => router.push('/(auth)/sign-up')}
+              />
+            </View>
           )}
 
-          <ActionTile
-            icon="pricetag-outline"
-            title={hasProducerProfile ? 'Producer dashboard' : 'Producer tools'}
-            description={
-              hasProducerProfile ? 'Manage your events' : 'Set up a producer profile to list your own events'
-            }
-            onPress={() => router.push('/producer')}
-          />
+          <View style={{ width: tileWidth }}>
+            <ActionTile
+              icon="pricetag-outline"
+              title={hasProducerProfile ? 'Producer dashboard' : 'Producer tools'}
+              description={
+                hasProducerProfile ? 'Manage your events' : 'Set up a producer profile to list your own events'
+              }
+              onPress={() => router.push('/producer')}
+            />
+          </View>
         </View>
       </ScrollView>
       <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="home" />
@@ -139,7 +156,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { paddingBottom: 24 },
+  content: { paddingBottom: 24, maxWidth: 1000, width: '100%', alignSelf: 'center' },
   helpBtn: {
     position: 'absolute',
     top: 14,
@@ -190,5 +207,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginTop: 2,
   },
-  tiles: { padding: 20 },
+  tiles: { padding: 20, flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
 });

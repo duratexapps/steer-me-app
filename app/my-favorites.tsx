@@ -9,6 +9,7 @@ import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
 import { formatPosition } from '@/src/lib/matching';
+import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 
 // Accessible from Profile rather than a Home-page tab, per the earlier
 // decision to keep Favorites scoped to "add via a star on partner cards,
@@ -19,6 +20,8 @@ export default function MyFavorites() {
   const { data: favorites } = useFavorites();
   const toggleFavorite = useToggleFavorite();
   const [helpOpen, setHelpOpen] = useState(false);
+  const numColumns = useResponsiveColumns();
+  const itemWidth = gridItemWidthPercent(numColumns);
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -34,23 +37,25 @@ export default function MyFavorites() {
             No favorites yet. Star someone from Browse or an accepted request to save them here.
           </DividerNote>
         ) : (
-          favorites.map((p) => (
-            <View key={p.id} style={styles.card}>
-              <Tag value={p.global_classification ?? '—'} />
-              <View style={styles.info}>
-                <Text style={styles.name}>{p.full_name}</Text>
-                <Text style={styles.meta}>
-                  {formatPosition(p.position)} · {p.home_area}
-                </Text>
+          <View style={styles.grid}>
+            {favorites.map((p) => (
+              <View key={p.id} style={[styles.card, { width: itemWidth }]}>
+                <Tag value={p.global_classification ?? '—'} />
+                <View style={styles.info}>
+                  <Text style={styles.name}>{p.full_name}</Text>
+                  <Text style={styles.meta}>
+                    {formatPosition(p.position)} · {p.home_area}
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.removeBtn}
+                  onPress={() => toggleFavorite.mutate({ favoriteId: p.id, isFavorite: true })}
+                >
+                  <Text style={styles.removeText}>Remove</Text>
+                </Pressable>
               </View>
-              <Pressable
-                style={styles.removeBtn}
-                onPress={() => toggleFavorite.mutate({ favoriteId: p.id, isFavorite: true })}
-              >
-                <Text style={styles.removeText}>Remove</Text>
-              </Pressable>
-            </View>
-          ))
+            ))}
+          </View>
         )}
       </ScrollView>
       <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="my-favorites" />
@@ -60,7 +65,8 @@ export default function MyFavorites() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20 },
+  content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: {
     flexDirection: 'row',
     gap: 14,
@@ -77,6 +83,6 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
   meta: { fontFamily: fonts.body, fontSize: 12, color: colors.espresso, marginTop: 2 },
-  removeBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12 },
+  removeBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer' },
   removeText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.bone },
 });

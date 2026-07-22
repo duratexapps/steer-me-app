@@ -7,6 +7,7 @@ import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
 import { colors, fonts } from '@/src/theme/theme';
+import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
 
@@ -80,7 +81,7 @@ export default function CreateAccount() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20 },
+  content: { padding: 20, ...webMaxWidth },
   helper: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginBottom: 16, lineHeight: 17 },
   submit: { marginTop: 8 },
 });

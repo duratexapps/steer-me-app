@@ -14,6 +14,7 @@ import { DividerNote } from '@/src/components/ui/DividerNote';
 import { PhotoChooserSheet } from '@/src/components/PhotoChooserSheet';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
+import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
@@ -295,7 +296,7 @@ export default function CreateNeedPost() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20, paddingBottom: 36 },
+  content: { padding: 20, paddingBottom: 36, ...webMaxWidth },
   eyebrow: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,

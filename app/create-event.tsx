@@ -12,6 +12,7 @@ import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { PhotoChooserSheet } from '@/src/components/PhotoChooserSheet';
 import { colors, fonts, radii } from '@/src/theme/theme';
+import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
@@ -141,7 +142,7 @@ export default function CreateEvent() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20, paddingBottom: 36 },
+  content: { padding: 20, paddingBottom: 36, ...webMaxWidth },
   helper: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginBottom: 14, lineHeight: 16 },
   pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   label: {

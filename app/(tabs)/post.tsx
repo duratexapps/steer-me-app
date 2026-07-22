@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -15,6 +15,7 @@ import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests'
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
+import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 import { getCurrentCity } from '@/src/lib/location';
 import { showToast } from '@/src/state/toast-store';
 
@@ -34,6 +35,8 @@ export default function Post() {
   const blockUser = useBlockUser();
   const submitReport = useSubmitUserReport();
   const requireSubscription = useRequireSubscription();
+  const numColumns = useResponsiveColumns();
+  const itemWidth = gridItemWidthPercent(numColumns);
 
   const [reportTarget, setReportTarget] = useState<NeedPostWithPoster | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -101,13 +104,13 @@ export default function Post() {
         {myPosts && myPosts.length > 0 ? (
           <>
             <Text style={styles.eyebrow}>Your posted needs</Text>
-            {myPosts.map((post) => (
-              <NeedPostCard
-                key={post.id}
-                post={{ ...post, poster: null }}
-                onDelete={() => deleteNeedPost.mutate(post.id)}
-              />
-            ))}
+            <View style={styles.grid}>
+              {myPosts.map((post) => (
+                <View key={post.id} style={{ width: itemWidth }}>
+                  <NeedPostCard post={{ ...post, poster: null }} onDelete={() => deleteNeedPost.mutate(post.id)} />
+                </View>
+              ))}
+            </View>
           </>
         ) : null}
 
@@ -124,16 +127,19 @@ export default function Post() {
         ) : !sortedOpenPosts || sortedOpenPosts.length === 0 ? (
           <DividerNote>No open needs match your position and classification right now. Check back soon.</DividerNote>
         ) : (
-          sortedOpenPosts.map((post) => (
-            <NeedPostCard
-              key={post.id}
-              post={post}
-              alreadyRequested={requestedNeedPostIds.has(post.id)}
-              onRequest={() => handleRequest(post)}
-              onReport={() => setReportTarget(post)}
-              onBlock={() => post.poster && blockUser.mutate(post.poster.id)}
-            />
-          ))
+          <View style={styles.grid}>
+            {sortedOpenPosts.map((post) => (
+              <View key={post.id} style={{ width: itemWidth }}>
+                <NeedPostCard
+                  post={post}
+                  alreadyRequested={requestedNeedPostIds.has(post.id)}
+                  onRequest={() => handleRequest(post)}
+                  onReport={() => setReportTarget(post)}
+                  onBlock={() => post.poster && blockUser.mutate(post.poster.id)}
+                />
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
 
@@ -162,7 +168,8 @@ export default function Post() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
-  content: { padding: 20 },
+  content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   eyebrow: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,

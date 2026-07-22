@@ -18,6 +18,7 @@ import {
   type PartnerRequestWithProfile,
 } from '@/src/hooks/usePartnerRequests';
 import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
+import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 import { signedUrlFor } from '@/src/lib/storage-upload';
 import { formatDivision } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
@@ -155,6 +156,8 @@ export default function MyRequests() {
   const { data: favorites } = useFavorites();
   const toggleFavorite = useToggleFavorite();
   const favoriteIds = new Set((favorites ?? []).map((f) => f.id));
+  const numColumns = useResponsiveColumns();
+  const itemWidth = gridItemWidthPercent(numColumns);
 
   const list = tab === 'sent' ? sent : received;
   const isLoading = tab === 'sent' ? sentLoading : receivedLoading;
@@ -176,18 +179,21 @@ export default function MyRequests() {
               : 'No requests received yet.'}
           </DividerNote>
         ) : (
-          list.map((r) => (
-            <RequestCard
-              key={r.id}
-              request={r}
-              mode={tab}
-              isFavorite={!!r.counterpart && favoriteIds.has(r.counterpart.id)}
-              onToggleFavorite={() =>
-                r.counterpart &&
-                toggleFavorite.mutate({ favoriteId: r.counterpart.id, isFavorite: favoriteIds.has(r.counterpart.id) })
-              }
-            />
-          ))
+          <View style={styles.grid}>
+            {list.map((r) => (
+              <View key={r.id} style={{ width: itemWidth }}>
+                <RequestCard
+                  request={r}
+                  mode={tab}
+                  isFavorite={!!r.counterpart && favoriteIds.has(r.counterpart.id)}
+                  onToggleFavorite={() =>
+                    r.counterpart &&
+                    toggleFavorite.mutate({ favoriteId: r.counterpart.id, isFavorite: favoriteIds.has(r.counterpart.id) })
+                  }
+                />
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
           <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="my-requests" />
@@ -198,7 +204,8 @@ export default function MyRequests() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
   tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 16 },
-  content: { padding: 20 },
+  content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: {
     flexDirection: 'row',
     gap: 14,
@@ -228,7 +235,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  actionBtn: { borderRadius: radii.sm, paddingVertical: 7, paddingHorizontal: 14 },
+  actionBtn: { borderRadius: radii.sm, paddingVertical: 7, paddingHorizontal: 14, cursor: 'pointer' },
   acceptBtn: { backgroundColor: colors.green },
   acceptText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.bone },
   declineBtn: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.brass },
