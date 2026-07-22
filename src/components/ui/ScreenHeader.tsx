@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '@/src/theme/theme';
 
@@ -19,6 +20,8 @@ type ScreenHeaderProps = {
 // prototype, so the logo doesn't belong there. `onHelp`, when passed, shows
 // the small "?" button (.help-btn) that opens that screen's HelpModal topic.
 export function ScreenHeader({ title, subtitle, onBack, big, logo, onHelp }: ScreenHeaderProps) {
+  const pathname = usePathname();
+
   return (
     <View style={styles.bar}>
       <View style={styles.row}>
@@ -29,11 +32,24 @@ export function ScreenHeader({ title, subtitle, onBack, big, logo, onHelp }: Scr
         ) : null}
         {logo ? <Image source={require('@/assets/logo.png')} style={styles.logo} contentFit="contain" /> : null}
         <Text style={[styles.title, big ? styles.titleBig : styles.titleSmall, styles.titleFlex]}>{title}</Text>
-        {onHelp ? (
-          <Pressable onPress={onHelp} hitSlop={10} style={styles.helpBtn}>
-            <Text style={styles.helpBtnText}>?</Text>
+        <View style={styles.trailingBtns}>
+          {onHelp ? (
+            <Pressable onPress={onHelp} hitSlop={10} style={styles.helpBtn}>
+              <Text style={styles.helpBtnText}>?</Text>
+            </Pressable>
+          ) : null}
+          {/* Present on every screen that uses ScreenHeader (nearly all of
+              them) rather than gated behind a prop, per "a link on every
+              page to report an issue." Passes the current route so the
+              report carries page context automatically. */}
+          <Pressable
+            onPress={() => router.push({ pathname: '/report-issue', params: { from: pathname } })}
+            hitSlop={10}
+            style={styles.reportBtn}
+          >
+            <Ionicons name="flag-outline" size={13} color={colors.espresso} />
           </Pressable>
-        ) : null}
+        </View>
       </View>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
@@ -59,6 +75,7 @@ const styles = StyleSheet.create({
   titleBig: { fontSize: 28 },
   titleSmall: { fontSize: 22 },
   titleFlex: { flexShrink: 1 },
+  trailingBtns: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
   helpBtn: {
     width: 26,
     height: 26,
@@ -66,9 +83,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bone,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 'auto',
   },
   helpBtnText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.espresso },
+  reportBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.bone,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   subtitle: {
     fontSize: 12,
     color: colors.saddle,
