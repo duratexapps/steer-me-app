@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { Button } from '@/src/components/ui/Button';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { ToggleRow } from '@/src/components/ui/ToggleRow';
@@ -35,6 +36,7 @@ export default function Post() {
   const requireSubscription = useRequireSubscription();
 
   const [reportTarget, setReportTarget] = useState<NeedPostWithPoster | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [useLocationOn, setUseLocationOn] = useState(false);
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -92,7 +94,7 @@ export default function Post() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Post a Need" subtitle="Post your event, or find one to fill" />
+      <ScreenHeader title="Post a Need" subtitle="Post your event, or find one to fill" onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <Button label="+ Post a need" onPress={() => router.push('/create-need-post')} style={{ marginBottom: 20 }} />
 
@@ -153,6 +155,7 @@ export default function Post() {
           }
         />
       ) : null}
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="post" />
     </SafeAreaView>
   );
 }

@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { DateField } from '@/src/components/ui/DateField';
 import { Pill } from '@/src/components/ui/Pill';
@@ -26,6 +27,7 @@ import { showToast } from '@/src/state/toast-store';
 export default function CreateEvent() {
   const createEvent = useCreateEvent();
   const [name, setName] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [date, setDate] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const [fee, setFee] = useState('');
@@ -82,7 +84,7 @@ export default function CreateEvent() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Create Event" subtitle="Listed under your verified producer profile" onBack={() => router.back()} />
+      <ScreenHeader title="Create Event" subtitle="Listed under your verified producer profile" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <TextField label="Event name" value={name} onChangeText={setName} placeholder="e.g. Fall Qualifier" />
         <DateField label="Date" value={date} onChange={setDate} minimumDate={new Date()} />
@@ -132,6 +134,7 @@ export default function CreateEvent() {
         <Button label="Post event" onPress={handleSubmit} loading={submitting} style={{ marginTop: 8 }} />
       </ScrollView>
       <PhotoChooserSheet visible={flierOpen} onClose={() => setFlierOpen(false)} onPicked={handleFlierPicked} />
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="create-event" />
     </SafeAreaView>
   );
 }

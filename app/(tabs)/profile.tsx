@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { Tag } from '@/src/components/ui/Tag';
 import { Button } from '@/src/components/ui/Button';
+import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { supabase } from '@/src/lib/supabase';
 import { publicUrlFor, removeUserFile } from '@/src/lib/storage-upload';
@@ -23,6 +24,7 @@ export default function Profile() {
   const setHasAthleteProfile = useSessionStore((s) => s.setHasAthleteProfile);
   const { data: profile, isLoading } = useMyProfile();
   const [deleting, setDeleting] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const avatarUrl = publicUrlFor('avatars', profile?.avatar_url);
 
@@ -69,7 +71,7 @@ export default function Profile() {
   if (hasAthleteProfile && isLoading) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
-        <ScreenHeader title="Profile" subtitle="Your Global-issued info" />
+        <ScreenHeader title="Profile" subtitle="Your Global-issued info" onHelp={() => setHelpOpen(true)} />
         <ActivityIndicator color={colors.brass} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
@@ -78,7 +80,7 @@ export default function Profile() {
   if (!profile) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
-        <ScreenHeader title="Profile" subtitle="Your Global-issued info" />
+        <ScreenHeader title="Profile" subtitle="Your Global-issued info" onHelp={() => setHelpOpen(true)} />
         <View style={styles.content}>
           <Text style={styles.sub}>
             You haven't set up an athlete profile yet. Set one up to verify your Global classification and
@@ -97,7 +99,7 @@ export default function Profile() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Profile" subtitle="Your Global-issued info" />
+      <ScreenHeader title="Profile" subtitle="Your Global-issued info" onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headRow}>
           {avatarUrl ? (
@@ -146,6 +148,12 @@ export default function Profile() {
           style={styles.spacedBtn}
         />
         <Button
+          label="Manage favorites"
+          variant="outline"
+          onPress={() => router.push('/my-favorites')}
+          style={styles.spacedBtn}
+        />
+        <Button
           label="Manage blocked users"
           variant="outline"
           onPress={() => router.push('/blocked-users')}
@@ -160,6 +168,7 @@ export default function Profile() {
           style={styles.spacedBtn}
         />
       </ScrollView>
+      <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="profile" />
     </SafeAreaView>
   );
 }

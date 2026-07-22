@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { EventCard } from '@/src/components/EventCard';
 import { ReportModal } from '@/src/components/ReportModal';
@@ -39,6 +40,7 @@ export default function Events() {
   const requireSubscription = useRequireSubscription();
 
   const [reportTarget, setReportTarget] = useState<EventWithProducer | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [ratingTarget, setRatingTarget] = useState<EventWithProducer | null>(null);
 
   async function handleToggle(event: EventWithProducer, division: number) {
@@ -55,7 +57,7 @@ export default function Events() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Events" subtitle="Posted by real producers - mark your plans to attend" onBack={() => router.back()} />
+      <ScreenHeader title="Events" subtitle="Posted by real producers - mark your plans to attend" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         {eventsLoading ? (
           <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
@@ -108,6 +110,7 @@ export default function Events() {
           }}
         />
       ) : null}
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="events" />
     </SafeAreaView>
   );
 }

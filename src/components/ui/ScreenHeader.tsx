@@ -9,14 +9,16 @@ type ScreenHeaderProps = {
   onBack?: () => void;
   big?: boolean;
   logo?: boolean;
+  onHelp?: () => void;
 };
 
 // Mirrors .topbar - the espresso header bar with title + subtitle, and an
 // optional back arrow (.back-row) for pushed screens. `logo` is only passed
 // on the two screens that show the "Steer Me" brand title (role-select,
 // sign-up) - every other screen shows its own screen name instead, per the
-// prototype, so the logo doesn't belong there.
-export function ScreenHeader({ title, subtitle, onBack, big, logo }: ScreenHeaderProps) {
+// prototype, so the logo doesn't belong there. `onHelp`, when passed, shows
+// the small "?" button (.help-btn) that opens that screen's HelpModal topic.
+export function ScreenHeader({ title, subtitle, onBack, big, logo, onHelp }: ScreenHeaderProps) {
   return (
     <View style={styles.bar}>
       <View style={styles.row}>
@@ -26,7 +28,12 @@ export function ScreenHeader({ title, subtitle, onBack, big, logo }: ScreenHeade
           </Pressable>
         ) : null}
         {logo ? <Image source={require('@/assets/logo.png')} style={styles.logo} contentFit="contain" /> : null}
-        <Text style={[styles.title, big ? styles.titleBig : styles.titleSmall]}>{title}</Text>
+        <Text style={[styles.title, big ? styles.titleBig : styles.titleSmall, styles.titleFlex]}>{title}</Text>
+        {onHelp ? (
+          <Pressable onPress={onHelp} hitSlop={10} style={styles.helpBtn}>
+            <Text style={styles.helpBtnText}>?</Text>
+          </Pressable>
+        ) : null}
       </View>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
@@ -51,6 +58,17 @@ const styles = StyleSheet.create({
   },
   titleBig: { fontSize: 28 },
   titleSmall: { fontSize: 22 },
+  titleFlex: { flexShrink: 1 },
+  helpBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.bone,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 'auto',
+  },
+  helpBtnText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.espresso },
   subtitle: {
     fontSize: 12,
     color: colors.saddle,

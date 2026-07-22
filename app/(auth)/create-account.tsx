@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
 import { colors, fonts } from '@/src/theme/theme';
@@ -17,6 +18,7 @@ import { showToast } from '@/src/state/toast-store';
 export default function CreateAccount() {
   const { role } = useLocalSearchParams<{ role: string }>();
   const [email, setEmail] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -49,7 +51,7 @@ export default function CreateAccount() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Create Account" subtitle="Sets up your login - your profile comes next" onBack={() => router.back()} />
+      <ScreenHeader title="Create Account" subtitle="Sets up your login - your profile comes next" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.helper}>This is what you'll use to sign back in to Steer Me.</Text>
         <TextField
@@ -71,6 +73,7 @@ export default function CreateAccount() {
         />
         <Button label="Create account" onPress={handleCreate} loading={loading} style={styles.submit} />
       </ScrollView>
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="create-account" />
     </SafeAreaView>
   );
 }

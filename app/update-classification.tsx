@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
 import { PhotoChooserSheet } from '@/src/components/PhotoChooserSheet';
@@ -29,6 +30,7 @@ export default function UpdateClassification() {
     profile?.global_classification != null ? String(profile.global_classification) : ''
   );
   const [submitting, setSubmitting] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   async function handlePicked(image: PickedImage) {
     const {
@@ -97,6 +99,7 @@ export default function UpdateClassification() {
         title="Update Classification"
         subtitle="Uploading a new screenshot replaces and deletes the old one"
         onBack={() => router.back()}
+        onHelp={() => setHelpOpen(true)}
       />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.label}>
@@ -133,6 +136,7 @@ export default function UpdateClassification() {
         <Button label="Save classification" onPress={handleSubmit} disabled={!canSubmit} loading={submitting} />
       </ScrollView>
       <PhotoChooserSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} onPicked={handlePicked} />
+      <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="update-classification" />
     </SafeAreaView>
   );
 }

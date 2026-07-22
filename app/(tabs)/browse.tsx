@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
@@ -14,6 +15,7 @@ import { useEligiblePartners, type PublicProfile } from '@/src/hooks/useEligible
 import { useEventPartners } from '@/src/hooks/useEvents';
 import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests';
 import { useBlockUser } from '@/src/hooks/useBlocking';
+import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
 import { formatDivision, DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
@@ -44,6 +46,7 @@ export default function Browse() {
   // own browsable feed, Browse needs its own picker so there's still a way
   // to change which cap you're browsing eligible partners for.
   const [cap, setCap] = useState(capParam ? parseFloat(capParam) : 10.5);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [useLocationOn, setUseLocationOn] = useState(false);
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -56,10 +59,13 @@ export default function Browse() {
   const sendRequest = useSendRequest();
   const blockUser = useBlockUser();
   const submitReport = useSubmitUserReport();
+  const { data: favorites } = useFavorites();
+  const toggleFavorite = useToggleFavorite();
 
   const [reportTarget, setReportTarget] = useState<PublicProfile | null>(null);
 
   const requestedIds = useMemo(() => new Set((sentRequests ?? []).map((r) => r.recipient_id)), [sentRequests]);
+  const favoriteIds = useMemo(() => new Set((favorites ?? []).map((f) => f.id)), [favorites]);
 
   async function toggleLocation() {
     if (useLocationOn) {
@@ -99,7 +105,7 @@ export default function Browse() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Eligible Partners" subtitle="Showing ropers you can legally partner with" />
+      <ScreenHeader title="Eligible Partners" subtitle="Showing ropers you can legally partner with" onHelp={() => setHelpOpen(true)} />
       <FlatList
         contentContainerStyle={styles.content}
         data={partners ?? []}
@@ -145,6 +151,8 @@ export default function Browse() {
             partner={item}
             alreadyRequested={requestedIds.has(item.id)}
             nearby={useLocationOn && item.home_area === currentCity}
+            isFavorite={favoriteIds.has(item.id)}
+            onToggleFavorite={() => toggleFavorite.mutate({ favoriteId: item.id, isFavorite: favoriteIds.has(item.id) })}
             onRequest={() => handleRequest(item)}
             onReport={() => setReportTarget(item)}
             onBlock={() => blockUser.mutate(item.id)}
@@ -181,6 +189,7 @@ export default function Browse() {
           }
         />
       ) : null}
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="browse" />
     </SafeAreaView>
   );
 }

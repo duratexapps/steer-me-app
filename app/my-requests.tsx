@@ -3,7 +3,9 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, T
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { Pill } from '@/src/components/ui/Pill';
 import { Tag } from '@/src/components/ui/Tag';
 import { DividerNote } from '@/src/components/ui/DividerNote';
@@ -15,6 +17,7 @@ import {
   fetchRequestContact,
   type PartnerRequestWithProfile,
 } from '@/src/hooks/usePartnerRequests';
+import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
 import { signedUrlFor } from '@/src/lib/storage-upload';
 import { formatDivision } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
@@ -30,7 +33,17 @@ function digitsOnly(phone: string) {
   return phone.replace(/[^0-9+]/g, '');
 }
 
-function RequestCard({ request, mode }: { request: PartnerRequestWithProfile; mode: 'sent' | 'received' }) {
+function RequestCard({
+  request,
+  mode,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  request: PartnerRequestWithProfile;
+  mode: 'sent' | 'received';
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+}) {
   const respond = useRespondToRequest();
   const { data: contact } = useQuery({
     queryKey: ['request-contact', request.id],
@@ -69,7 +82,18 @@ function RequestCard({ request, mode }: { request: PartnerRequestWithProfile; mo
     <View style={styles.card}>
       <Tag value={request.counterpart?.global_classification ?? '—'} />
       <View style={styles.info}>
-        <Text style={styles.name}>{name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{name}</Text>
+          {request.status === 'accepted' && request.counterpart ? (
+            <Pressable onPress={onToggleFavorite} hitSlop={8}>
+              <Ionicons
+                name={isFavorite ? 'star' : 'star-outline'}
+                size={18}
+                color={isFavorite ? colors.brass : colors.saddle}
+              />
+            </Pressable>
+          ) : null}
+        </View>
         <Text style={styles.meta}>
           {request.is_goat_roping ? 'Goat Roping' : `${formatDivision(request.division)} roping`} · {request.counterpart?.home_area}
         </Text>
@@ -125,15 +149,19 @@ function RequestCard({ request, mode }: { request: PartnerRequestWithProfile; mo
 
 export default function MyRequests() {
   const [tab, setTab] = useState<'sent' | 'received'>('sent');
+  const [helpOpen, setHelpOpen] = useState(false);
   const { data: sent, isLoading: sentLoading } = useSentRequests();
   const { data: received, isLoading: receivedLoading } = useReceivedRequests();
+  const { data: favorites } = useFavorites();
+  const toggleFavorite = useToggleFavorite();
+  const favoriteIds = new Set((favorites ?? []).map((f) => f.id));
 
   const list = tab === 'sent' ? sent : received;
   const isLoading = tab === 'sent' ? sentLoading : receivedLoading;
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="My Requests" subtitle="Track your outgoing and incoming requests" onBack={() => router.back()} />
+      <ScreenHeader title="My Requests" subtitle="Track your outgoing and incoming requests" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <View style={styles.tabRow}>
         <Pill label="Sent" selected={tab === 'sent'} onPress={() => setTab('sent')} />
         <Pill label="Received" selected={tab === 'received'} onPress={() => setTab('received')} />
@@ -148,9 +176,21 @@ export default function MyRequests() {
               : 'No requests received yet.'}
           </DividerNote>
         ) : (
-          list.map((r) => <RequestCard key={r.id} request={r} mode={tab} />)
+          list.map((r) => (
+            <RequestCard
+              key={r.id}
+              request={r}
+              mode={tab}
+              isFavorite={!!r.counterpart && favoriteIds.has(r.counterpart.id)}
+              onToggleFavorite={() =>
+                r.counterpart &&
+                toggleFavorite.mutate({ favoriteId: r.counterpart.id, isFavorite: favoriteIds.has(r.counterpart.id) })
+              }
+            />
+          ))
         )}
       </ScrollView>
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="my-requests" />
     </SafeAreaView>
   );
 }
@@ -171,6 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   info: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
   meta: { fontFamily: fonts.body, fontSize: 12, color: colors.espresso, marginTop: 2 },
   status: {

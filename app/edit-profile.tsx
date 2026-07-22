@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
@@ -30,6 +31,7 @@ export default function EditProfile() {
   const invalidateProfile = useInvalidateMyProfile();
 
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(publicUrlFor('avatars', profile?.avatar_url));
   const [avatarPath, setAvatarPath] = useState<string | null>(profile?.avatar_url ?? null);
 
@@ -95,7 +97,7 @@ export default function EditProfile() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Edit Profile" subtitle="Update your info any time" onBack={() => router.back()} />
+      <ScreenHeader title="Edit Profile" subtitle="Update your info any time" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.label}>Profile photo</Text>
         <Pressable style={styles.avatarRow} onPress={() => setPhotoOpen(true)}>
@@ -159,6 +161,7 @@ export default function EditProfile() {
         <Button label="Save changes" onPress={handleSubmit} disabled={!canSubmit} loading={submitting} style={{ marginTop: 8 }} />
       </ScrollView>
       <PhotoChooserSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} onPicked={handlePicked} />
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="edit-profile" />
     </SafeAreaView>
   );
 }

@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { formatPosition } from '@/src/lib/matching';
@@ -8,6 +9,8 @@ type PartnerCardProps = {
   partner: PublicProfile;
   alreadyRequested: boolean;
   nearby?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
   onRequest?: () => void;
   onReport: () => void;
   onBlock: () => void;
@@ -18,12 +21,34 @@ type PartnerCardProps = {
 // button is omitted entirely when onRequest isn't provided - used for Goat
 // Roping's "who else is interested" discovery list, which has no
 // header/heeler team or classification-cap concept to request against.
-export function PartnerCard({ partner, alreadyRequested, nearby, onRequest, onReport, onBlock }: PartnerCardProps) {
+// The favorite star is optional (omitted anywhere there's no toggle wired
+// up for it).
+export function PartnerCard({
+  partner,
+  alreadyRequested,
+  nearby,
+  isFavorite,
+  onToggleFavorite,
+  onRequest,
+  onReport,
+  onBlock,
+}: PartnerCardProps) {
   return (
     <View style={styles.card}>
       <Tag value={partner.global_classification} />
       <View style={styles.info}>
-        <Text style={styles.name}>{partner.full_name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{partner.full_name}</Text>
+          {onToggleFavorite ? (
+            <Pressable onPress={onToggleFavorite} hitSlop={8}>
+              <Ionicons
+                name={isFavorite ? 'star' : 'star-outline'}
+                size={18}
+                color={isFavorite ? colors.brass : colors.saddle}
+              />
+            </Pressable>
+          ) : null}
+        </View>
         <Text style={styles.meta}>{partner.home_area}</Text>
         <View style={styles.badgeRow}>
           <Text style={styles.posBadge}>{formatPosition(partner.position)}</Text>
@@ -67,6 +92,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   info: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
   meta: { fontFamily: fonts.body, fontSize: 12, color: colors.espresso, marginTop: 2 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },

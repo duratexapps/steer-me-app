@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
 import { DividerNote } from '@/src/components/ui/DividerNote';
@@ -47,6 +48,7 @@ export default function Producer() {
 
 function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
   const [orgName, setOrgName] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [contactName, setContactName] = useState('');
   const [contactInfo, setContactInfo] = useState('');
   const [affiliation, setAffiliation] = useState('');
@@ -93,7 +95,7 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Producer Tools" subtitle="Set up a producer profile to list your own events" onBack={() => router.back()} />
+      <ScreenHeader title="Producer Tools" subtitle="Set up a producer profile to list your own events" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <DividerNote>
           Producer accounts are separate from your athlete profile - you can hold both. Producer listings
@@ -134,18 +136,20 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
         <Button label="Submit for verification" onPress={handleSubmit} disabled={!canSubmit} loading={submitting} style={{ marginTop: 16 }} />
       </ScrollView>
       <PhotoChooserSheet visible={docOpen} onClose={() => setDocOpen(false)} onPicked={handlePicked} />
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="producer" />
     </SafeAreaView>
   );
 }
 
 function ProducerDashboard({ producer }: { producer: { org_name: string; verification_status: string } }) {
+  const [helpOpen, setHelpOpen] = useState(false);
   const { data: events, isLoading: eventsLoading } = useMyEvents();
   const eventIds = (events ?? []).map((e) => e.id);
   const { data: counts } = useAttendanceCounts(eventIds);
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Producer Tools" subtitle={`Managing events for ${producer.org_name}`} onBack={() => router.back()} />
+      <ScreenHeader title="Producer Tools" subtitle={`Managing events for ${producer.org_name}`} onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         {producer.verification_status !== 'verified' ? (
           <DividerNote>
@@ -170,6 +174,7 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
           events.map((e) => <EventCard key={e.id} event={{ ...e, producer_org_name: producer.org_name }} counts={counts} producerView />)
         )}
       </ScrollView>
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="producer" />
     </SafeAreaView>
   );
 }

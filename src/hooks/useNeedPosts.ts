@@ -5,6 +5,8 @@ import { useMyProfile, type MyProfile } from '@/src/hooks/useMyProfile';
 import { maxAllowedFor, canPair } from '@/src/lib/matching';
 import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
 
+export type NeedPostVisibility = 'everyone' | 'favorites' | 'selected';
+
 export type NeedPostRow = {
   id: string;
   athlete_id: string;
@@ -17,6 +19,7 @@ export type NeedPostRow = {
   location: string | null;
   flier_path: string | null;
   facebook_link: string | null;
+  visibility: NeedPostVisibility;
   created_at: string;
 };
 
@@ -94,9 +97,21 @@ export function useCreateNeedPost() {
       location: string | null;
       flier_path: string | null;
       facebook_link: string | null;
+      visibility: NeedPostVisibility;
+      selected_favorite_ids: string[];
     }) => {
-      const { error } = await supabase.from('need_posts').insert(input);
+      const { selected_favorite_ids, ...postFields } = input;
+      const { data, error } = await supabase.from('need_posts').insert(postFields).select('id').single();
       if (error) throw error;
+
+      // Only meaningful for visibility='selected' - the RLS policy on
+      // need_posts checks this table to decide who else can see the row,
+      // so it needs to be populated before anyone but the poster can view it.
+      if (postFields.visibility === 'selected' && selected_favorite_ids.length > 0) {
+        const rows = selected_favorite_ids.map((athlete_id) => ({ need_post_id: data.id, athlete_id }));
+        const { error: visError } = await supabase.from('need_post_visible_to').insert(rows);
+        if (visError) throw visError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['need-posts'] });

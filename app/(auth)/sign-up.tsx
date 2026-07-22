@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
@@ -30,6 +31,7 @@ export default function SignUp() {
   const setHasAthleteProfile = useSessionStore((s) => s.setHasAthleteProfile);
 
   const [photoTarget, setPhotoTarget] = useState<PhotoTarget>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
 
@@ -133,7 +135,7 @@ export default function SignUp() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Steer Me" subtitle="Find your own partner. Skip the ~$40 draw-in fee." big logo />
+      <ScreenHeader title="Steer Me" subtitle="Find your own partner. Skip the ~$40 draw-in fee." big logo onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>Step 1 of 1</Text>
         <Text style={styles.h2}>Set up your roper profile</Text>
@@ -269,6 +271,7 @@ export default function SignUp() {
         onClose={() => setPhotoTarget(null)}
         onPicked={handlePicked}
       />
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="sign-up" />
     </SafeAreaView>
   );
 }

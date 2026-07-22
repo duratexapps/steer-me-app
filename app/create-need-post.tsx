@@ -5,23 +5,32 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { DateField } from '@/src/components/ui/DateField';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { PhotoChooserSheet } from '@/src/components/PhotoChooserSheet';
+import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
-import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
+import { DIVISION_OPTIONS, OPEN_CAP, formatPosition } from '@/src/lib/matching';
 import { formatDateDisplay } from '@/src/lib/date';
-import { useCreateNeedPost } from '@/src/hooks/useNeedPosts';
+import { useCreateNeedPost, type NeedPostVisibility } from '@/src/hooks/useNeedPosts';
 import { useSearchPublishedEvents, useNeedPostCountForEvent, type EventWithProducer } from '@/src/hooks/useEvents';
+import { useFavorites } from '@/src/hooks/useFavorites';
 import { showToast } from '@/src/state/toast-store';
 
 type Selection = { kind: 'cap'; value: number } | { kind: 'goat' } | null;
+
+const VISIBILITY_OPTIONS: { value: NeedPostVisibility; label: string }[] = [
+  { value: 'everyone', label: 'Everyone' },
+  { value: 'favorites', label: 'My Favorites' },
+  { value: 'selected', label: 'Select Favorites' },
+];
 
 // The event details this collects (date, event name, producer name,
 // location, optional flier + Facebook link) are what makes a posted need a
@@ -37,7 +46,9 @@ type Selection = { kind: 'cap'; value: number } | { kind: 'goat' } | null;
 // submit" pattern used everywhere else a form gets pre-filled.
 export default function CreateNeedPost() {
   const createNeedPost = useCreateNeedPost();
+  const { data: favorites } = useFavorites();
   const [selection, setSelection] = useState<Selection>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const [eventSearch, setEventSearch] = useState('');
   const [linkedEvent, setLinkedEvent] = useState<EventWithProducer | null>(null);
@@ -53,6 +64,13 @@ export default function CreateNeedPost() {
   const [flierUri, setFlierUri] = useState<string | null>(null);
   const [flierPath, setFlierPath] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [visibility, setVisibility] = useState<NeedPostVisibility>('everyone');
+  const [selectedFavoriteIds, setSelectedFavoriteIds] = useState<string[]>([]);
+
+  function toggleSelectedFavorite(id: string) {
+    setSelectedFavoriteIds((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
+  }
 
   function handleLinkEvent(event: EventWithProducer) {
     setLinkedEvent(event);
@@ -86,7 +104,8 @@ export default function CreateNeedPost() {
     !!eventDate &&
     eventName.trim().length > 0 &&
     producerName.trim().length > 0 &&
-    location.trim().length > 0;
+    location.trim().length > 0 &&
+    (visibility !== 'selected' || selectedFavoriteIds.length > 0);
 
   async function handleSubmit() {
     if (!canSubmit || !selection || !eventDate) return;
@@ -102,6 +121,8 @@ export default function CreateNeedPost() {
         location: location.trim(),
         flier_path: flierPath,
         facebook_link: facebookLink.trim() || null,
+        visibility,
+        selected_favorite_ids: visibility === 'selected' ? selectedFavoriteIds : [],
       });
       showToast(`Posted: need a partner for ${eventName.trim()}`);
       router.back();
@@ -114,7 +135,7 @@ export default function CreateNeedPost() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Post a Need" subtitle="Give others the details to check their schedule" onBack={() => router.back()} />
+      <ScreenHeader title="Post a Need" subtitle="Give others the details to check their schedule" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>Choose your event cap</Text>
         <DividerNote>
@@ -209,9 +230,65 @@ export default function CreateNeedPost() {
           )}
         </Pressable>
 
+        <Text style={styles.eyebrow}>Who can see this post?</Text>
+        <View style={styles.pillRow}>
+          {VISIBILITY_OPTIONS.map((opt) => (
+            <Pill
+              key={opt.value}
+              label={opt.label}
+              selected={visibility === opt.value}
+              onPress={() => setVisibility(opt.value)}
+            />
+          ))}
+        </View>
+
+        {visibility === 'favorites' ? (
+          <DividerNote>
+            {favorites && favorites.length > 0
+              ? `Only visible to the ${favorites.length} roper${favorites.length === 1 ? '' : 's'} on your favorites list.`
+              : "You haven't favorited anyone yet, so this post won't be visible to anyone until you do. Favorite someone from Browse or after connecting through a request."}
+          </DividerNote>
+        ) : null}
+
+        {visibility === 'selected' ? (
+          !favorites || favorites.length === 0 ? (
+            <DividerNote>
+              You haven't favorited anyone yet. Favorite someone from Browse or after connecting through a
+              request, then come back here to pick who sees this post.
+            </DividerNote>
+          ) : (
+            <View style={styles.favoritesWrap}>
+              {favorites.map((f) => {
+                const picked = selectedFavoriteIds.includes(f.id);
+                return (
+                  <Pressable
+                    key={f.id}
+                    style={[styles.favoriteRow, picked && styles.favoriteRowPicked]}
+                    onPress={() => toggleSelectedFavorite(f.id)}
+                  >
+                    <Tag value={f.global_classification} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.favoriteName}>{f.full_name}</Text>
+                      <Text style={styles.favoriteMeta}>
+                        {formatPosition(f.position)} · {f.home_area}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name={picked ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={22}
+                      color={picked ? colors.brass : colors.saddle}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          )
+        ) : null}
+
         <Button label="Post & show me matches" onPress={handleSubmit} disabled={!canSubmit} loading={submitting} style={{ marginTop: 8 }} />
       </ScrollView>
       <PhotoChooserSheet visible={flierOpen} onClose={() => setFlierOpen(false)} onPicked={handleFlierPicked} />
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="create-need-post" />
     </SafeAreaView>
   );
 }
@@ -277,4 +354,19 @@ const styles = StyleSheet.create({
   dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso, marginTop: 6 },
   dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2 },
   dropzoneDone: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.green },
+  favoritesWrap: { marginBottom: 16 },
+  favoriteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.tanLight,
+    borderWidth: 1,
+    borderColor: colors.saddle,
+    borderRadius: radii.md,
+    padding: 10,
+    marginBottom: 8,
+  },
+  favoriteRowPicked: { borderColor: colors.brass, borderWidth: 1.5 },
+  favoriteName: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: colors.espresso },
+  favoriteMeta: { fontFamily: fonts.body, fontSize: 11.5, color: colors.saddle, marginTop: 1 },
 });

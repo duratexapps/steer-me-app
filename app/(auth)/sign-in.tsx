@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
 import { colors } from '@/src/theme/theme';
@@ -11,6 +12,7 @@ import { showToast } from '@/src/state/toast-store';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +34,7 @@ export default function SignIn() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Sign In" subtitle="Welcome back" onBack={() => router.back()} />
+      <ScreenHeader title="Sign In" subtitle="Welcome back" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <TextField
           label="Email"
@@ -53,6 +55,7 @@ export default function SignIn() {
         />
         <Button label="Sign in" onPress={handleSignIn} loading={loading} style={styles.submit} />
       </ScrollView>
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="sign-in" />
     </SafeAreaView>
   );
 }

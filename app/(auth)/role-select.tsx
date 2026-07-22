@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { ActionTile } from '@/src/components/ui/ActionTile';
 import { colors, fonts } from '@/src/theme/theme';
 
@@ -10,9 +12,17 @@ import { colors, fonts } from '@/src/theme/theme';
 // needs somewhere for a returning user to log back in, so this screen adds
 // a "Sign in" link the prototype doesn't have.
 export default function RoleSelect() {
+  const [helpOpen, setHelpOpen] = useState(false);
+
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Steer Me" subtitle="Find your own partner. Skip the ~$40 draw-in fee." big logo />
+      <ScreenHeader
+        title="Steer Me"
+        subtitle="Find your own partner. Skip the ~$40 draw-in fee."
+        big
+        logo
+        onHelp={() => setHelpOpen(true)}
+      />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>Get started</Text>
         <Text style={styles.h2}>How will you use Steer Me?</Text>
@@ -44,6 +54,7 @@ export default function RoleSelect() {
           <Text style={styles.signInText}>Already have an account? Sign in</Text>
         </Pressable>
       </ScrollView>
+      <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="role-select" />
     </SafeAreaView>
   );
 }

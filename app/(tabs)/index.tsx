@@ -1,9 +1,11 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionTile } from '@/src/components/ui/ActionTile';
 import { Tag } from '@/src/components/ui/Tag';
+import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
@@ -18,6 +20,7 @@ export default function Home() {
   const { data: profile, isLoading: profileLoading } = useMyProfile();
   const { data: eligible } = useEligiblePartners(10.5, null);
   const { data: sent } = useSentRequests();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const avatarUrl = publicUrlFor('avatars', profile?.avatar_url);
   const pendingCount = (sent ?? []).filter((r) => r.status === 'pending' || r.status === 'pending_guardian').length;
@@ -33,6 +36,9 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <Pressable style={styles.helpBtn} onPress={() => setHelpOpen(true)} hitSlop={10}>
+        <Text style={styles.helpBtnText}>?</Text>
+      </Pressable>
       <ScrollView contentContainerStyle={styles.content}>
         {hasAthleteProfile && profile ? (
           <View style={styles.hero}>
@@ -79,19 +85,26 @@ export default function Home() {
         )}
 
         <View style={styles.tiles}>
+          <ActionTile
+            icon="calendar-outline"
+            title="Browse events"
+            description="Find ropings from real producers and mark your plans to attend"
+            onPress={() => router.push('/events')}
+          />
+
           {hasAthleteProfile ? (
             <>
-              <ActionTile
-                icon="flag-outline"
-                title="Post that you need a partner"
-                description="Share your event details and see who else is eligible"
-                onPress={() => router.push('/(tabs)/post')}
-              />
               <ActionTile
                 icon="search-outline"
                 title="Browse ropers seeking partners"
                 description="Only see people you're actually eligible with"
                 onPress={() => router.push('/(tabs)/browse')}
+              />
+              <ActionTile
+                icon="flag-outline"
+                title="Post that you need a partner"
+                description="Share your event details and see who else is eligible"
+                onPress={() => router.push('/(tabs)/post')}
               />
               <ActionTile
                 icon="mail-outline"
@@ -110,12 +123,6 @@ export default function Home() {
           )}
 
           <ActionTile
-            icon="calendar-outline"
-            title="Browse events"
-            description="Find ropings from real producers and mark your plans to attend"
-            onPress={() => router.push('/events')}
-          />
-          <ActionTile
             icon="pricetag-outline"
             title={hasProducerProfile ? 'Producer dashboard' : 'Producer tools'}
             description={
@@ -125,6 +132,7 @@ export default function Home() {
           />
         </View>
       </ScrollView>
+      <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="home" />
     </SafeAreaView>
   );
 }
@@ -132,6 +140,19 @@ export default function Home() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
   content: { paddingBottom: 24 },
+  helpBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 16,
+    zIndex: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.bone,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helpBtnText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.espresso },
   hero: {
     backgroundColor: colors.espresso,
     padding: 20,
