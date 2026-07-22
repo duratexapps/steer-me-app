@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Purchases, { type PurchasesOffering, type PurchasesPackage } from 'react-native-purchases';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { HelpModal } from '@/src/components/HelpModal';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
@@ -27,6 +28,7 @@ const PLAN_COPY: Record<Plan, { title: string; price: string; sub: string }> = {
 // to sell something that doesn't exist yet.
 export default function Subscription() {
   const [plan, setPlan] = useState<Plan>('annual');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const { data: status } = useSubscriptionStatus();
@@ -58,9 +60,38 @@ export default function Subscription() {
     }
   }
 
+  // Subscriptions are billed through StoreKit/Play Billing via RevenueCat -
+  // there is no web equivalent wired up, and building one (e.g. Stripe
+  // Checkout) is separate, later work, not something to fake here. The web
+  // build still needs to work for someone who's already subscribed via the
+  // mobile app, though - status still reads from the same Supabase-synced
+  // `subscriptions` table regardless of platform, so that part is accurate.
+  if (Platform.OS === 'web') {
+    return (
+      <SafeAreaView style={styles.screen} edges={['bottom']}>
+        <ScreenHeader title="Subscription" subtitle="One membership, unlimited draw-in fees skipped" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+        <ScrollView contentContainerStyle={styles.content}>
+          {status?.entitlement_active ? (
+            <DividerNote>
+              <Text style={{ fontFamily: fonts.bodyBold }}>You're subscribed. </Text>
+              {status.expires_at ? `Renews/expires ${new Date(status.expires_at).toLocaleDateString()}.` : ''}
+            </DividerNote>
+          ) : (
+            <DividerNote>
+              Subscriptions are managed through the Steer Me mobile app (App Store / Google Play), not
+              here on the web. If you're already subscribed on your phone, it'll show as active here too -
+              your subscription follows your account, not the device.
+            </DividerNote>
+          )}
+        </ScrollView>
+        <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="subscription" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Subscription" subtitle="One membership, unlimited draw-in fees skipped" onBack={() => router.back()} />
+      <ScreenHeader title="Subscription" subtitle="One membership, unlimited draw-in fees skipped" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         {status?.entitlement_active ? (
           <DividerNote>
@@ -106,6 +137,7 @@ export default function Subscription() {
           </Text>
         ) : null}
       </ScrollView>
+          <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="subscription" />
     </SafeAreaView>
   );
 }

@@ -10,6 +10,17 @@ let configured = false;
 export function configurePurchases(userId: string) {
   if (configured) return;
 
+  // RevenueCat has no web SDK at all - react-native-purchases is built
+  // specifically around StoreKit/Play Billing. Calling .configure() on web
+  // is not just "unsupported," it throws synchronously, and since this
+  // function is called from _layout.tsx's bootstrap() inside an un-caught
+  // `await bootstrap(...)`, that throw would prevent setReady(true) from
+  // ever running - a signed-in user on web would be stuck on the blank
+  // splash view forever. Subscriptions on web are out of scope for now
+  // (see app/subscription.tsx's web branch) - there's nothing to
+  // configure, so just don't.
+  if (Platform.OS === 'web') return;
+
   const apiKey =
     Platform.OS === 'ios'
       ? process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY
