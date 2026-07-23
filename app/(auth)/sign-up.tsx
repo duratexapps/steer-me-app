@@ -158,7 +158,7 @@ export default function SignUp() {
           </View>
         </Pressable>
 
-        <TextField label="Full name" value={fullName} onChangeText={setFullName} placeholder="e.g. Colt Bracken" />
+        <TextField label="Full name" value={fullName} onChangeText={setFullName} placeholder="e.g. Colt Bracken" required />
 
         <Text style={styles.label}>Age</Text>
         <View style={styles.pillRow}>
@@ -177,12 +177,14 @@ export default function SignUp() {
               value={guardianName}
               onChangeText={setGuardianName}
               placeholder="e.g. Renee Bracken"
+              required
             />
             <TextField
               label="Parent/guardian phone or email"
               value={guardianContact}
               onChangeText={setGuardianContact}
               placeholder="e.g. (928) 555-0199"
+              required
             />
             <Checkbox checked={guardianConsent} onToggle={() => setGuardianConsent((v) => !v)}>
               I am the parent or legal guardian of this roper and I consent to their profile, classification
@@ -214,6 +216,7 @@ export default function SignUp() {
           value={globalMembershipId}
           onChangeText={setGlobalMembershipId}
           placeholder="e.g. G-204871"
+          required
         />
         <TextField
           label="Global classification number"
@@ -221,6 +224,7 @@ export default function SignUp() {
           onChangeText={setClassification}
           placeholder="e.g. 4.5"
           keyboardType="decimal-pad"
+          required
         />
         <Text style={styles.retentionNote}>
           We keep this screenshot only to confirm your classification. It's deleted the moment you update
@@ -245,6 +249,7 @@ export default function SignUp() {
             value={contact}
             onChangeText={setContact}
             placeholder="e.g. (928) 555-0134"
+            required
           />
         ) : null}
 

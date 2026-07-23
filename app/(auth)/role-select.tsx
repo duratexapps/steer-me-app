@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { HelpModal } from '@/src/components/HelpModal';
 import { ActionTile } from '@/src/components/ui/ActionTile';
+import { BackToRopingToolsLink } from '@/src/components/ui/BackToRopingToolsLink';
 import { colors, fonts } from '@/src/theme/theme';
 
 // Mirrors Screen 0 (#role-select). The prototype has no sign-in concept at
@@ -16,6 +17,7 @@ export default function RoleSelect() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <BackToRopingToolsLink />
       <ScreenHeader
         title="Steer Me"
         subtitle="Find your own partner. Skip the ~$40 draw-in fee."

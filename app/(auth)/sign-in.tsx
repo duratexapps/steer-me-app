@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { BackToRopingToolsLink } from '@/src/components/ui/BackToRopingToolsLink';
 import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
@@ -35,6 +36,7 @@ export default function SignIn() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <BackToRopingToolsLink />
       <ScreenHeader title="Sign In" subtitle="Welcome back" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <TextField
