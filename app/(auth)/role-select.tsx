@@ -26,6 +26,13 @@ export default function RoleSelect() {
         onHelp={() => setHelpOpen(true)}
       />
       <ScrollView contentContainerStyle={styles.content}>
+        {/* First choice offered on the whole screen, alongside "Sign in"
+            below - a new visitor should be able to see what Steer Me
+            actually does before committing to an account. */}
+        <Pressable style={styles.tourBtn} onPress={() => router.push('/(auth)/tour')}>
+          <Text style={styles.tourBtnText}>Take a Tour</Text>
+        </Pressable>
+
         <Text style={styles.eyebrow}>Get started</Text>
         <Text style={styles.h2}>How will you use Steer Me?</Text>
         <Text style={styles.helper}>
@@ -81,4 +88,13 @@ const styles = StyleSheet.create({
     color: colors.espresso,
     textDecorationLine: 'underline',
   },
+  tourBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.espresso,
+    borderRadius: 6,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  tourBtnText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.espresso },
 });
