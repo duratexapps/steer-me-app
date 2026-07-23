@@ -6,7 +6,11 @@ import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
 
 export type EventRow = {
   id: string;
-  producer_id: string;
+  // Nullable: a Draw-Pro-synced event has no Steer Me producer account
+  // behind it at all (Draw Pro producers authenticate via Wix Members, not
+  // Supabase Auth) - draw_pro_event_id identifies it instead. See migration
+  // 0029_draw_pro_event_sync.sql.
+  producer_id: string | null;
   name: string;
   event_date: string;
   location: string;
@@ -15,6 +19,9 @@ export type EventRow = {
   divisions: number[];
   flier_path: string | null;
   status: 'pending_review' | 'published' | 'removed';
+  draw_pro_event_id: string | null;
+  draw_pro_entry_url: string | null;
+  external_producer_name: string | null;
 };
 
 export type EventWithProducer = EventRow & { producer_org_name: string | null };
@@ -25,12 +32,20 @@ type PublicProducerProfile = { id: string; org_name: string; verification_status
 // is a view, so it can't be embedded via PostgREST's FK-following syntax -
 // fetch events and producer names as two queries and merge client-side.
 async function withProducerNames(events: EventRow[]): Promise<EventWithProducer[]> {
-  const ids = [...new Set(events.map((e) => e.producer_id))];
-  if (ids.length === 0) return [];
-  const { data, error } = await supabase.from('public_producer_profiles').select('*').in('id', ids);
-  if (error) throw error;
-  const byId = new Map((data as PublicProducerProfile[]).map((p) => [p.id, p.org_name]));
-  return events.map((e) => ({ ...e, producer_org_name: byId.get(e.producer_id) ?? null }));
+  const ids = [...new Set(events.map((e) => e.producer_id).filter((id): id is string => id !== null))];
+  const byId = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data, error } = await supabase.from('public_producer_profiles').select('*').in('id', ids);
+    if (error) throw error;
+    for (const p of data as PublicProducerProfile[]) byId.set(p.id, p.org_name);
+  }
+  // Draw-Pro-synced events have no real producer_profiles row to join
+  // against - external_producer_name (set by the sync call) covers that
+  // case instead, so the UI still has something sensible to show.
+  return events.map((e) => ({
+    ...e,
+    producer_org_name: (e.producer_id ? byId.get(e.producer_id) : undefined) ?? e.external_producer_name ?? null,
+  }));
 }
 
 export function usePublishedEvents() {

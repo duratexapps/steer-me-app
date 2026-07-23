@@ -35,12 +35,24 @@ export function useInvalidateSubscriptionStatus() {
   return () => queryClient.invalidateQueries({ queryKey: ['subscription-status', userId] });
 }
 
+// TESTING MODE - has_active_subscription() (the real enforcement point,
+// checked by RLS on partner_requests/event_attendance/need_posts/
+// goat_roping_interest - see migration 0028_testing_phase_disable_subscription_gate.sql)
+// currently always returns true, matching the agreed testing-phase plan:
+// free access for everyone until a deliberate paywall cutover later. This
+// client-side flag exists only so the UI doesn't show a misleading
+// "subscription required" prompt while that's true - it has no effect on
+// actual enforcement, which lives entirely in that migration. Flip both
+// together when ready to launch subscriptions for real.
+const SUBSCRIPTION_REQUIRED = false;
+
 // Proactive gate for paid actions (send a request, mark attending) so the
 // user sees a clear "subscribe first" prompt instead of a raw Postgres RLS
 // error - the RLS policy itself is still the real enforcement either way.
 export function useRequireSubscription() {
   const { data: status } = useSubscriptionStatus();
   return () => {
+    if (!SUBSCRIPTION_REQUIRED) return true;
     if (status?.entitlement_active) return true;
     showToast('An active subscription is needed for this');
     router.push('/subscription');

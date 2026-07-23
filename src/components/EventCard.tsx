@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
@@ -51,7 +51,7 @@ export function EventCard({
     <View style={styles.card}>
       <Text style={styles.name}>{event.name}</Text>
       <Text style={styles.producerLine}>
-        {event.producer_org_name} · {formatDateDisplay(event.event_date)}
+        {event.producer_org_name ?? 'Posted via Draw Pro'} · {formatDateDisplay(event.event_date)}
       </Text>
       <Text style={styles.meta}>
         {event.location} · {event.entry_fee ?? 'See listing'}
@@ -88,6 +88,19 @@ export function EventCard({
           );
         })}
       </View>
+
+      {/* One shared entry link per event (not per division) - Draw Pro's
+          own entry page is where the entrant actually picks which class,
+          same as the QR code that's generated there. Independent of
+          finding a partner first - a solo/draw-in entrant needs this same
+          path in, not just someone who already lined up a partner via
+          the per-division "Partners" button above. */}
+      {!producerView && event.draw_pro_entry_url ? (
+        <Pressable style={styles.enterDrawBtn} onPress={() => Linking.openURL(event.draw_pro_entry_url!)}>
+          <Ionicons name="open-outline" size={14} color={colors.bone} />
+          <Text style={styles.enterDrawBtnText}>Enter the Draw</Text>
+        </Pressable>
+      ) : null}
 
       {canRate ? (
         <View style={styles.ratePrompt}>
@@ -154,6 +167,18 @@ const styles = StyleSheet.create({
   partnersBtn: { backgroundColor: colors.espresso, borderRadius: radii.sm, paddingVertical: 4, paddingHorizontal: 8, cursor: 'pointer' },
   partnersBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 10.5, color: colors.bone },
   reportLink: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, textDecorationLine: 'underline' },
+  enterDrawBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.brass,
+    borderRadius: radii.sm,
+    paddingVertical: 9,
+    marginTop: 10,
+    cursor: 'pointer',
+  },
+  enterDrawBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.bone },
   ratePrompt: {
     backgroundColor: colors.tan,
     borderWidth: 1,

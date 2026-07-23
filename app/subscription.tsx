@@ -61,12 +61,16 @@ export default function Subscription() {
     }
   }
 
-  // Subscriptions are billed through StoreKit/Play Billing via RevenueCat -
-  // there is no web equivalent wired up, and building one (e.g. Stripe
-  // Checkout) is separate, later work, not something to fake here. The web
-  // build still needs to work for someone who's already subscribed via the
-  // mobile app, though - status still reads from the same Supabase-synced
-  // `subscriptions` table regardless of platform, so that part is accurate.
+  // Rewritten 2026-07-22 - the old copy here said "managed through the
+  // mobile app, not here on the web," which is wrong twice over: (1) during
+  // the current testing phase, nothing requires a subscription at all (see
+  // SUBSCRIPTION_REQUIRED in useSubscriptionStatus.ts), and (2) the actual
+  // intended design once testing ends is that web WILL support subscribing
+  // directly too, not just the mobile app - that permanent "mobile only"
+  // framing was never correct and shouldn't ship. Real web checkout (Stripe
+  // or PayPal, since RevenueCat itself has no web SDK at all) is still not
+  // built - that's separate future work - so this deliberately doesn't
+  // claim purchasing works here yet, just stops implying it never will.
   if (Platform.OS === 'web') {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -79,9 +83,9 @@ export default function Subscription() {
             </DividerNote>
           ) : (
             <DividerNote>
-              Subscriptions are managed through the Steer Me mobile app (App Store / Google Play), not
-              here on the web. If you're already subscribed on your phone, it'll show as active here too -
-              your subscription follows your account, not the device.
+              Steer Me is free to use during testing - no subscription needed right now. Once testing
+              wraps up, subscribing will be available right here on the web, as well as in the mobile app -
+              your subscription will follow your account either way, not the device.
             </DividerNote>
           )}
         </ScrollView>
