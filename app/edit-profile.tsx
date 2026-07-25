@@ -116,7 +116,7 @@ export default function EditProfile() {
           </View>
         </Pressable>
 
-        <TextField label="Full name" value={fullName} onChangeText={setFullName} placeholder="e.g. Colt Bracken" />
+        <TextField label="Full name" value={fullName} onChangeText={setFullName} placeholder="e.g. Colt Bracken" required />
 
         <Text style={styles.label}>Position</Text>
         <View style={styles.pillRow}>
@@ -143,12 +143,14 @@ export default function EditProfile() {
               value={guardianName}
               onChangeText={setGuardianName}
               placeholder="e.g. Renee Bracken"
+              required
             />
             <TextField
               label="Parent/guardian phone or email"
               value={guardianContact}
               onChangeText={setGuardianContact}
               placeholder="e.g. (928) 555-0199"
+              required
             />
           </View>
         ) : (
@@ -157,6 +159,7 @@ export default function EditProfile() {
             value={contact}
             onChangeText={setContact}
             placeholder="e.g. (928) 555-0134"
+            required
           />
         )}
 
