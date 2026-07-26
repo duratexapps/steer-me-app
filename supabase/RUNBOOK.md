@@ -49,6 +49,41 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    Until both vault secrets exist, the trigger no-ops (profile suspension
    itself still works; only the login-ban side effect is skipped).
 
+## Turning on email confirmation for new sign-ups
+
+Added 2026-07-25. "Confirm email" was left OFF in this project deliberately
+up to this point - not an oversight, but because there was no deep-link
+handler in the app to receive the confirmation redirect, meaning a user
+who clicked the email link would land on a generic web page instead of
+back in the app. That handler now exists (`app/confirm-email.tsx`), so
+this can be turned on:
+
+1. Supabase Studio -> Authentication -> Settings -> under "User Signups,"
+   enable **Confirm email**.
+2. Authentication -> URL Configuration -> add the app's deep link to the
+   **Redirect URLs** allowlist. The exact value depends on how the app is
+   built/run:
+   - Expo Go / dev client during development: `exp://<your-dev-server>/--/confirm-email`
+     (varies per machine/network - `Linking.createURL('confirm-email')`,
+     called from `create-account.tsx`, always generates the correct value
+     for whatever's currently running, but the Supabase dashboard needs
+     the value added ahead of time, not discovered at runtime).
+   - A real standalone/production build: `steerme://confirm-email` (the
+     app's scheme, set in `app.json`, plus the same path).
+   - Safest for local testing: temporarily add a wildcard like
+     `steerme://**` and `exp://**` while testing, then tighten to exact
+     URLs before shipping.
+3. Confirm which Auth flow this project uses (Authentication -> Settings
+   -> look for "Auth Flow Type" or similar - PKCE vs. implicit).
+   `app/confirm-email.tsx` handles both, so no code change should be
+   needed either way, but worth knowing which one you're actually
+   testing against if something doesn't redirect correctly.
+4. Test end to end: sign up with a real email address you can check,
+   confirm the "check your email" toast appears (not an immediate
+   session), open the confirmation email, tap the link, and confirm it
+   lands on the "Confirming your email..." screen and then drops you
+   into the app already signed in.
+
 ## Setting up real subscriptions (RevenueCat + App Store/Google Play)
 
 None of this exists yet as of this build - it's an external, account-level

@@ -6,16 +6,20 @@ import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
+import * as Linking from 'expo-linking';
 import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
 
-// Necessary addition beyond the prototype: it has no real authentication at
-// all. This assumes the Supabase project has "Confirm email" turned off
-// (see supabase/RUNBOOK.md) so signUp returns an active session immediately
-// and the flow can continue straight into profile setup, rather than
-// stalling on an email-confirmation deep link this app doesn't implement.
+// Built 2026-07-25: this used to assume the Supabase project had
+// "Confirm email" turned off entirely, specifically because there was no
+// deep-link handler to receive the confirmation redirect - see
+// app/confirm-email.tsx, which now exists to receive it.
+// emailRedirectTo below points there. Once that's done, "Confirm email"
+// can actually be turned on in the Supabase dashboard (Authentication ->
+// Settings) - this code already handles the !data.session branch
+// correctly either way, so nothing else here needs to change when it is.
 export default function CreateAccount() {
   const { role } = useLocalSearchParams<{ role: string }>();
   const [email, setEmail] = useState('');
@@ -29,7 +33,11 @@ export default function CreateAccount() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { emailRedirectTo: Linking.createURL('confirm-email') },
+    });
     setLoading(false);
 
     if (error) {
