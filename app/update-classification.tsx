@@ -16,6 +16,7 @@ import { removeUserFile, uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
 import { showToast } from '@/src/state/toast-store';
 import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
+import { validateClassificationForEnd } from '@/src/lib/matching';
 
 // Mirrors "Update my classification" from Profile (Screen 6) - re-verifying
 // replaces and deletes the old screenshot, per Privacy Policy section 5.
@@ -29,6 +30,18 @@ export default function UpdateClassification() {
   const [globalMembershipId, setGlobalMembershipId] = useState(profile?.global_membership_id ?? '');
   const [classification, setClassification] = useState(
     profile?.global_classification != null ? String(profile.global_classification) : ''
+  );
+  // Real bug fix 2026-07-25 (see migration 0030): Switch Enders need both
+  // a header and heeler number, assessed independently - see the matching
+  // sign-up.tsx note for the full reasoning. isSwitch is fixed from the
+  // existing profile - this screen re-verifies classification, it doesn't
+  // let someone change their position.
+  const isSwitch = profile?.position === 'Switch';
+  const [headerClassification, setHeaderClassification] = useState(
+    profile?.header_classification != null ? String(profile.header_classification) : ''
+  );
+  const [heelerClassification, setHeelerClassification] = useState(
+    profile?.heeler_classification != null ? String(profile.heeler_classification) : ''
   );
   const [submitting, setSubmitting] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -48,8 +61,18 @@ export default function UpdateClassification() {
   }
 
   const classificationNumber = parseFloat(classification);
-  const canSubmit =
-    !!screenshotPath && globalMembershipId.trim().length > 0 && !Number.isNaN(classificationNumber);
+  const headerClassificationNumber = parseFloat(headerClassification);
+  const heelerClassificationNumber = parseFloat(heelerClassification);
+
+  const classificationValid = isSwitch
+    ? !Number.isNaN(headerClassificationNumber) &&
+      !validateClassificationForEnd(headerClassificationNumber, 'header') &&
+      !Number.isNaN(heelerClassificationNumber) &&
+      !validateClassificationForEnd(heelerClassificationNumber, 'heeler')
+    : !Number.isNaN(classificationNumber) &&
+      !validateClassificationForEnd(classificationNumber, profile?.position === 'Header' ? 'header' : 'heeler');
+
+  const canSubmit = !!screenshotPath && globalMembershipId.trim().length > 0 && classificationValid;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -69,7 +92,9 @@ export default function UpdateClassification() {
       .from('profiles')
       .update({
         global_membership_id: globalMembershipId.trim(),
-        global_classification: classificationNumber,
+        global_classification: isSwitch ? null : classificationNumber,
+        header_classification: isSwitch ? headerClassificationNumber : null,
+        heeler_classification: isSwitch ? heelerClassificationNumber : null,
         verification_screenshot_path: screenshotPath,
       })
       .eq('id', user.id);
@@ -126,13 +151,36 @@ export default function UpdateClassification() {
           onChangeText={setGlobalMembershipId}
           placeholder="e.g. G-204871"
         />
-        <TextField
-          label="Global classification number"
-          value={classification}
-          onChangeText={setClassification}
-          placeholder="e.g. 4.5"
-          keyboardType="decimal-pad"
-        />
+        {isSwitch ? (
+          <>
+            <Text style={styles.switchNote}>
+              As a Switch Ender, you need both numbers - header and heeler ratings are assessed
+              independently and often differ.
+            </Text>
+            <TextField
+              label="Header classification number"
+              value={headerClassification}
+              onChangeText={setHeaderClassification}
+              placeholder="e.g. 6.5 (max 9)"
+              keyboardType="decimal-pad"
+            />
+            <TextField
+              label="Heeler classification number"
+              value={heelerClassification}
+              onChangeText={setHeelerClassification}
+              placeholder="e.g. 8 (max 10)"
+              keyboardType="decimal-pad"
+            />
+          </>
+        ) : (
+          <TextField
+            label="Global classification number"
+            value={classification}
+            onChangeText={setClassification}
+            placeholder="e.g. 4.5"
+            keyboardType="decimal-pad"
+          />
+        )}
 
         <Button label="Save classification" onPress={handleSubmit} disabled={!canSubmit} loading={submitting} />
       </ScrollView>
@@ -154,6 +202,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   required: { color: colors.brass, textTransform: 'none' },
+  switchNote: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginBottom: 12, lineHeight: 17 },
   dropzone: {
     borderWidth: 1.5,
     borderColor: colors.brass,

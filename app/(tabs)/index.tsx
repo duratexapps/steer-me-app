@@ -9,10 +9,10 @@ import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
-import { useEligiblePartners } from '@/src/hooks/useEligiblePartners';
+import { useEligiblePartners, toClassification } from '@/src/hooks/useEligiblePartners';
 import { useSentRequests } from '@/src/hooks/usePartnerRequests';
 import { publicUrlFor } from '@/src/lib/storage-upload';
-import { formatPosition } from '@/src/lib/matching';
+import { formatPosition, formatClassificationTag } from '@/src/lib/matching';
 import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 
 export default function Home() {
@@ -52,7 +52,7 @@ export default function Home() {
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} />
               ) : (
-                <Tag value={profile.global_classification ?? '—'} />
+                <Tag value={formatClassificationTag(toClassification(profile))} />
               )}
               <View>
                 <Text style={styles.who}>{profile.full_name}</Text>

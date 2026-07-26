@@ -10,6 +10,8 @@ export type BlockedProfile = {
   position: Position;
   home_area: string;
   global_classification: number | null;
+  header_classification: number | null;
+  heeler_classification: number | null;
   avatar_url: string | null;
 };
 

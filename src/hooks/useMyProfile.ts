@@ -15,6 +15,11 @@ export type MyProfile = {
   avatar_url: string | null;
   global_membership_id: string | null;
   global_classification: number | null;
+  // Switch Ender only - see migration 0030. Both null until they've
+  // completed dual-number verification; Header/Heeler-only ropers never
+  // populate these, they use global_classification instead.
+  header_classification: number | null;
+  heeler_classification: number | null;
   verification_screenshot_path: string | null;
   suspended: boolean;
 };

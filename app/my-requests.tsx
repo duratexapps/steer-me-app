@@ -20,7 +20,8 @@ import {
 import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
 import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 import { signedUrlFor } from '@/src/lib/storage-upload';
-import { formatDivision } from '@/src/lib/matching';
+import { formatDivision, formatClassificationTag } from '@/src/lib/matching';
+import { toClassification } from '@/src/hooks/useEligiblePartners';
 import { showToast } from '@/src/state/toast-store';
 
 const STATUS_LABEL: Record<PartnerRequestWithProfile['status'], string> = {
@@ -81,7 +82,7 @@ function RequestCard({
 
   return (
     <View style={styles.card}>
-      <Tag value={request.counterpart?.global_classification ?? '—'} />
+      <Tag value={request.counterpart ? formatClassificationTag(toClassification(request.counterpart)) : '—'} />
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={styles.name}>{name}</Text>

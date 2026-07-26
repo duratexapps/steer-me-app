@@ -13,7 +13,8 @@ import { publicUrlFor, removeUserFile } from '@/src/lib/storage-upload';
 import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
-import { formatPosition } from '@/src/lib/matching';
+import { formatPosition, formatClassificationTag, formatClassificationDetail } from '@/src/lib/matching';
+import { toClassification } from '@/src/hooks/useEligiblePartners';
 
 // Mirrors Screen 6 (#profile). Two necessary additions beyond the
 // prototype: a real Sign Out action (the prototype has no auth at all), and
@@ -105,7 +106,7 @@ export default function Profile() {
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
-            <Tag value={profile.global_classification ?? '—'} size="big" />
+            <Tag value={formatClassificationTag(toClassification(profile))} size="big" />
           )}
           <View>
             <Text style={styles.name}>{profile.full_name}</Text>
@@ -122,7 +123,7 @@ export default function Profile() {
         </View>
         <View style={styles.card}>
           <Text style={styles.cardMeta}>Classification</Text>
-          <Text style={styles.cardValue}>{profile.global_classification}</Text>
+          <Text style={styles.cardValue}>{formatClassificationDetail(toClassification(profile))}</Text>
         </View>
 
         <Button

@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile, type MyProfile } from '@/src/hooks/useMyProfile';
-import { maxAllowedFor, canPair } from '@/src/lib/matching';
-import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
+import { canPair } from '@/src/lib/matching';
+import { toClassification, type PublicProfile } from '@/src/hooks/useEligiblePartners';
 
 export type NeedPostVisibility = 'everyone' | 'favorites' | 'selected';
 
@@ -34,16 +34,15 @@ async function withPosters(rows: NeedPostRow[]): Promise<NeedPostWithPoster[]> {
   return rows.map((r) => ({ ...r, poster: byId.get(r.athlete_id) ?? null }));
 }
 
-// A viewer is eligible to respond to a posted need if canPair() allows
-// their position to fill the opposite end from the poster's and their own
-// number fits under the poster's cap - same math as eligiblePartners(),
-// just evaluated against the poster's number instead of the viewer's.
+// A viewer is eligible to respond to a posted need if canPair() finds a
+// valid header/heeler assignment between the two of them under the
+// poster's cap - same real, number-aware check as useEligiblePartners(),
+// just evaluated against the poster's numbers instead of a browsed list.
 // Goat roping posts have no cap or position constraint at all.
 function isEligibleForPost(post: NeedPostRow, poster: PublicProfile, me: MyProfile) {
   if (post.is_goat_roping) return true;
-  if (!canPair(poster.position, me.position)) return false;
   if (post.division == null) return false;
-  return me.global_classification != null && me.global_classification <= maxAllowedFor(post.division, poster.global_classification);
+  return canPair(toClassification(poster), toClassification(me), post.division);
 }
 
 export function useOpenNeedPosts() {

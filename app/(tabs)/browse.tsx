@@ -117,6 +117,22 @@ export default function Browse() {
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
         ListHeaderComponent={
           <>
+            {/* Real UX gap found alongside the dual-classification fix
+                (migration 0030): a Switch Ender whose numbers got cleared
+                by that migration would otherwise just see an empty list
+                here with no explanation - canPair() correctly excludes
+                them from every match since they have no numbers to check
+                against, but that's silent and confusing without this. */}
+            {me.position === 'Switch' && me.header_classification == null && me.heeler_classification == null ? (
+              <DividerNote>
+                <Text style={{ fontFamily: fonts.bodyBold }}>Finish verifying your classification. </Text>
+                As a Switch Ender you need both a header and heeler number before you'll be matched with
+                anyone.{' '}
+                <Text style={styles.clearLink} onPress={() => router.push('/update-classification')}>
+                  Update now
+                </Text>
+              </DividerNote>
+            ) : null}
             {inEventContext ? (
               <View style={styles.eventBanner}>
                 <Text style={styles.eventBannerText}>

@@ -9,6 +9,8 @@ import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { useBlockedProfiles, useUnblockUser } from '@/src/hooks/useBlocking';
+import { formatClassificationTag } from '@/src/lib/matching';
+import { toClassification } from '@/src/hooks/useEligiblePartners';
 
 export default function BlockedUsers() {
   const { data: blocked } = useBlockedProfiles();
@@ -29,7 +31,7 @@ export default function BlockedUsers() {
         ) : (
           blocked.map((p) => (
             <View key={p.id} style={styles.card}>
-              <Tag value={p.global_classification ?? '—'} />
+              <Tag value={formatClassificationTag(toClassification(p))} />
               <View style={styles.info}>
                 <Text style={styles.name}>{p.full_name}</Text>
                 <Text style={styles.meta}>{p.home_area}</Text>

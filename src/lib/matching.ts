@@ -1,26 +1,109 @@
 export type Position = 'Header' | 'Heeler' | 'Switch';
 
-// The classification-cap math (cap - my number = max partner number
-// allowed) only ever depends on the SUM of both people's numbers, never on
-// which end is labeled which. So the only real constraint on whether two
-// people can pair up is "not both exclusively the same end" - a Header
-// can't pair with a Header, a Heeler can't pair with a Heeler, but a
-// Switch Ender is compatible with everyone, including another Switch
-// Ender (between two flexible ropers, either can take either end and the
-// math comes out the same regardless of who ropes which). This one rule
-// replaces the old strict "opposite position" check everywhere, with no
-// need to separately declare a role per request or posted need.
-export function canPair(a: Position, b: Position) {
-  if (a === 'Switch' || b === 'Switch') return true;
-  return a !== b;
+// Real bug found live 2026-07-25 (see migration 0030): a Switch Ender
+// (someone who ropes both ends) was represented by a SINGLE number used
+// for either end, on the assumption that "the math comes out the same
+// regardless of who ropes which." That's wrong - header and heeler
+// ratings are assessed independently and commonly differ (a real 6.5
+// header / 8.0 heeler is a normal combination), and MAX_HEADER_NUMBER
+// (9) vs MAX_HEELER_NUMBER (10) below already encoded that headers and
+// heelers have different valid ranges even before this fix - a single
+// ambiguous number could be invalid for whichever end was actually being
+// evaluated. Header/Heeler-only ropers are unaffected - they only ever
+// have one real number, for their one real end.
+export type Classification = {
+  position: Position;
+  globalClassification: number | null; // Header/Heeler-only
+  headerClassification: number | null; // Switch Ender only
+  heelerClassification: number | null; // Switch Ender only
+};
+
+// The number this person would rope as A HEADER in a given pairing, or
+// null if they have none set up for that end (a pure Heeler, or a Switch
+// Ender who hasn't completed dual-number verification yet).
+export function asHeaderNumber(c: Classification): number | null {
+  if (c.position === 'Header') return c.globalClassification;
+  if (c.position === 'Switch') return c.headerClassification;
+  return null;
+}
+
+// Same as asHeaderNumber, for heeling.
+export function asHeelerNumber(c: Classification): number | null {
+  if (c.position === 'Heeler') return c.globalClassification;
+  if (c.position === 'Switch') return c.heelerClassification;
+  return null;
+}
+
+// Can these two people form a valid team under the given cap? Tries every
+// role assignment that's actually possible for each person - a fixed
+// Header/Heeler only has one possible assignment, a Switch Ender can go
+// either way - and returns true if ANY assignment's numbers both exist
+// and sum to at or under the cap. Replaces the old canPair(a: Position, b:
+// Position), which could only check whether the two POSITIONS were
+// compatible in principle - it had no way to see individual numbers at
+// all, so it never actually verified the cap math itself for a Switch
+// Ender's side of a pairing.
+export function canPair(a: Classification, b: Classification, cap: number): boolean {
+  const combos: [number | null, number | null][] = [
+    [asHeaderNumber(a), asHeelerNumber(b)],
+    [asHeaderNumber(b), asHeelerNumber(a)],
+  ];
+  return combos.some(
+    ([header, heeler]) => header != null && heeler != null && round1(header + heeler) <= cap
+  );
 }
 
 export function formatPosition(position: Position) {
   return position === 'Switch' ? 'Switch Ender' : position;
 }
 
+// A short, Tag-component-ready value for displaying this person's
+// classification. Switch Enders show both numbers compactly (e.g.
+// "6.5/8") since there's no single number that represents them anymore -
+// Header/Heeler-only show their one real number, unchanged from before
+// this fix. Returns '?' rather than a blank/null if a Switch Ender
+// hasn't completed dual-number verification yet.
+export function formatClassificationTag(c: Classification): string | number {
+  if (c.position === 'Switch') {
+    if (c.headerClassification != null && c.heelerClassification != null) {
+      return `${c.headerClassification}/${c.heelerClassification}`;
+    }
+    return '?';
+  }
+  return c.globalClassification ?? '?';
+}
+
+// Fuller, more explicit version of formatClassificationTag for detail
+// views (a profile screen, not a small badge) where there's room to
+// spell out which number is which rather than a compact "6.5/8".
+export function formatClassificationDetail(c: Classification): string {
+  if (c.position === 'Switch') {
+    if (c.headerClassification != null && c.heelerClassification != null) {
+      return `Header: ${c.headerClassification} · Heeler: ${c.heelerClassification}`;
+    }
+    return 'Not yet verified for both ends';
+  }
+  return c.globalClassification != null ? String(c.globalClassification) : 'Not verified';
+}
+
 export function maxAllowedFor(cap: number, myNumber: number) {
-  return Math.round((cap - myNumber) * 10) / 10;
+  return round1(cap - myNumber);
+}
+
+function round1(n: number) {
+  return Math.round(n * 10) / 10;
+}
+
+// Enforces the real, distinct valid ranges for each end - never actually
+// checked anywhere before this fix, despite MAX_HEADER_NUMBER/
+// MAX_HEELER_NUMBER already existing. Returns an error message, or null
+// if the number is valid for that end.
+export function validateClassificationForEnd(value: number, end: 'header' | 'heeler'): string | null {
+  const max = end === 'header' ? MAX_HEADER_NUMBER : MAX_HEELER_NUMBER;
+  if (value <= 0 || value > max) {
+    return `Enter a valid ${end} number (0-${max}).`;
+  }
+  return null;
 }
 
 export const COMMON_CAPS = [

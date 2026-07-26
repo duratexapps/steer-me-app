@@ -2,8 +2,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
-import { formatPosition } from '@/src/lib/matching';
-import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
+import { formatPosition, formatClassificationTag } from '@/src/lib/matching';
+import { toClassification, type PublicProfile } from '@/src/hooks/useEligiblePartners';
 
 type PartnerCardProps = {
   partner: PublicProfile;
@@ -35,7 +35,7 @@ export function PartnerCard({
 }: PartnerCardProps) {
   return (
     <View style={styles.card}>
-      <Tag value={partner.global_classification} />
+      <Tag value={formatClassificationTag(toClassification(partner))} />
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={styles.name}>{partner.full_name}</Text>

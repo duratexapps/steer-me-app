@@ -3,8 +3,9 @@ import { Image } from 'expo-image';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { publicUrlFor } from '@/src/lib/storage-upload';
-import { formatDivision, formatPosition } from '@/src/lib/matching';
+import { formatDivision, formatPosition, formatClassificationTag } from '@/src/lib/matching';
 import { formatDateDisplay } from '@/src/lib/date';
+import { toClassification } from '@/src/hooks/useEligiblePartners';
 import type { NeedPostWithPoster } from '@/src/hooks/useNeedPosts';
 
 type NeedPostCardProps = {
@@ -27,7 +28,7 @@ export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBl
   return (
     <View style={styles.card}>
       <View style={styles.headRow}>
-        {post.poster ? <Tag value={post.poster.global_classification} /> : null}
+        {post.poster ? <Tag value={formatClassificationTag(toClassification(post.poster))} /> : null}
         <View style={styles.info}>
           <Text style={styles.eventName}>{post.event_name}</Text>
           <Text style={styles.meta}>

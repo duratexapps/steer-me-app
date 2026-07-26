@@ -18,7 +18,8 @@ import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
-import { DIVISION_OPTIONS, OPEN_CAP, formatPosition } from '@/src/lib/matching';
+import { DIVISION_OPTIONS, OPEN_CAP, formatPosition, formatClassificationTag } from '@/src/lib/matching';
+import { toClassification } from '@/src/hooks/useEligiblePartners';
 import { formatDateDisplay } from '@/src/lib/date';
 import { useCreateNeedPost, type NeedPostVisibility } from '@/src/hooks/useNeedPosts';
 import { useSearchPublishedEvents, useNeedPostCountForEvent, type EventWithProducer } from '@/src/hooks/useEvents';
@@ -267,7 +268,7 @@ export default function CreateNeedPost() {
                     style={[styles.favoriteRow, picked && styles.favoriteRowPicked]}
                     onPress={() => toggleSelectedFavorite(f.id)}
                   >
-                    <Tag value={f.global_classification} />
+                    <Tag value={formatClassificationTag(toClassification(f))} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.favoriteName}>{f.full_name}</Text>
                       <Text style={styles.favoriteMeta}>

@@ -20,7 +20,7 @@ import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
 import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
-import type { Position } from '@/src/lib/matching';
+import { validateClassificationForEnd, type Position } from '@/src/lib/matching';
 
 type PhotoTarget = 'avatar' | 'screenshot' | null;
 
@@ -47,6 +47,13 @@ export default function SignUp() {
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
   const [globalMembershipId, setGlobalMembershipId] = useState('');
   const [classification, setClassification] = useState('');
+  // Real bug fix 2026-07-25 (see migration 0030): a Switch Ender ropes
+  // both ends, and header/heeler ratings are assessed independently and
+  // commonly differ - one generic "classification" field can't represent
+  // that. These two only apply when position === 'Switch'; Header/Heeler
+  // ropers keep using the single `classification` field above, unchanged.
+  const [headerClassification, setHeaderClassification] = useState('');
+  const [heelerClassification, setHeelerClassification] = useState('');
 
   const [position, setPosition] = useState<Position>('Heeler');
   const [homeArea, setHomeArea] = useState('');
@@ -80,7 +87,24 @@ export default function SignUp() {
   }
 
   const classificationNumber = parseFloat(classification);
-  const classificationValid = classification.trim().length > 0 && !Number.isNaN(classificationNumber);
+  const headerClassificationNumber = parseFloat(headerClassification);
+  const heelerClassificationNumber = parseFloat(heelerClassification);
+
+  // For Header/Heeler, the single field must be a valid number for THAT
+  // end specifically (e.g. a Header can't enter 9.5, since headers max
+  // out at 9) - real validation that never existed before this fix,
+  // despite MAX_HEADER_NUMBER/MAX_HEELER_NUMBER already being defined.
+  // For Switch, BOTH numbers are required, each validated against its
+  // own end's real range.
+  const classificationValid =
+    position === 'Switch'
+      ? !Number.isNaN(headerClassificationNumber) &&
+        !validateClassificationForEnd(headerClassificationNumber, 'header') &&
+        !Number.isNaN(heelerClassificationNumber) &&
+        !validateClassificationForEnd(heelerClassificationNumber, 'heeler')
+      : classification.trim().length > 0 &&
+        !Number.isNaN(classificationNumber) &&
+        !validateClassificationForEnd(classificationNumber, position === 'Header' ? 'header' : 'heeler');
 
   const canSubmit =
     fullName.trim().length > 0 &&
@@ -119,7 +143,9 @@ export default function SignUp() {
       contact: isMinor ? null : contact.trim(),
       avatar_url: avatarPath,
       global_membership_id: globalMembershipId.trim(),
-      global_classification: classificationNumber,
+      global_classification: position === 'Switch' ? null : classificationNumber,
+      header_classification: position === 'Switch' ? headerClassificationNumber : null,
+      heeler_classification: position === 'Switch' ? heelerClassificationNumber : null,
       verification_screenshot_path: screenshotPath,
     });
 
@@ -218,19 +244,10 @@ export default function SignUp() {
           placeholder="e.g. G-204871"
           required
         />
-        <TextField
-          label="Global classification number"
-          value={classification}
-          onChangeText={setClassification}
-          placeholder="e.g. 4.5"
-          keyboardType="decimal-pad"
-          required
-        />
-        <Text style={styles.retentionNote}>
-          We keep this screenshot only to confirm your classification. It's deleted the moment you update
-          your classification or delete your profile.
-        </Text>
 
+        {/* Position moved above classification (was below it before this
+            fix) - which classification field(s) to show depends on the
+            position picked, so the picker needs to come first. */}
         <Text style={styles.label}>Position</Text>
         <View style={styles.pillRow}>
           <Pill label="Header" selected={position === 'Header'} onPress={() => setPosition('Header')} />
@@ -238,8 +255,45 @@ export default function SignUp() {
           <Pill label="Switch Ender" selected={position === 'Switch'} onPress={() => setPosition('Switch')} />
         </View>
         {position === 'Switch' ? (
-          <Text style={styles.helper}>You'll be shown potential partners for both ends - header and heeler.</Text>
+          <Text style={styles.helper}>
+            You rope both ends, so we need both numbers - header and heeler ratings are assessed
+            independently and often differ (e.g. a 6.5 header / 8.0 heeler is a normal combination).
+          </Text>
         ) : null}
+
+        {position === 'Switch' ? (
+          <>
+            <TextField
+              label="Header classification number"
+              value={headerClassification}
+              onChangeText={setHeaderClassification}
+              placeholder="e.g. 6.5 (max 9)"
+              keyboardType="decimal-pad"
+              required
+            />
+            <TextField
+              label="Heeler classification number"
+              value={heelerClassification}
+              onChangeText={setHeelerClassification}
+              placeholder="e.g. 8 (max 10)"
+              keyboardType="decimal-pad"
+              required
+            />
+          </>
+        ) : (
+          <TextField
+            label="Global classification number"
+            value={classification}
+            onChangeText={setClassification}
+            placeholder="e.g. 4.5"
+            keyboardType="decimal-pad"
+            required
+          />
+        )}
+        <Text style={styles.retentionNote}>
+          We keep this screenshot only to confirm your classification. It's deleted the moment you update
+          your classification or delete your profile.
+        </Text>
 
         <AutocompleteField label="Home area" value={homeArea} onChange={setHomeArea} placeholder="e.g. Payson" required />
 

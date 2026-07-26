@@ -8,7 +8,8 @@ import { Tag } from '@/src/components/ui/Tag';
 import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
-import { formatPosition } from '@/src/lib/matching';
+import { formatPosition, formatClassificationTag } from '@/src/lib/matching';
+import { toClassification } from '@/src/hooks/useEligiblePartners';
 import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 
 // Accessible from Profile rather than a Home-page tab, per the earlier
@@ -40,7 +41,7 @@ export default function MyFavorites() {
           <View style={styles.grid}>
             {favorites.map((p) => (
               <View key={p.id} style={[styles.card, { width: itemWidth }]}>
-                <Tag value={p.global_classification ?? '—'} />
+                <Tag value={formatClassificationTag(toClassification(p))} />
                 <View style={styles.info}>
                   <Text style={styles.name}>{p.full_name}</Text>
                   <Text style={styles.meta}>
