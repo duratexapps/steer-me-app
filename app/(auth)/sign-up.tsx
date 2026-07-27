@@ -22,6 +22,7 @@ import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { validateClassificationForEnd, type Position } from '@/src/lib/matching';
 import { friendlySupabaseError } from '@/src/lib/errors';
+import { verifyClassificationCard } from '@/src/lib/verification';
 
 type PhotoTarget = 'avatar' | 'screenshot' | null;
 
@@ -108,6 +109,7 @@ export default function SignUp() {
         !validateClassificationForEnd(classificationNumber, position === 'Header' ? 'header' : 'heeler');
 
   const canSubmit =
+    !!avatarPath && // CHANGED 2026-07-27: was optional - see the label change above
     fullName.trim().length > 0 &&
     homeArea.trim().length > 0 &&
     !!screenshotPath &&
@@ -132,6 +134,30 @@ export default function SignUp() {
       return;
     }
 
+    // NEW, added 2026-07-27 - real gap flagged by the user: nothing
+    // previously checked that the uploaded screenshot was even a real
+    // Global Handicap card, let alone that its name/ID/classification
+    // matched what's being claimed here. See verify-classification-card's
+    // own file header for the full design (AI extracts, our own code
+    // decides match/mismatch). A genuine mismatch blocks sign-up
+    // entirely; the AI being unavailable does NOT block it - it just
+    // gets flagged via needs_manual_review below instead.
+    const verifyResult = await verifyClassificationCard({
+      imagePath: screenshotPath!,
+      claimedName: fullName.trim(),
+      claimedMembershipId: globalMembershipId.trim(),
+      position,
+      claimedGlobalClassification: position === 'Switch' ? null : classificationNumber,
+      claimedHeaderClassification: position === 'Switch' ? headerClassificationNumber : null,
+      claimedHeelerClassification: position === 'Switch' ? heelerClassificationNumber : null,
+    });
+
+    if (!verifyResult.verified && !verifyResult.skipped) {
+      setSubmitting(false);
+      showToast(verifyResult.mismatches[0] ?? 'Could not verify your card - check your information and try again');
+      return;
+    }
+
     const { error } = await supabase.from('profiles').insert({
       id: user.id,
       full_name: fullName.trim(),
@@ -148,6 +174,7 @@ export default function SignUp() {
       header_classification: position === 'Switch' ? headerClassificationNumber : null,
       heeler_classification: position === 'Switch' ? heelerClassificationNumber : null,
       verification_screenshot_path: screenshotPath,
+      needs_manual_review: !!verifyResult.skipped,
     });
 
     setSubmitting(false);
@@ -175,7 +202,14 @@ export default function SignUp() {
         <Text style={styles.h2}>Set up your roper profile</Text>
         <Text style={styles.helper}>This is what other athletes see when they're looking for a partner.</Text>
 
-        <Text style={styles.label}>Profile photo (optional)</Text>
+        {/* CHANGED 2026-07-27: was optional - now required, per direct
+            discussion about classification/identity fraud. A real photo
+            gives fellow contestants and producers an actual face to check
+            against the name/number someone claims, the same social
+            detection method that's realistically how impersonation gets
+            caught today - a required, visible photo makes that easier,
+            not just a nice-to-have. */}
+        <Text style={styles.label}>Profile photo <Text style={styles.required}>*required</Text></Text>
         <Pressable style={styles.avatarRow} onPress={() => setPhotoTarget('avatar')}>
           <View style={styles.avatarCircle}>
             {avatarUri ? (
@@ -186,7 +220,7 @@ export default function SignUp() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.avatarTitle}>Add a photo</Text>
-            <Text style={styles.avatarSub}>Helps other ropers recognize you. Shown on your profile and posts.</Text>
+            <Text style={styles.avatarSub}>Helps other ropers recognize you, and helps prevent someone else from using your identity.</Text>
           </View>
         </Pressable>
 

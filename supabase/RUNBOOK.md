@@ -14,10 +14,11 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    ```
 2. Copy `.env.example` to `.env` and fill in your project's URL/anon key
    (Project Settings -> API) and your RevenueCat public SDK keys.
-3. Deploy both Edge Functions:
+3. Deploy all three Edge Functions:
    ```
    npx supabase functions deploy revenuecat-webhook
    npx supabase functions deploy ban-suspended-user
+   npx supabase functions deploy verify-classification-card
    ```
 4. Set secrets for the Edge Functions (Project Settings -> Edge Functions ->
    Secrets, or via CLI). Generate both into shell variables and reuse the
@@ -32,6 +33,18 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    ```
    `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected - you
    don't need to set those yourself.
+4.5. **NEW, added 2026-07-27** - set the Anthropic API key that
+   `verify-classification-card` needs to actually check uploaded cards:
+   ```
+   npx supabase secrets set ANTHROPIC_API_KEY="<your key from console.anthropic.com>"
+   ```
+   Until this is set, sign-up/classification-update still work (the
+   function returns `skipped: true` rather than blocking anyone), but no
+   card is ever actually checked - every profile gets
+   `needs_manual_review = true` instead. Also requires `SUPABASE_ANON_KEY`
+   to be available to the function for verifying the calling user's own
+   session - this is auto-injected the same way `SUPABASE_URL`/
+   `SUPABASE_SERVICE_ROLE_KEY` are, no separate step needed.
 5. In the RevenueCat dashboard (Project Settings -> Integrations ->
    Webhooks): set the webhook URL to your deployed `revenuecat-webhook`
    function URL, and set the "Authorization header" value to the same string
@@ -201,6 +214,27 @@ still be the first to register under a stolen identity before the real
 person ever signs up. The constraint mainly guarantees that if the real
 person EVER tries to sign up later, the conflict becomes visible and
 investigable, rather than staying invisible indefinitely.
+
+## Reviewing profiles flagged `needs_manual_review`
+
+**NEW, added 2026-07-27**, alongside the `verify-classification-card` Edge
+Function (migration 0032). Every profile created or updated while that
+function couldn't actually run - the Anthropic API was down, not yet
+configured (missing `ANTHROPIC_API_KEY`, see the one-time setup section
+above), or returned something unparseable - gets `needs_manual_review = true`
+instead of silently being treated as verified.
+
+1. Studio -> Table Editor -> `profiles`, filter `needs_manual_review = true`.
+2. Manually compare `full_name`, `global_membership_id`,
+   `global_classification`/`header_classification`/`heeler_classification`,
+   against the image at `verification_screenshot_path` (Storage ->
+   verification-screenshots) - exactly what the AI check would have done.
+3. If it checks out, set `needs_manual_review` back to `false`. If it
+   doesn't, handle it the same as a confirmed identity/classification
+   conflict above.
+4. If you're seeing a growing backlog here, that's a signal the Anthropic
+   API key/quota needs attention, not just something to keep clearing
+   by hand.
 
 ## Reviewing an event-accuracy report (event_reports)
 

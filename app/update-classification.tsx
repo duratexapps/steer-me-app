@@ -18,6 +18,7 @@ import { showToast } from '@/src/state/toast-store';
 import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
 import { validateClassificationForEnd } from '@/src/lib/matching';
 import { friendlySupabaseError } from '@/src/lib/errors';
+import { verifyClassificationCard } from '@/src/lib/verification';
 
 // Mirrors "Update my classification" from Profile (Screen 6) - re-verifying
 // replaces and deletes the old screenshot, per Privacy Policy section 5.
@@ -87,6 +88,27 @@ export default function UpdateClassification() {
       return;
     }
 
+    // NEW, added 2026-07-27 - same real-card verification as sign-up.tsx,
+    // see that file's matching comment and verify-classification-card's
+    // own file header for the full design. claimedName comes from the
+    // existing profile, not a form field here - this screen doesn't let
+    // someone change their name, only re-verify their classification.
+    const verifyResult = await verifyClassificationCard({
+      imagePath: screenshotPath!,
+      claimedName: profile?.full_name ?? '',
+      claimedMembershipId: globalMembershipId.trim(),
+      position: profile?.position ?? 'Heeler',
+      claimedGlobalClassification: isSwitch ? null : classificationNumber,
+      claimedHeaderClassification: isSwitch ? headerClassificationNumber : null,
+      claimedHeelerClassification: isSwitch ? heelerClassificationNumber : null,
+    });
+
+    if (!verifyResult.verified && !verifyResult.skipped) {
+      setSubmitting(false);
+      showToast(verifyResult.mismatches[0] ?? 'Could not verify your card - check your information and try again');
+      return;
+    }
+
     const oldPath = profile?.verification_screenshot_path ?? null;
 
     const { error } = await supabase
@@ -97,6 +119,7 @@ export default function UpdateClassification() {
         header_classification: isSwitch ? headerClassificationNumber : null,
         heeler_classification: isSwitch ? heelerClassificationNumber : null,
         verification_screenshot_path: screenshotPath,
+        needs_manual_review: !!verifyResult.skipped,
       })
       .eq('id', user.id);
 
