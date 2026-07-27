@@ -175,6 +175,12 @@ export default function SignUp() {
       heeler_classification: position === 'Switch' ? heelerClassificationNumber : null,
       verification_screenshot_path: screenshotPath,
       needs_manual_review: !!verifyResult.skipped,
+      // NEW, added 2026-07-27 - policy decision: an expired card doesn't
+      // block sign-up (unlike a name/ID/number mismatch above), but it's
+      // recorded and shown to other users so THEY can decide whether to
+      // match with someone whose membership isn't current. See migration
+      // 0033 and src/lib/matching.ts's isMembershipCurrent().
+      membership_expiration_date: verifyResult.expirationDate ?? null,
     });
 
     setSubmitting(false);
@@ -190,7 +196,14 @@ export default function SignUp() {
     }
 
     setHasAthleteProfile(true);
-    showToast('Profile created');
+    // NEW, added 2026-07-27 - one toast, not two: the expired-card notice
+    // takes priority over the generic "Profile created" when both would
+    // otherwise fire back to back (showToast only shows one at a time).
+    showToast(
+      verifyResult.isExpired
+        ? 'Profile created - your card shows as expired, so your profile will display as "not current" to other ropers until you update it.'
+        : 'Profile created'
+    );
     router.replace('/(tabs)');
   }
 

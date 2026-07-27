@@ -86,6 +86,23 @@ export function formatClassificationDetail(c: Classification): string {
   return c.globalClassification != null ? String(c.globalClassification) : 'Not verified';
 }
 
+// NEW, added 2026-07-27 - policy decision: an expired Global Handicap
+// membership does NOT block someone from using the app (see migration
+// 0033 and verify-classification-card's own note on this), but other
+// users deciding whether to match should be able to see it, so they can
+// weigh it themselves rather than a rule silently deciding for them.
+//
+// null (never successfully read a date - AI verification skipped, or the
+// card just didn't have one) is deliberately NOT treated as "not
+// current" - only an ACTUAL known-past date counts. Otherwise everyone
+// whose card hasn't been machine-read yet would show as expired, which
+// isn't true and isn't fair to them.
+export function isMembershipCurrent(expirationDate: string | null): boolean | null {
+  if (!expirationDate) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  return expirationDate >= today;
+}
+
 export function maxAllowedFor(cap: number, myNumber: number) {
   return round1(cap - myNumber);
 }

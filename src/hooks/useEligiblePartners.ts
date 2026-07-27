@@ -13,6 +13,11 @@ export type PublicProfile = {
   heeler_classification: number | null;
   avatar_url: string | null;
   is_minor: boolean;
+  // NEW, added 2026-07-27 alongside migration 0033 - see
+  // src/lib/matching.ts's isMembershipCurrent() for how this gets turned
+  // into a "not current" badge. null means never successfully read, NOT
+  // the same as expired.
+  membership_expiration_date: string | null;
 };
 
 // Structural type instead of PublicProfile specifically, so MyProfile

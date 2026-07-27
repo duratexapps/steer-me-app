@@ -235,6 +235,12 @@ instead of silently being treated as verified.
 4. If you're seeing a growing backlog here, that's a signal the Anthropic
    API key/quota needs attention, not just something to keep clearing
    by hand.
+5. **Don't manually check `membership_expiration_date`/currency as part of
+   this review** - an expired card is never a reason to flag or suspend
+   someone (see migration 0033), it's just displayed to other users as
+   "Not current." This review is specifically about name/ID/classification
+   mismatches, the same thing verify-classification-card would have
+   blocked on if it had been able to run.
 
 ## Reviewing an event-accuracy report (event_reports)
 

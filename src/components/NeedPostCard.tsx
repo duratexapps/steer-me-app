@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { publicUrlFor } from '@/src/lib/storage-upload';
-import { formatDivision, formatPosition, formatClassificationTag } from '@/src/lib/matching';
+import { formatDivision, formatPosition, formatClassificationTag, isMembershipCurrent } from '@/src/lib/matching';
 import { formatDateDisplay } from '@/src/lib/date';
 import { toClassification } from '@/src/hooks/useEligiblePartners';
 import type { NeedPostWithPoster } from '@/src/hooks/useNeedPosts';
@@ -43,6 +43,10 @@ export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBl
           <View style={styles.badgeRow}>
             <Text style={styles.divisionBadge}>{formatDivision(post.division, post.is_goat_roping)}</Text>
             {post.event_id ? <Text style={styles.listedBadge}>✓ Listed event</Text> : null}
+            {/* NEW, added 2026-07-27 - same policy/reasoning as PartnerCard.tsx's matching badge */}
+            {post.poster && isMembershipCurrent(post.poster.membership_expiration_date) === false ? (
+              <Text style={[styles.listedBadge, styles.oxbloodBadge]}>Not current</Text>
+            ) : null}
           </View>
         </View>
       </View>
@@ -109,6 +113,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
+  oxbloodBadge: { backgroundColor: colors.oxblood }, // theme's danger/alert color - matches delete/decline/block/suspended usage elsewhere
   listedBadge: {
     fontFamily: fonts.bodyBold,
     fontSize: 10,

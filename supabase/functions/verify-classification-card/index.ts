@@ -113,10 +113,13 @@ Deno.serve(async (req) => {
   }
 
   const mismatches = compareClaimedToExtracted(body, extracted);
+  const expirationInfo = extractedExpirationInfo(extracted);
 
   return Response.json({
-    verified: mismatches.length === 0,
+    verified: mismatches.length === 0, // expiration is NEVER part of this - see extractedExpirationInfo()
     mismatches,
+    expirationDate: expirationInfo.expirationDate,
+    isExpired: expirationInfo.isExpired, // null = unknown/unreadable, distinct from false
     extracted, // returned for the client to show specifics, and for support to review later if disputed
   });
 });
@@ -216,14 +219,26 @@ function compareClaimedToExtracted(claimed: VerifyRequest, extracted: ExtractedC
     }
   }
 
-  if (extracted.expirationDate) {
-    const today = new Date().toISOString().slice(0, 10);
-    if (extracted.expirationDate < today) {
-      mismatches.push(`This card expired on ${extracted.expirationDate} - it's no longer current. Upload a current membership card.`);
-    }
-  }
+  // Expiration deliberately does NOT push into `mismatches` (which
+  // blocks submission) - policy decision from the user: an expired card
+  // is common and non-fraudulent, unlike a name/ID/number mismatch. It's
+  // handled as its own separate, non-blocking signal - see
+  // extractedExpirationInfo() and this file's Deno.serve() handler.
 
   return mismatches;
+}
+
+/**
+ * Non-blocking companion to compareClaimedToExtracted() above - whether
+ * the card reads as expired is informational, not a submission blocker.
+ * Returns null for isExpired when we couldn't read a date at all, so the
+ * caller can tell "expired" apart from "unknown" rather than treating
+ * both the same.
+ */
+function extractedExpirationInfo(extracted: ExtractedCard): { expirationDate: string | null; isExpired: boolean | null } {
+  if (!extracted.expirationDate) return { expirationDate: null, isExpired: null };
+  const today = new Date().toISOString().slice(0, 10);
+  return { expirationDate: extracted.expirationDate, isExpired: extracted.expirationDate < today };
 }
 
 function normalizeId(id: string): string {

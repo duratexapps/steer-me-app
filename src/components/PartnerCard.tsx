@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
-import { formatPosition, formatClassificationTag } from '@/src/lib/matching';
+import { formatPosition, formatClassificationTag, isMembershipCurrent } from '@/src/lib/matching';
 import { toClassification, type PublicProfile } from '@/src/hooks/useEligiblePartners';
 
 type PartnerCardProps = {
@@ -54,6 +54,15 @@ export function PartnerCard({
           <Text style={styles.posBadge}>{formatPosition(partner.position)}</Text>
           {partner.is_minor ? <Text style={[styles.posBadge, styles.brassBadge]}>Guardian approval</Text> : null}
           {nearby ? <Text style={[styles.posBadge, styles.greenBadge]}>Nearby now</Text> : null}
+          {/* NEW, added 2026-07-27 - policy decision: an expired card
+              doesn't block someone from using the app, but other users
+              deciding whether to match should be able to see it and
+              weigh it themselves. isMembershipCurrent() returns null
+              (not flagged) when we've never successfully read a date -
+              only an actually-expired one shows this. */}
+          {isMembershipCurrent(partner.membership_expiration_date) === false ? (
+            <Text style={[styles.posBadge, styles.oxbloodBadge]}>Not current</Text>
+          ) : null}
         </View>
         <View style={styles.linkRow}>
           <Pressable onPress={onReport}>
@@ -109,6 +118,7 @@ const styles = StyleSheet.create({
   },
   brassBadge: { backgroundColor: colors.brass },
   greenBadge: { backgroundColor: colors.green },
+  oxbloodBadge: { backgroundColor: colors.oxblood }, // theme's danger/alert color - matches delete/decline/block/suspended usage elsewhere
   linkRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
   reportLink: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, textDecorationLine: 'underline' },
   blockLink: {

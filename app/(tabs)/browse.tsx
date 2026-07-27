@@ -19,7 +19,7 @@ import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
 import { useResponsiveColumns } from '@/src/hooks/useResponsiveColumns';
-import { formatDivision, DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
+import { formatDivision, DIVISION_OPTIONS, OPEN_CAP, isMembershipCurrent } from '@/src/lib/matching';
 import { getCurrentCity } from '@/src/lib/location';
 import { showToast } from '@/src/state/toast-store';
 
@@ -128,6 +128,20 @@ export default function Browse() {
                 <Text style={{ fontFamily: fonts.bodyBold }}>Finish verifying your classification. </Text>
                 As a Switch Ender you need both a header and heeler number before you'll be matched with
                 anyone.{' '}
+                <Text style={styles.clearLink} onPress={() => router.push('/update-classification')}>
+                  Update now
+                </Text>
+              </DividerNote>
+            ) : null}
+            {/* NEW, added 2026-07-27 - self-facing reminder, same pattern
+                as the Switch Ender banner above. Doesn't block anything
+                (per the user's explicit policy decision), just makes sure
+                the person whose card lapsed actually knows other ropers
+                can now see a "Not current" badge on their profile. */}
+            {isMembershipCurrent(me.membership_expiration_date) === false ? (
+              <DividerNote>
+                <Text style={{ fontFamily: fonts.bodyBold }}>Your membership has expired. </Text>
+                Other ropers can see a "Not current" badge on your profile until you upload a current card.{' '}
                 <Text style={styles.clearLink} onPress={() => router.push('/update-classification')}>
                   Update now
                 </Text>

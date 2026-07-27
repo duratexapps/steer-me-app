@@ -22,6 +22,9 @@ export type MyProfile = {
   heeler_classification: number | null;
   verification_screenshot_path: string | null;
   suspended: boolean;
+  // NEW, added 2026-07-27 alongside migration 0032/0033.
+  needs_manual_review: boolean;
+  membership_expiration_date: string | null;
 };
 
 export function useMyProfile() {

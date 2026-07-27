@@ -120,6 +120,10 @@ export default function UpdateClassification() {
         heeler_classification: isSwitch ? heelerClassificationNumber : null,
         verification_screenshot_path: screenshotPath,
         needs_manual_review: !!verifyResult.skipped,
+        // NEW, added 2026-07-27 - see sign-up.tsx's matching comment and
+        // migration 0033 - an expired card doesn't block this update, but
+        // gets recorded and shown to other users.
+        membership_expiration_date: verifyResult.expirationDate ?? null,
       })
       .eq('id', user.id);
 
@@ -143,7 +147,12 @@ export default function UpdateClassification() {
 
     setSubmitting(false);
     invalidateProfile();
-    showToast('Classification updated - your previous screenshot was deleted');
+    // NEW, added 2026-07-27 - same one-toast-not-two reasoning as sign-up.tsx.
+    showToast(
+      verifyResult.isExpired
+        ? 'Classification updated - your card shows as expired, so your profile will display as "not current" to other ropers until you update it.'
+        : 'Classification updated - your previous screenshot was deleted'
+    );
     router.back();
   }
 

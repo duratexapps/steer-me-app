@@ -4,6 +4,13 @@ import type { Position } from '@/src/lib/matching';
 export type VerifyCardResult = {
   verified: boolean;
   mismatches: string[];
+  // Expiration is deliberately separate from `verified`/`mismatches` -
+  // policy decision 2026-07-27: an expired card does not block
+  // submission, it's just recorded and shown to other users (see
+  // migration 0033, src/lib/matching.ts's isMembershipCurrent()).
+  // isExpired is null when unknown/unreadable, distinct from false.
+  expirationDate?: string | null;
+  isExpired?: boolean | null;
   extracted?: Record<string, unknown>;
   skipped?: boolean;
   reason?: string;
