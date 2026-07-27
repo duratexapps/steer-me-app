@@ -21,6 +21,7 @@ import type { PickedImage } from '@/src/lib/image-picker';
 import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { validateClassificationForEnd, type Position } from '@/src/lib/matching';
+import { friendlySupabaseError } from '@/src/lib/errors';
 
 type PhotoTarget = 'avatar' | 'screenshot' | null;
 
@@ -152,7 +153,12 @@ export default function SignUp() {
     setSubmitting(false);
 
     if (error) {
-      showToast(error.message);
+      // NEW, added 2026-07-27 alongside migration 0031's unique
+      // constraint on global_membership_id - without this, a real
+      // membership-ID conflict (someone else already registered under
+      // this ID) would have shown a raw, confusing Postgres error
+      // instead of a clear, actionable message.
+      showToast(friendlySupabaseError(error));
       return;
     }
 

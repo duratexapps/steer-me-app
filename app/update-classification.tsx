@@ -17,6 +17,7 @@ import type { PickedImage } from '@/src/lib/image-picker';
 import { showToast } from '@/src/state/toast-store';
 import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
 import { validateClassificationForEnd } from '@/src/lib/matching';
+import { friendlySupabaseError } from '@/src/lib/errors';
 
 // Mirrors "Update my classification" from Profile (Screen 6) - re-verifying
 // replaces and deletes the old screenshot, per Privacy Policy section 5.
@@ -101,7 +102,11 @@ export default function UpdateClassification() {
 
     if (error) {
       setSubmitting(false);
-      showToast(error.message);
+      // Same reasoning as sign-up.tsx's matching change - migration
+      // 0031's unique constraint on global_membership_id needs a clear,
+      // actionable message here too, since a user can also trigger this
+      // conflict when updating their ID later, not just at signup.
+      showToast(friendlySupabaseError(error));
       return;
     }
 

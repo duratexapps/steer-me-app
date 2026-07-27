@@ -147,6 +147,60 @@ you manually publish an existing event (see below).
    `ban-suspended-user` webhook and locks their login. You do not need to do
    anything else for the 3rd strike - it's fully automatic once you confirm
    the 3rd report.
+5. **NEW, added 2026-07-27 - treat `Fake profile or classification` reports
+   as higher priority than the other offense categories, real money and a
+   producer's own liability are at stake.** This offense means someone is
+   suspected of entering under a classification (or an identity) that
+   isn't really theirs - e.g., a #9 heeler competing as a #4.5 by using
+   another real person's name and Global Membership ID, since Global's own
+   classification lookup has no photo/biometric check tying an ID to the
+   person using it. This is exactly the kind of thing a producer could get
+   sued over if a sandbagger wins entry fees/payout that should have gone
+   to a legitimately-classified team. Don't let these sit in the same queue
+   as e.g. a foul-language report - review them first, and see the next
+   section for what to actually check.
+
+## Reviewing a suspected identity/classification conflict
+
+**NEW, added 2026-07-27.** Two ways this surfaces:
+
+**A) A sign-up or classification-update was blocked** by migration 0031's
+unique constraint on `global_membership_id` (the user saw "That Global
+Membership ID is already registered to another Steer Me account..."). This
+means two different Steer Me accounts tried to claim the same real
+membership ID - one of them is either a genuine mistake (rare) or someone
+using another real person's identity.
+
+1. Studio -> Table Editor -> `profiles`, filter by the `global_membership_id`
+   in question to find the EXISTING account that already holds it.
+2. Compare `full_name` and `verification_screenshot_path` (Storage ->
+   verification-screenshots) on the existing account against what the
+   blocked person claims about themselves, if they've contacted support.
+3. If the existing account's name/screenshot doesn't match who actually
+   owns that membership ID (i.e., it was the fraudulent one), treat this as
+   a confirmed `Fake profile or classification` violation even without a
+   separate user_report - suspend it the same way a 3rd-strike does
+   (`suspended = true`, set `suspended_reason`), and let the real owner know
+   they can now sign up with their own ID.
+4. If you can't tell from the screenshot alone, this is genuinely a
+   real-world identity question software can't fully resolve - use
+   judgment, and lean on the fact that people who actually know both
+   individuals (the reporting contestant/producer) are usually a faster,
+   more reliable signal than anything in this table.
+
+**B) A `user_reports` row with offense `Fake profile or classification`**
+(see the priority note above). Same investigation as above, starting from
+`target_user_id` instead of a membership-ID lookup - check their
+`verification_screenshot_path` and whether their claimed name/classification
+plausibly matches it, and weigh the reporter's description.
+
+**What this constraint does NOT solve, so don't over-trust it**: it stops
+two accounts from sharing one ID going forward, but it doesn't verify that
+the FIRST account to claim an ID is actually that person - someone could
+still be the first to register under a stolen identity before the real
+person ever signs up. The constraint mainly guarantees that if the real
+person EVER tries to sign up later, the conflict becomes visible and
+investigable, rather than staying invisible indefinitely.
 
 ## Reviewing an event-accuracy report (event_reports)
 
