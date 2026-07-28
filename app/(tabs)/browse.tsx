@@ -133,6 +133,23 @@ export default function Browse() {
                 </Text>
               </DividerNote>
             ) : null}
+            {/* NEW, added 2026-07-28 - same real gap as the Switch Ender
+                banner above, just for the far more common Header/Heeler-
+                only case: a Header/Heeler account with no
+                global_classification on file (e.g. an admin reset it -
+                see supabase/RUNBOOK.md's "Resetting an account's card
+                verification" section) would otherwise also just silently
+                vanish from every match with no explanation. */}
+            {me.position !== 'Switch' && me.global_classification == null ? (
+              <DividerNote>
+                <Text style={{ fontFamily: fonts.bodyBold }}>Verify your classification. </Text>
+                You need a verified classification number and Global Handicap card on file before you'll
+                be matched with anyone.{' '}
+                <Text style={styles.clearLink} onPress={() => router.push('/update-classification')}>
+                  Verify now
+                </Text>
+              </DividerNote>
+            ) : null}
             {/* NEW, added 2026-07-27 - self-facing reminder, same pattern
                 as the Switch Ender banner above. Doesn't block anything
                 (per the user's explicit policy decision), just makes sure
