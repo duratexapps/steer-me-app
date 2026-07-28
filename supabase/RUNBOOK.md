@@ -263,6 +263,58 @@ since it had a different (but still identical-content) re-upload.
    just a missing screenshot, so the reset is actually visible to them,
    not just a silent database change.
 
+**Important, directly caused by this reset:** an account with its own
+classification cleared will see ZERO eligible partners no matter what
+class/cap they browse with, since `canPair()` (src/lib/matching.ts)
+requires BOTH people's numbers to exist - your own missing number fails
+every comparison, regardless of who else is in the pool. This looks
+identical to "all the test users are gone" from the browsing account's
+point of view, but isn't - it's a symptom of that account specifically
+needing to re-verify (which is the intended behavior/exactly what this
+section exists to trigger). Confirmed live 2026-07-28: reported as
+"no available users to match with," root cause was the browsing
+account's own header/heeler numbers being null post-reset, not a data
+loss issue - see the next section for the actual test-user pool, which
+was intact throughout.
+
+## Demo/test athlete pool for Browse & partner matching
+
+**NEW, added 2026-07-28.** 20 test profiles were added via
+`/tmp/seed_test_users.py` (one-off script, not committed - the pattern
+below is what matters, not the script itself) to give Browse a realistic
+spread of classifications to demo against, on top of the ~11 that
+already existed. Covers the full valid range for each end
+(Header 1.5-8.5, Heeler 1.5-9.0, plus 4 Switch Enders with distinct
+header/heeler numbers) so every common cap in `COMMON_CAPS`
+(src/lib/matching.ts) returns a different, realistic set of matches
+rather than either "everyone" or "no one."
+
+- Real auth.users rows were created via the Admin API
+  (`POST /auth/v1/admin/users`, service role key, `email_confirm: true`)
+  - required because `profiles.id` is a real FK to `auth.users(id)` with
+    `on delete cascade` (migration 0002) - a bare profiles-table insert
+    with a made-up UUID would violate that constraint.
+  - Emails follow the pattern `demo-<slug-of-name>@steerme.test`,
+    consistent with the existing `test1@steerme.test`-style convention
+    already used by earlier test accounts, so they're clearly
+    identifiable as demo data and never route to a real inbox.
+- `global_membership_id` follows the same `G-<first 8 hex chars of the
+  profile's own UUID>` pattern already used by the existing test pool
+  (e.g. `G-7D58C964` for Jesse Marlow) - satisfies the
+  `profiles_global_membership_id_unique` partial index (migration 0031)
+  automatically, since every UUID is distinct.
+- `avatar_url` left `null` for all of them, matching every other test
+  profile in this pool - Profile/Browse show a classification-number Tag
+  instead when there's no avatar, which reads fine and needed no new
+  image assets.
+- 2 are marked `is_minor: true` (Kash Renner, Paisley Kirkland),
+  mirroring the one pre-existing minor test profile (Rylan Combs), so
+  guardian-managed-profile UI has real data to demo against too.
+- Deleting a demo account is one call: `DELETE
+  /auth/v1/admin/users/<id>` cascades to its `profiles` row
+  automatically (confirmed live before running the batch) - no separate
+  profile-row cleanup needed if these ever need to be removed.
+
 ## Reviewing profiles flagged `needs_manual_review`
 
 **NEW, added 2026-07-27**, alongside the `verify-classification-card` Edge
