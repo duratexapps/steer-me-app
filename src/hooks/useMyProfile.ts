@@ -25,6 +25,10 @@ export type MyProfile = {
   // NEW, added 2026-07-27 alongside migration 0032/0033.
   needs_manual_review: boolean;
   membership_expiration_date: string | null;
+  // NEW, added 2026-07-27 alongside migration 0034 (referrals).
+  referral_code: string | null;
+  referred_by: string | null;
+  referral_reward_granted_at: string | null;
 };
 
 export function useMyProfile() {

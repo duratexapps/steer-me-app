@@ -62,6 +62,10 @@ export default function SignUp() {
   const [contact, setContact] = useState('');
   const [guidelinesAccepted, setGuidelinesAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // NEW, added 2026-07-27 - "refer a friend." Optional, manually-typed
+  // (see migration 0034's file header for why this isn't a tap-through
+  // deep link yet - no real app-store/domain presence to link to today).
+  const [referralCode, setReferralCode] = useState('');
 
   async function handlePicked(image: PickedImage) {
     const {
@@ -158,10 +162,28 @@ export default function SignUp() {
       return;
     }
 
+    // NEW, added 2026-07-27 - "refer a friend." Blocks on an invalid
+    // code rather than silently ignoring it - a silent failure here would
+    // mean the person who shared their code never actually gets credit,
+    // with no visible sign anything went wrong.
+    let referredBy: string | null = null;
+    if (referralCode.trim().length > 0) {
+      const { data: resolvedId, error: referralError } = await supabase.rpc('resolve_referral_code', {
+        code: referralCode.trim(),
+      });
+      if (referralError || !resolvedId) {
+        setSubmitting(false);
+        showToast("That referral code doesn't look right - check it and try again, or leave it blank.");
+        return;
+      }
+      referredBy = resolvedId;
+    }
+
     const { error } = await supabase.from('profiles').insert({
       id: user.id,
       full_name: fullName.trim(),
       is_minor: isMinor,
+      referred_by: referredBy,
       guardian_name: isMinor ? guardianName.trim() : null,
       guardian_contact: isMinor ? guardianContact.trim() : null,
       guardian_consent_at: isMinor ? new Date().toISOString() : null,
@@ -359,6 +381,17 @@ export default function SignUp() {
             required
           />
         ) : null}
+
+        {/* NEW, added 2026-07-27 - "refer a friend." Optional; a friend
+            of yours shares their own code (visible on their Referral
+            screen) and you type it in here. */}
+        <TextField
+          label="Referral code (optional)"
+          value={referralCode}
+          onChangeText={setReferralCode}
+          placeholder="Got a code from a friend? Enter it here"
+          autoCapitalize="characters"
+        />
 
         <DividerNote>
           <Text style={{ fontFamily: fonts.bodyBold }}>Community Guidelines{'\n'}</Text>

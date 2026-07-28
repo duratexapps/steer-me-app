@@ -38,6 +38,13 @@ export function ScreenHeader({ title, subtitle, onBack, big, logo, onHelp }: Scr
               <Text style={styles.helpBtnText}>?</Text>
             </Pressable>
           ) : null}
+          {/* NEW, added 2026-07-27 - "refer a friend," readily available
+              wherever a user roams in the app, same unconditional-on-
+              every-screen treatment as the report-issue flag below rather
+              than being buried in a menu. */}
+          <Pressable onPress={() => router.push('/referral')} hitSlop={10} style={styles.referralBtn}>
+            <Ionicons name="gift-outline" size={14} color={colors.espresso} />
+          </Pressable>
           {/* Present on every screen that uses ScreenHeader (nearly all of
               them) rather than gated behind a prop, per "a link on every
               page to report an issue." Passes the current route so the
@@ -85,6 +92,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   helpBtnText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.espresso },
+  referralBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.brassLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   reportBtn: {
     width: 26,
     height: 26,

@@ -119,9 +119,25 @@ screen correctly shows "not available yet" and every paid-gated action
 4. RevenueCat dashboard -> Project Settings -> API Keys: copy the
    Apple/Google public SDK keys into `.env` as
    `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`.
-5. Wire the webhook (see step 5 in "One-time project setup" above) so
+   **NEW, added 2026-07-27**: also copy the **secret** API key (same
+   page, different key - never put this one in `.env`/the client bundle)
+   and set it as a Supabase secret:
+   ```
+   npx supabase secrets set REVENUECAT_SECRET_API_KEY="<the secret key>"
+   ```
+   This is what lets `revenuecat-webhook` grant the refer-a-friend reward
+   (a real free month via RevenueCat's Promotional Entitlements API) -
+   see that function's file header. Without it, referrals still track
+   correctly, the reward step just skips with a logged reason instead of
+   failing the whole webhook.
+5. **NEW, added 2026-07-27**: confirm the actual Entitlement identifier
+   you created in step 3 above matches `RC_ENTITLEMENT_ID` in
+   `supabase/functions/revenuecat-webhook/index.ts` (currently a
+   placeholder, `'premium'`) - update that constant and redeploy the
+   function if your real entitlement is named differently.
+6. Wire the webhook (see step 5 in "One-time project setup" above) so
    purchases actually sync into the `subscriptions` table.
-6. `react-native-purchases` auto-mocks itself inside Expo Go (no real
+7. `react-native-purchases` auto-mocks itself inside Expo Go (no real
    purchases, but the UI/flow won't crash) - real purchase testing needs an
    EAS development build (`eas build --profile development`) installed on
    a physical device, plus a sandbox/test account on the relevant store.
