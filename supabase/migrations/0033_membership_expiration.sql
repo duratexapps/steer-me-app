@@ -21,6 +21,12 @@ comment on column public.profiles.membership_expiration_date is
 -- heeler_classification were in migration 0030 - other users need to see
 -- this to decide whether to match with someone, same reasoning as why
 -- classification numbers themselves are public.
+--
+-- FIXED live 2026-07-28, alongside 0030's own fix: column order here
+-- must exactly match whatever 0030 leaves the view as (Postgres only
+-- allows CREATE OR REPLACE VIEW to APPEND new columns at the very end,
+-- never reorder/insert existing ones) - updated to match 0030's
+-- corrected order, with membership_expiration_date appended after it.
 create or replace view public.public_profiles
 with (security_invoker = false) as
 select
@@ -29,10 +35,10 @@ select
   "position",
   home_area,
   global_classification,
-  header_classification,
-  heeler_classification,
   avatar_url,
   is_minor,
+  header_classification,
+  heeler_classification,
   membership_expiration_date
 from public.profiles
 where not suspended

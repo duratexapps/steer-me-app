@@ -45,6 +45,19 @@ where "position" = 'Switch';
 -- (0015) need the two new columns exposed the same way
 -- global_classification already is - same safe-columns-only pattern,
 -- just extended.
+--
+-- FIXED live 2026-07-28, before this migration had ever successfully run
+-- against a real database: the first version of this migration inserted
+-- header_classification/heeler_classification in the MIDDLE of the view's
+-- column list (between global_classification and avatar_url). Postgres's
+-- CREATE OR REPLACE VIEW only allows new columns to be appended at the
+-- END of the existing column list - inserting them anywhere else is
+-- rejected outright ("cannot change name/order of view columns"), which
+-- is exactly the error this produced on the real first attempt to push
+-- these migrations. Reordered below to append both new columns after
+-- is_minor instead. migration 0033 (membership_expiration_date) also
+-- needed its own matching fix, since its view redefinition has to
+-- exactly match whatever column order this migration leaves behind.
 create or replace view public.public_profiles
 with (security_invoker = false) as
 select
@@ -53,26 +66,35 @@ select
   "position",
   home_area,
   global_classification,
-  header_classification,
-  heeler_classification,
   avatar_url,
-  is_minor
+  is_minor,
+  header_classification,
+  heeler_classification
 from public.profiles
 where not suspended
   and (auth.uid() is null or not public.is_blocked_pair(auth.uid(), id));
 
 grant select on public.public_profiles to authenticated;
 
-create or replace function public.get_blocked_profiles()
+-- FIXED live 2026-07-28, same real-run discovery as the view above, but a
+-- stricter version of the same rule: Postgres does not allow
+-- CREATE OR REPLACE FUNCTION to change a RETURNS TABLE(...) function's
+-- output columns AT ALL (not even appending at the end, unlike a view) -
+-- it requires dropping the function first. The original version of this
+-- statement (`create or replace function ...`) would have failed the
+-- same way the view did, the instant it was reached.
+drop function if exists public.get_blocked_profiles();
+
+create function public.get_blocked_profiles()
 returns table (
   id uuid,
   full_name text,
   "position" text,
   home_area text,
   global_classification numeric,
+  avatar_url text,
   header_classification numeric,
-  heeler_classification numeric,
-  avatar_url text
+  heeler_classification numeric
 )
 language sql
 stable
@@ -80,7 +102,7 @@ security definer
 set search_path = public
 as $$
   select p.id, p.full_name, p.position, p.home_area, p.global_classification,
-         p.header_classification, p.heeler_classification, p.avatar_url
+         p.avatar_url, p.header_classification, p.heeler_classification
   from public.profiles p
   join public.blocks b on b.blocked_id = p.id
   where b.blocker_id = auth.uid();
