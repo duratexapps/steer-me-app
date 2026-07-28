@@ -231,6 +231,38 @@ person ever signs up. The constraint mainly guarantees that if the real
 person EVER tries to sign up later, the conflict becomes visible and
 investigable, rather than staying invisible indefinitely.
 
+## Resetting an account's card verification (demo/test data cleanup)
+
+**NEW, added 2026-07-28.** Real scenario: the developer used their own
+real Global Handicap card as a live demo for several test accounts.
+Confirmed via a byte-for-byte hash comparison of the actual stored
+images (not just matching `global_membership_id`) that 3 accounts had
+genuinely reused the same real card image, not just similar-looking
+data - a plain search by name or ID alone would have missed one of them,
+since it had a different (but still identical-content) re-upload.
+
+1. Studio -> Table Editor -> `profiles`, or via the Storage API - compare
+   `verification_screenshot_path` file contents (not just names/sizes) to
+   find every account using the same real image, since two different
+   uploads of the same physical card won't necessarily have identical
+   file sizes even though the underlying card is the same.
+2. For each affected account, set `global_membership_id`,
+   `global_classification`, `header_classification`,
+   `heeler_classification`, and `verification_screenshot_path` all to
+   `null`, and `needs_manual_review` to `true` (flags it for a human to
+   confirm the person actually re-verifies with their own real card next
+   time, rather than this just being silently forgotten).
+3. Delete the actual file at the old `verification_screenshot_path` from
+   the `verification-screenshots` storage bucket - don't just null the
+   database reference, or the real card image keeps sitting under a
+   stranger's account path indefinitely.
+4. The affected user will now see a "Verify your classification" banner
+   on Browse (or "Finish verifying your classification" if they're a
+   Switch Ender) prompting them to re-upload for real - this only works
+   because that banner checks for a missing classification number, not
+   just a missing screenshot, so the reset is actually visible to them,
+   not just a silent database change.
+
 ## Reviewing profiles flagged `needs_manual_review`
 
 **NEW, added 2026-07-27**, alongside the `verify-classification-card` Edge
