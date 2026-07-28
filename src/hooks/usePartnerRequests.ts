@@ -15,20 +15,45 @@ export type PartnerRequestRow = {
   created_at: string;
 };
 
-export type PartnerRequestWithProfile = PartnerRequestRow & { counterpart: PublicProfile | null };
+// NEW, added 2026-07-28 - just enough of the linked event to drive the
+// "Enter the Draw" handoff action on an accepted request (see
+// my-requests.tsx) - not the full EventRow, no need for it here.
+export type RequestEventInfo = { id: string; name: string; draw_pro_entry_url: string | null };
+
+export type PartnerRequestWithProfile = PartnerRequestRow & {
+  counterpart: PublicProfile | null;
+  event: RequestEventInfo | null;
+};
 
 // public_profiles can't be embedded via PostgREST's FK-following syntax
 // (it's a view, not the underlying table PostgREST's schema cache links
 // partner_requests.recipient_id/requester_id to), so this fetches requests
 // and counterpart profiles as two queries and merges them client-side.
+// Event info is fetched the same way, for the same structural reason it's
+// simplest to just treat every embed here as a separate query rather than
+// mixing embedded and non-embedded fetches for one table.
 async function withCounterparts(rows: PartnerRequestRow[], idKey: 'recipient_id' | 'requester_id') {
   const ids = [...new Set(rows.map((r) => r[idKey]))];
-  if (ids.length === 0) return [] as PartnerRequestWithProfile[];
+  const eventIds = [...new Set(rows.map((r) => r.event_id).filter((id): id is string => id !== null))];
 
-  const { data, error } = await supabase.from('public_profiles').select('*').in('id', ids);
-  if (error) throw error;
-  const byId = new Map((data as PublicProfile[]).map((p) => [p.id, p]));
-  return rows.map((r) => ({ ...r, counterpart: byId.get(r[idKey]) ?? null }));
+  const [profilesResult, eventsResult] = await Promise.all([
+    ids.length > 0
+      ? supabase.from('public_profiles').select('*').in('id', ids)
+      : Promise.resolve({ data: [] as PublicProfile[], error: null }),
+    eventIds.length > 0
+      ? supabase.from('events').select('id, name, draw_pro_entry_url').in('id', eventIds)
+      : Promise.resolve({ data: [] as RequestEventInfo[], error: null }),
+  ]);
+  if (profilesResult.error) throw profilesResult.error;
+  if (eventsResult.error) throw eventsResult.error;
+
+  const byId = new Map((profilesResult.data as PublicProfile[]).map((p) => [p.id, p]));
+  const eventById = new Map((eventsResult.data as RequestEventInfo[]).map((e) => [e.id, e]));
+  return rows.map((r) => ({
+    ...r,
+    counterpart: byId.get(r[idKey]) ?? null,
+    event: r.event_id ? eventById.get(r.event_id) ?? null : null,
+  }));
 }
 
 export function useSentRequests() {

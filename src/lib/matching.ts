@@ -53,6 +53,39 @@ export function canPair(a: Classification, b: Classification, cap: number): bool
   );
 }
 
+// NEW, added 2026-07-28 - for the Draw Pro entry handoff (real friction
+// gap: a confirmed Steer Me pair still had to retype everything on Draw
+// Pro's entry form). canPair() only ever answered "can these two people
+// pair," never WHICH of the two possible role assignments actually works
+// - Draw Pro's entry form needs to know who's prefilled as header and
+// who's heeler, not just that a valid combo exists somewhere. Mirrors
+// canPair()'s own combo order/logic exactly rather than recomputing
+// anything differently, so this can never disagree with canPair() about
+// whether a pairing is valid to begin with.
+export function resolvePairingRoles(
+  a: Classification,
+  b: Classification,
+  cap: number
+): { aRole: 'header' | 'heeler'; bRole: 'header' | 'heeler' } | null {
+  const aAsHeaderBAsHeeler = [asHeaderNumber(a), asHeelerNumber(b)] as const;
+  if (
+    aAsHeaderBAsHeeler[0] != null &&
+    aAsHeaderBAsHeeler[1] != null &&
+    round1(aAsHeaderBAsHeeler[0] + aAsHeaderBAsHeeler[1]) <= cap
+  ) {
+    return { aRole: 'header', bRole: 'heeler' };
+  }
+  const bAsHeaderAAsHeeler = [asHeaderNumber(b), asHeelerNumber(a)] as const;
+  if (
+    bAsHeaderAAsHeeler[0] != null &&
+    bAsHeaderAAsHeeler[1] != null &&
+    round1(bAsHeaderAAsHeeler[0] + bAsHeaderAAsHeeler[1]) <= cap
+  ) {
+    return { aRole: 'heeler', bRole: 'header' };
+  }
+  return null;
+}
+
 export function formatPosition(position: Position) {
   return position === 'Switch' ? 'Switch Ender' : position;
 }

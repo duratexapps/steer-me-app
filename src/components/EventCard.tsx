@@ -6,6 +6,8 @@ import { formatDivision } from '@/src/lib/matching';
 import { formatDateDisplay } from '@/src/lib/date';
 import { publicUrlFor } from '@/src/lib/storage-upload';
 import type { EventWithProducer, RatingSummary } from '@/src/hooks/useEvents';
+import { useMyProfile } from '@/src/hooks/useMyProfile';
+import { useCreateEntryHandoff, withHandoffParam } from '@/src/hooks/useEntryHandoff';
 
 const RATING_MIN_TO_SHOW = 3;
 
@@ -46,6 +48,35 @@ export function EventCard({
   const attendedAnyDivision = event.divisions.some((d) => myAttendance?.has(`${event.id}:${d}`));
   const canRate = !producerView && isPast && attendedAnyDivision && !alreadyRated;
   const flierUrl = publicUrlFor('event-fliers', event.flier_path);
+
+  // NEW, added 2026-07-28 - real friction gap flagged directly by the
+  // user: a Steer Me user tapping "Enter the Draw" had to retype their
+  // own info from scratch on Draw Pro's entry page, even though it's
+  // already sitting right here. Creates a short-lived, single-use handoff
+  // (see migration 0036_entry_handoffs.sql for why this isn't just stuffed
+  // into the URL as query params) carrying just MY OWN info - no partner
+  // data, since a plain "Enter the Draw" tap (as opposed to the
+  // "Enter with partner" action on an accepted request - see
+  // my-requests.tsx) has no confirmed partner to include. Silently falls
+  // back to the plain, un-prefilled link if this fails for any reason -
+  // a failed prefill should never block someone from entering at all.
+  const { data: me } = useMyProfile();
+  const createHandoff = useCreateEntryHandoff();
+
+  async function handleEnterDraw() {
+    const url = event.draw_pro_entry_url!;
+    if (!me) {
+      Linking.openURL(url);
+      return;
+    }
+    try {
+      const handoffId = await createHandoff.mutateAsync({ eventId: event.id });
+      Linking.openURL(withHandoffParam(url, handoffId));
+    } catch (err) {
+      console.warn('[EventCard] entry handoff failed, falling back to plain link', err);
+      Linking.openURL(url);
+    }
+  }
 
   return (
     <View style={styles.card}>
@@ -96,7 +127,7 @@ export function EventCard({
           path in, not just someone who already lined up a partner via
           the per-division "Partners" button above. */}
       {!producerView && event.draw_pro_entry_url ? (
-        <Pressable style={styles.enterDrawBtn} onPress={() => Linking.openURL(event.draw_pro_entry_url!)}>
+        <Pressable style={styles.enterDrawBtn} onPress={handleEnterDraw}>
           <Ionicons name="open-outline" size={14} color={colors.bone} />
           <Text style={styles.enterDrawBtnText}>Enter the Draw</Text>
         </Pressable>

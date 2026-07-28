@@ -20,8 +20,10 @@ import {
 import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
 import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 import { signedUrlFor } from '@/src/lib/storage-upload';
-import { formatDivision, formatClassificationTag } from '@/src/lib/matching';
+import { formatDivision, formatClassificationTag, resolvePairingRoles } from '@/src/lib/matching';
 import { toClassification } from '@/src/hooks/useEligiblePartners';
+import { useMyProfile } from '@/src/hooks/useMyProfile';
+import { useCreateEntryHandoff, withHandoffParam } from '@/src/hooks/useEntryHandoff';
 import { showToast } from '@/src/state/toast-store';
 
 const STATUS_LABEL: Record<PartnerRequestWithProfile['status'], string> = {
@@ -52,6 +54,57 @@ function RequestCard({
     enabled: request.status === 'accepted',
     queryFn: () => fetchRequestContact(request.id),
   });
+
+  // NEW, added 2026-07-28 - "Enter the Draw" for a confirmed pair, real
+  // friction gap flagged directly by the user: two Steer Me users who've
+  // already confirmed a partner and both have profiles here shouldn't
+  // have to retype everything on Draw Pro's entry form. Only meaningful
+  // for an ACCEPTED, event-scoped (not goat roping, not a generic
+  // Post-a-Need) request where the linked event actually synced a real
+  // Draw Pro entry URL - see migration 0036_entry_handoffs.sql for the
+  // full handoff mechanism and why it isn't just query params.
+  const { data: me } = useMyProfile();
+  const createHandoff = useCreateEntryHandoff();
+  const canEnterDraw =
+    request.status === 'accepted' &&
+    !!request.event?.draw_pro_entry_url &&
+    !request.is_goat_roping &&
+    request.division != null &&
+    !!me &&
+    !!request.counterpart;
+
+  async function handleEnterDraw() {
+    if (!me || !request.counterpart || request.division == null || !request.event?.draw_pro_entry_url) return;
+    const roles = resolvePairingRoles(toClassification(me), toClassification(request.counterpart), request.division);
+    if (!roles) {
+      // Shouldn't happen - an accepted request only exists between two
+      // people canPair() already approved for this exact division - but
+      // fall back to a plain, un-prefilled link rather than block entry
+      // entirely if the numbers have somehow changed since acceptance
+      // (e.g. someone re-verified with a different classification).
+      showToast('Could not confirm your role assignment - opening a blank entry instead.');
+      Linking.openURL(request.event.draw_pro_entry_url);
+      return;
+    }
+    // request.counterpart is already correctly resolved to "the other
+    // person" regardless of sent/received mode (see withCounterparts in
+    // usePartnerRequests.ts) - so `a` above is always me, `b` is always
+    // the counterpart, with no mode-based swap needed.
+    const meRole = roles.aRole;
+    const partnerRole = roles.bRole;
+    try {
+      const handoffId = await createHandoff.mutateAsync({
+        eventId: request.event.id,
+        partnerRequestId: request.id,
+        meRole,
+        partnerRole,
+      });
+      Linking.openURL(withHandoffParam(request.event.draw_pro_entry_url, handoffId));
+    } catch (err) {
+      console.warn('[my-requests] entry handoff failed, falling back to plain link', err);
+      Linking.openURL(request.event.draw_pro_entry_url);
+    }
+  }
 
   const [cardOpen, setCardOpen] = useState(false);
   const [cardLoading, setCardLoading] = useState(false);
@@ -132,6 +185,19 @@ function RequestCard({
               </Pressable>
             </View>
           </View>
+        ) : null}
+
+        {canEnterDraw ? (
+          <Pressable
+            style={styles.enterDrawBtn}
+            onPress={handleEnterDraw}
+            disabled={createHandoff.isPending}
+          >
+            <Ionicons name="open-outline" size={13} color={colors.bone} />
+            <Text style={styles.enterDrawText}>
+              {createHandoff.isPending ? 'Opening…' : 'Enter the Draw'}
+            </Text>
+          </Pressable>
         ) : null}
 
         {request.status === 'accepted' && contact?.verification_screenshot_path ? (
@@ -247,4 +313,18 @@ const styles = StyleSheet.create({
   callLink: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso },
   textLink: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.brass },
   cardImage: { width: '100%', height: 200, borderRadius: radii.md, marginTop: 8 },
+  enterDrawBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.brass,
+    borderRadius: radii.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    cursor: 'pointer',
+  },
+  enterDrawText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.bone },
 });

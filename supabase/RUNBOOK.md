@@ -368,3 +368,101 @@ involves payment.
    underlying PII (contact, screenshot, etc.) is gone - lifting suspension
    restores login access but the person will need to re-verify their Global
    Handicap classification from scratch.
+
+## Draw Pro "Enter the Draw" - troubleshooting an incomplete/broken landing page
+
+**NEW, added 2026-07-28.** Real bugs found and fixed live via this exact
+symptom report: "Enter the Draw" opens Draw Pro's Entrant Entry page, but
+it loads incomplete (placeholder title, empty class dropdown, no fee).
+Two distinct, unrelated causes were found and fixed the same day - if
+this happens again, check both:
+
+1. **Stale `draw_pro_entry_url` from before an `await` bug was fixed.**
+   `backend/steerMeSync.jsw`'s `buildEntryUrl()` call used to run
+   unawaited across a `.jsw`-to-`.jsw` module boundary, which resolves to
+   a Promise object that serializes as the literal string `"{}"` - not a
+   valid URL. The bug itself was fixed same-day-in-2026-07-23 (the call
+   is correctly `await`ed now), but any event synced BEFORE that fix
+   landed still has `"{}"` sitting in its `draw_pro_entry_url` column
+   forever, since Draw Pro only re-syncs an event when a producer adds a
+   NEW class to it - nothing retroactively repairs already-synced rows.
+   **Check:** `select id, name, draw_pro_entry_url from events where
+   draw_pro_event_id is not null and draw_pro_entry_url = '{}';` - patch
+   any hits directly with `https://www.ropingtools.com/drawpro-enter?
+   event=<draw_pro_event_id>` (the exact format `buildEntryUrl()` itself
+   produces).
+2. **Wix Data collection permissions.** `entrant-entry-form.js` calls
+   `wixData.get('DrawProEvents', eventId)` directly from page code with
+   no permission-error handling - if the "Everyone" role's **View**
+   permission isn't checked on the `DrawProEvents` collection (Wix Editor
+   -> Content Manager -> the collection -> Permissions & Privacy ->
+   Advanced), this throws for any visitor who isn't a signed-in
+   Collaborator/Admin, which silently kills the rest of `$w.onReady()`
+   before the class dropdown/fee ever populate. **This is easy to miss in
+   your own testing** - you're logged in as the site owner, which already
+   has read access regardless of what "Everyone" is set to; the bug only
+   shows up for a real anonymous/guest entrant. Check `DrawProEventClasses`
+   for the same misconfiguration too - it's the very next collection this
+   same page reads, right after `DrawProEvents`.
+
+Diagnosed both by actually rendering the live page with a headless
+browser (Playwright + system Chrome) and reading the console - the Wix
+Data permissions error (`WDE0027`) showed up directly there, far faster
+than guessing from code alone.
+
+## Draw Pro entry hand-off (Steer Me -> Draw Pro prefill)
+
+**NEW, added 2026-07-28.** Real friction gap flagged directly by the user:
+a Steer Me user tapping "Enter the Draw" (and their already-confirmed
+Steer Me partner, if they have one) had to retype everything on Draw
+Pro's Entrant Entry page, even though it was all already known. Fixed via
+a short-lived, single-use handoff row (`entry_handoffs` table, migration
+0036/0037) rather than putting name/contact/classification directly in
+the URL as query params - that's a real privacy anti-pattern (query
+strings end up in browser history, some server/proxy logs, and Referer
+headers of any third-party resource the landing page loads).
+
+**How it works:**
+1. `EventCard.tsx`'s "Enter the Draw" button (solo case) and
+   `my-requests.tsx`'s new "Enter the Draw" button (on an accepted,
+   event-scoped request) both call `create_entry_handoff()` (a
+   `SECURITY DEFINER` Postgres function) before opening the Draw Pro URL,
+   then append `&handoff=<id>` to it.
+2. `create_entry_handoff()` never trusts partner PII from the client -
+   for the confirmed-partner case, it independently re-verifies the
+   caller is actually a party to an ACCEPTED `partner_requests` row
+   for that exact event, then re-fetches the partner's real name/
+   classification/Global ID/contact from their own profile row itself.
+   Only the HEADER/HEELER ROLE ASSIGNMENT is trusted from the client
+   (computed via `resolvePairingRoles()` in `src/lib/matching.ts`,
+   mirroring `canPair()`'s own combo logic) - a wrong role assignment is
+   just a prefill the entrant can correct on Draw Pro's own form, not a
+   security boundary, so there's no reason to re-derive it server-side.
+3. Draw Pro's `entrant-entry-form.js` reads `?handoff=<id>` off its own
+   URL and calls `backend/steerMeHandoff.jsw`'s `resolveEntryHandoff()`,
+   a server-to-server call using the same `steerme-supabase-url` /
+   `steerme-supabase-service-role-key` secrets already used by
+   `steerMeSync.jsw` (the reverse direction). That function marks the row
+   `consumed_at` immediately after a successful read - single-use, since
+   it briefly carries another real person's info.
+4. Rows expire after 1 hour (`expires_at`, defaulted in the table) even if
+   never used - there's no realistic legitimate reason to reuse an old
+   "Enter the Draw" link days later.
+5. **Known, accepted limitation:** Steer Me only collects one freeform
+   "Phone or email" field (`profiles.contact`), not two separate ones - a
+   plain `.includes('@')` check on the Draw Pro side decides whether it
+   goes in `#inputEmail` or `#inputPhone`. Whichever field it doesn't look
+   like stays blank, same as if no handoff had ever run - not a full fix,
+   but real friction reduction for what Steer Me actually collects today.
+6. Minors: `me_contact`/`partner_contact` fall back to `guardian_contact`
+   when `contact` is null (migration 0037's fix), matching the same
+   convention `get_request_contact()` already uses.
+
+**To test end-to-end:** create/accept a real `partner_requests` row
+between two profiles for a real synced event (see the demo athlete pool
+above), sign in as one of them via the Auth API, call
+`rpc/create_entry_handoff` with that request's id and a `header`/`heeler`
+role pair, then check the resulting `entry_handoffs` row has the
+counterpart's REAL profile data (not whatever you might try to pass as
+partner info - the function should ignore that entirely for anyone
+who isn't actually a party to an accepted request naming them).
