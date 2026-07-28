@@ -160,6 +160,16 @@ export default function Profile() {
           onPress={() => router.push('/blocked-users')}
           style={styles.spacedBtn}
         />
+        {/* NEW, added 2026-07-28 - "present but not overly conspicuous":
+            one item among the other settings-style buttons here, not a
+            standalone tab or persistent header icon. Also reachable from
+            role-select's footer link and the sign-up guidelines checkbox. */}
+        <Button
+          label="Legal (Terms, Privacy & Guidelines)"
+          variant="outline"
+          onPress={() => router.push('/legal')}
+          style={styles.spacedBtn}
+        />
         <Button label="Sign out" variant="ghost" onPress={handleSignOut} style={styles.spacedBtn} />
         <Button
           label="Delete my profile & data"

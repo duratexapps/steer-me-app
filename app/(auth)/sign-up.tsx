@@ -401,7 +401,14 @@ export default function SignUp() {
           account deletion, and your data being scrubbed.
         </DividerNote>
         <Checkbox checked={guidelinesAccepted} onToggle={() => setGuidelinesAccepted((v) => !v)}>
-          I have read and agree to the Community Guidelines.
+          I have read and agree to the{' '}
+          <Text
+            style={{ textDecorationLine: 'underline' }}
+            onPress={() => router.push({ pathname: '/legal', params: { doc: 'community' } })}
+          >
+            Community Guidelines
+          </Text>
+          .
         </Checkbox>
 
         <Button

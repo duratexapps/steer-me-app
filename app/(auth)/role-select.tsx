@@ -62,6 +62,14 @@ export default function RoleSelect() {
         <Pressable style={styles.signInLink} onPress={() => router.push('/(auth)/sign-in')}>
           <Text style={styles.signInText}>Already have an account? Sign in</Text>
         </Pressable>
+
+        {/* NEW, added 2026-07-28 - "present but not overly conspicuous":
+            a small, muted footer link rather than a tab or prominent
+            button, since this is a reference page most people never need
+            to tap, not a primary action on this screen. */}
+        <Pressable style={styles.legalLink} onPress={() => router.push('/legal')}>
+          <Text style={styles.legalLinkText}>Terms, Privacy & Community Guidelines</Text>
+        </Pressable>
       </ScrollView>
       <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="role-select" />
     </SafeAreaView>
@@ -86,6 +94,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
     color: colors.espresso,
+    textDecorationLine: 'underline',
+  },
+  legalLink: { marginTop: 4, alignItems: 'center', padding: 10 },
+  legalLinkText: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.saddle,
     textDecorationLine: 'underline',
   },
   tourBtn: {
