@@ -466,3 +466,52 @@ role pair, then check the resulting `entry_handoffs` row has the
 counterpart's REAL profile data (not whatever you might try to pass as
 partner info - the function should ignore that entirely for anyone
 who isn't actually a party to an accepted request naming them).
+
+## Admin-posted events (temporary cold-start bootstrap feature)
+
+**NEW, added 2026-07-29.** Real chicken-and-egg problem: producers have
+little reason to onboard without contestants already here, contestants
+have little reason to use Steer Me's partner-matching without events/
+other users to match against. Lets a trusted admin post a real event
+(read off a flier) on a producer's behalf, before that producer has any
+Steer Me or Draw Pro account at all - see migration
+`0038_admin_posted_events.sql` for the full reasoning, including why
+this lives in Steer Me rather than Draw Pro.
+
+- **Granting admin access:** set `is_admin = true` directly on a
+  `profiles` row (Studio -> Table Editor, or via the REST API with the
+  service-role key). No UI for this - deliberately a rare, manually-
+  granted thing, not self-service.
+- **Using it:** an admin account sees a "Post an Event (Admin)" button
+  on their own Profile screen (only visible to `is_admin` accounts) ->
+  `/admin-post-event`. Same form as a producer's own Create Event
+  screen, plus a required "Producer name" field.
+- **How it shows to everyone else:** exactly like a Draw-Pro-synced
+  event - `external_producer_name` carries the real producer's name
+  (same field, same EventCard fallback logic), `producer_id` is null.
+  The one difference: EventCard shows an extra small italic line
+  ("Posted by RopingTools on this producer's behalf") whenever
+  `posted_by_admin = true`, so nobody mistakes this for the producer
+  actually being on the platform themselves.
+- **Real gotcha, already fixed once:** `events.producer_id` has a
+  column DEFAULT of `auth.uid()` (migration 0018, for a normal
+  producer's own event creation) - an admin insert MUST explicitly
+  pass `producer_id: null`, or that default silently fills in the
+  admin's own id instead, which fails the `events_producer_id_fkey`
+  foreign key (the admin account has no `producer_profiles` row).
+  `useCreateAdminEvent()` in `src/hooks/useEvents.ts` already does this
+  correctly - if a similar admin insert path is ever added elsewhere,
+  don't forget it there too.
+- **Engagement tracking:** no new work needed - `event_attendance` and
+  `partner_requests` already track per-event, and an admin-posted event
+  is just a normal row in the same `events` table. Query those the same
+  way you would for any other event's numbers.
+- **Winding this down later:** unlike the Draw Pro demo data generator,
+  there's no strict need to delete this outright - just stop granting
+  `is_admin` to new accounts (or revoke it from the existing one(s)).
+  The screen becomes unreachable (gated both client-side and via RLS),
+  and no code elsewhere depends on `posted_by_admin` rows existing. To
+  remove it entirely instead: delete `app/admin-post-event.tsx`, the
+  nav button on Profile, `useCreateAdminEvent()`, and the
+  `posted_by_admin`/`admin_poster_id`/`is_admin` columns + their RLS
+  policies (a new migration, not a rewrite of 0038).
