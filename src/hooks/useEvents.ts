@@ -134,6 +134,15 @@ export function useCreateAdminEvent() {
     }) => {
       const { error } = await supabase.from('events').insert({
         ...input,
+        // FIXED live 2026-07-29: producer_id has a column DEFAULT of
+        // auth.uid() (migration 0018 - a convenience so a normal
+        // producer's own useCreateEvent() call never has to pass it
+        // explicitly). Confirmed live: omitting it here silently
+        // auto-filled the ADMIN's own id instead, which isn't a real
+        // producer_profiles row, and the insert failed on the
+        // events_producer_id_fkey foreign key. Must be explicitly
+        // nulled out to override that default for this admin path.
+        producer_id: null,
         posted_by_admin: true,
         status: 'published',
       });
