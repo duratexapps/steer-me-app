@@ -29,6 +29,12 @@ export type MyProfile = {
   referral_code: string | null;
   referred_by: string | null;
   referral_reward_granted_at: string | null;
+  // NEW, added 2026-07-29 alongside migration 0038 (admin-posted events,
+  // a temporary cold-start bootstrap feature - see that migration's own
+  // comment for the full reasoning). Gates the admin-only "Post an Event"
+  // screen. Almost always false - only ever true on a small, trusted,
+  // manually-granted set of accounts.
+  is_admin: boolean;
 };
 
 export function useMyProfile() {

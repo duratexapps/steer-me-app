@@ -84,6 +84,15 @@ export function EventCard({
       <Text style={styles.producerLine}>
         {event.producer_org_name ?? 'Posted via Draw Pro'} · {formatDateDisplay(event.event_date)}
       </Text>
+      {/* NEW, added 2026-07-29 - TEMPORARY cold-start bootstrap feature
+          (migration 0038) - per direct instruction: "should show the
+          producer name & info but clarify that it is an admin post."
+          The real producer's name already shows above via
+          producer_org_name (same external_producer_name fallback
+          Draw-Pro-synced events use) - this is just the clarifier. */}
+      {event.posted_by_admin ? (
+        <Text style={styles.adminPostedLine}>Posted by RopingTools on this producer's behalf</Text>
+      ) : null}
       <Text style={styles.meta}>
         {event.location} · {event.entry_fee ?? 'See listing'}
       </Text>
@@ -162,6 +171,13 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.espresso },
   producerLine: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.brass, marginTop: 1 },
+  adminPostedLine: {
+    fontFamily: fonts.body,
+    fontStyle: 'italic',
+    fontSize: 10.5,
+    color: colors.saddle,
+    marginTop: 1,
+  },
   meta: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginTop: 4, lineHeight: 16 },
   rating: { fontSize: 12.5, fontFamily: fonts.bodyBold, marginTop: 6 },
   ratingActive: { color: colors.brass },

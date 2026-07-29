@@ -22,6 +22,11 @@ export type EventRow = {
   draw_pro_event_id: string | null;
   draw_pro_entry_url: string | null;
   external_producer_name: string | null;
+  // NEW, added 2026-07-29 alongside migration 0038 - true for a TEMPORARY
+  // cold-start bootstrap event: a trusted admin entered this on a real
+  // producer's behalf (from a flier), before that producer has any
+  // account here at all. See useCreateAdminEvent() for the full reasoning.
+  posted_by_admin: boolean;
 };
 
 export type EventWithProducer = EventRow & { producer_org_name: string | null };
@@ -93,6 +98,45 @@ export function useCreateEvent() {
       flier_path: string | null;
     }) => {
       const { error } = await supabase.from('events').insert(input);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+// NEW, added 2026-07-29 alongside migration 0038 - a TEMPORARY cold-start
+// bootstrap feature (see that migration's own comment for the full
+// reasoning: gated to is_admin accounts, lets a trusted admin post a real
+// event on a producer's behalf, from a flier, before that producer has
+// any account here at all). Reuses external_producer_name - the exact
+// same field Draw-Pro-synced events already use for "a real producer
+// name with no real linked account behind it" - rather than inventing a
+// second mechanism for the same underlying situation. status is set to
+// 'published' directly (not left to auto_publish_event()'s trigger,
+// which only ever checks a real producer_profiles row and would leave
+// this at the default 'pending_review' forever, since producer_id is
+// null here) - an admin posting this is already the trust/review step.
+export function useCreateAdminEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      name: string;
+      event_date: string;
+      location: string;
+      entry_fee: string;
+      divisions: number[];
+      description: string;
+      flier_path: string | null;
+      external_producer_name: string;
+      admin_poster_id: string;
+    }) => {
+      const { error } = await supabase.from('events').insert({
+        ...input,
+        posted_by_admin: true,
+        status: 'published',
+      });
       if (error) throw error;
     },
     onSuccess: () => {

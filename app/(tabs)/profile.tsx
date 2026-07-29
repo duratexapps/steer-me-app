@@ -170,6 +170,22 @@ export default function Profile() {
           onPress={() => router.push('/legal')}
           style={styles.spacedBtn}
         />
+        {/* NEW, added 2026-07-29 - TEMPORARY/REMOVABLE cold-start bootstrap
+            feature (migration 0038_admin_posted_events.sql) - only ever
+            visible to the small set of accounts with is_admin = true, so
+            this is invisible to every normal user. Not wrapped in its own
+            "present but not conspicuous" treatment the way Legal is,
+            since is_admin already gates visibility completely - there's
+            no discoverability concern for a button nobody but an admin
+            can even see. */}
+        {profile.is_admin ? (
+          <Button
+            label="Post an Event (Admin)"
+            variant="outline"
+            onPress={() => router.push('/admin-post-event')}
+            style={styles.spacedBtn}
+          />
+        ) : null}
         <Button label="Sign out" variant="ghost" onPress={handleSignOut} style={styles.spacedBtn} />
         <Button
           label="Delete my profile & data"
