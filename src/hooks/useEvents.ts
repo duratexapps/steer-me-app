@@ -167,6 +167,61 @@ export function useCreateAdminEvent() {
   });
 }
 
+// NEW, added 2026-07-29 - backs admin-edit-event.tsx. Real gap flagged
+// directly by the user: nobody, not even an admin, had any way to fix a
+// typo or attach a flier to an event that already exists - Create only
+// ever inserted, nothing ever updated. Single-event fetch (not filtered
+// to published-only like usePublishedEvents) so an admin can still find
+// and fix an event even if its status somehow isn't 'published'.
+export function useEventById(eventId: string | undefined) {
+  return useQuery({
+    queryKey: ['events', 'by-id', eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('events').select('*').eq('id', eventId).single();
+      if (error) throw error;
+      return data as EventRow;
+    },
+  });
+}
+
+// NEW, added 2026-07-29 - the update half of useCreateAdminEvent(),
+// scoped by direct instruction to ADMIN-POSTED events only, not every
+// event on the platform: "Admin-posted events only... matches the
+// existing database permission boundary already in place." Mirrors
+// migration 0038's events_update_admin RLS policy exactly (posted_by_admin
+// = true, caller is_admin = true) - the .eq('posted_by_admin', true) here
+// is defense in depth, not the real enforcement; RLS is. Deliberately
+// never touches producer_id/posted_by_admin/admin_poster_id themselves -
+// only the real content fields a flier correction would ever need to
+// change.
+export function useUpdateAdminEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      eventId,
+      ...input
+    }: {
+      eventId: string;
+      name: string;
+      event_date: string;
+      event_end_date?: string | null;
+      location: string;
+      entry_fee: string;
+      divisions: number[];
+      description: string;
+      flier_path: string | null;
+      external_producer_name: string;
+    }) => {
+      const { error } = await supabase.from('events').update(input).eq('id', eventId).eq('posted_by_admin', true);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
 // Backs the "search for your event" step in create-need-post.tsx - lets an
 // athlete link their posted need to a real, already-listed event instead
 // of retyping its details, so multiple athletes posting for the SAME event

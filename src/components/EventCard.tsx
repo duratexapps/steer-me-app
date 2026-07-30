@@ -1,5 +1,6 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { formatDivision } from '@/src/lib/matching';
@@ -95,7 +96,19 @@ export function EventCard({
           producer_org_name (same external_producer_name fallback
           Draw-Pro-synced events use) - this is just the clarifier. */}
       {event.posted_by_admin ? (
-        <Text style={styles.adminPostedLine}>Posted by RopingTools on this producer's behalf</Text>
+        <View style={styles.adminPostedRow}>
+          <Text style={styles.adminPostedLine}>Posted by RopingTools on this producer's behalf</Text>
+          {/* NEW, added 2026-07-29 - real gap flagged directly by the user: nobody had
+              any way to fix a typo or attach a flier to an event that already exists.
+              Scoped to admin-posted events only, matching the events_update_admin RLS
+              policy (migration 0038) - a real producer's own listing, or a Draw-Pro-
+              synced one, never shows this link, even to an admin viewer. */}
+          {!producerView && me?.is_admin ? (
+            <Pressable onPress={() => router.push({ pathname: '/admin-edit-event', params: { eventId: event.id } })}>
+              <Text style={styles.adminEditLink}>Edit</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
       <Text style={styles.meta}>
         {event.location} · {event.entry_fee ?? 'See listing'}
@@ -175,12 +188,25 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.espresso },
   producerLine: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.brass, marginTop: 1 },
+  adminPostedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 1,
+  },
   adminPostedLine: {
     fontFamily: fonts.body,
     fontStyle: 'italic',
     fontSize: 10.5,
     color: colors.saddle,
-    marginTop: 1,
+    flexShrink: 1,
+  },
+  adminEditLink: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.brass,
+    textDecorationLine: 'underline',
+    marginLeft: 8,
   },
   meta: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginTop: 4, lineHeight: 16 },
   rating: { fontSize: 12.5, fontFamily: fonts.bodyBold, marginTop: 6 },
