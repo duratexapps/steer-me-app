@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { HelpModal } from '@/src/components/HelpModal';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { EventCard } from '@/src/components/EventCard';
+import { EventFiltersBar } from '@/src/components/EventFiltersBar';
 import { ReportModal } from '@/src/components/ReportModal';
 import { RatingModal } from '@/src/components/RatingModal';
 import { colors } from '@/src/theme/theme';
@@ -22,6 +23,9 @@ import { useSubmitEventReport, EVENT_REPORT_OFFENSES } from '@/src/hooks/useRepo
 import { useMyRatedEventIds, useSubmitRating } from '@/src/hooks/useRatings';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
 import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
+import { useMyProfile } from '@/src/hooks/useMyProfile';
+import { useTownDistances } from '@/src/hooks/useTownDistances';
+import { applyEventFilters, distinctStates, DEFAULT_EVENT_FILTERS, type EventFilters } from '@/src/lib/event-filters';
 import { showToast } from '@/src/state/toast-store';
 
 // Mirrors Screen 11 (#events) - athlete-facing browse, attend toggle, and
@@ -29,8 +33,19 @@ import { showToast } from '@/src/state/toast-store';
 // (Browse reads the eventId/division query params it's pushed with here).
 export default function Events() {
   const userId = useSessionStore((s) => s.session?.user.id);
+  const { data: profile } = useMyProfile();
   const { data: events, isLoading: eventsLoading } = usePublishedEvents();
-  const eventIds = (events ?? []).map((e) => e.id);
+
+  // Distances are computed from EVERY fetched event's location, regardless
+  // of the current filter selection - so flipping the distance pill (or any
+  // other filter) never has to wait on a fresh network round trip, it's
+  // just re-filtering data already sitting in memory.
+  const distances = useTownDistances(profile?.home_area, (events ?? []).map((e) => e.location));
+  const [filters, setFilters] = useState<EventFilters>(DEFAULT_EVENT_FILTERS);
+  const filteredEvents = applyEventFilters(events ?? [], filters, distances);
+  const states = distinctStates(events ?? []);
+
+  const eventIds = filteredEvents.map((e) => e.id);
   const { data: counts } = useAttendanceCounts(eventIds);
   const { data: myAttendance } = useMyAttendance(eventIds, userId);
   const { data: ratingSummaries } = useRatingSummaries(eventIds);
@@ -67,25 +82,38 @@ export default function Events() {
         ) : !events || events.length === 0 ? (
           <DividerNote>No events posted yet.</DividerNote>
         ) : (
-          <View style={styles.grid}>
-            {events.map((event) => (
-              <View key={event.id} style={{ width: itemWidth }}>
-                <EventCard
-                  event={event}
-                  counts={counts}
-                  myAttendance={myAttendance}
-                  alreadyRated={ratedEventIds?.has(event.id)}
-                  ratingSummary={ratingSummaries?.get(event.id)}
-                  onToggleAttend={(division) => handleToggle(event, division)}
-                  onShowPartners={(division) =>
-                    router.push({ pathname: '/(tabs)/browse', params: { eventId: event.id, division: String(division), eventName: event.name } })
-                  }
-                  onReport={() => setReportTarget(event)}
-                  onRatePress={() => setRatingTarget(event)}
-                />
+          <>
+            <EventFiltersBar
+              filters={filters}
+              onChange={setFilters}
+              states={states}
+              homeArea={profile?.home_area}
+              resultCount={filteredEvents.length}
+            />
+            {filteredEvents.length === 0 ? (
+              <DividerNote>No events match these filters - try widening your search.</DividerNote>
+            ) : (
+              <View style={styles.grid}>
+                {filteredEvents.map((event) => (
+                  <View key={event.id} style={{ width: itemWidth }}>
+                    <EventCard
+                      event={event}
+                      counts={counts}
+                      myAttendance={myAttendance}
+                      alreadyRated={ratedEventIds?.has(event.id)}
+                      ratingSummary={ratingSummaries?.get(event.id)}
+                      onToggleAttend={(division) => handleToggle(event, division)}
+                      onShowPartners={(division) =>
+                        router.push({ pathname: '/(tabs)/browse', params: { eventId: event.id, division: String(division), eventName: event.name } })
+                      }
+                      onReport={() => setReportTarget(event)}
+                      onRatePress={() => setRatingTarget(event)}
+                    />
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
+            )}
+          </>
         )}
       </ScrollView>
 
