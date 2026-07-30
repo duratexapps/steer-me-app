@@ -46,6 +46,9 @@ export default function Landing() {
             Per Google's own instructions: must stay in place even after
             verification succeeds, or the property reverts to unverified. */}
         <meta name="google-site-verification" content="j8CD9Wxa_wAyzFAx2maS37iDQ-7QAmQMTSnjPKsyYnc" />
+        {/* Bing Webmaster Tools ownership verification, same reasoning -
+            added 2026-07-30, must stay in place permanently. */}
+        <meta name="msvalidate.01" content="2E048520D85D07813F99700A309B903C" />
         <title>Steer Me — Team Roping Partner App | Find Ropings &amp; Partners</title>
         <meta
           name="description"
