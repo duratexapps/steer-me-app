@@ -41,6 +41,11 @@ export default function Landing() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Head>
+        {/* Google Search Console ownership verification for the
+            https://steerme.ropingtools.com/ property - added 2026-07-30.
+            Per Google's own instructions: must stay in place even after
+            verification succeeds, or the property reverts to unverified. */}
+        <meta name="google-site-verification" content="j8CD9Wxa_wAyzFAx2maS37iDQ-7QAmQMTSnjPKsyYnc" />
         <title>Steer Me — Team Roping Partner App | Find Ropings &amp; Partners</title>
         <meta
           name="description"
