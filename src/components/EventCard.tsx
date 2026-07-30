@@ -126,21 +126,35 @@ export function EventCard({
           const key = `${event.id}:${d}`;
           const count = counts?.get(key) ?? 0;
           const attending = myAttendance?.has(key) ?? false;
+          // NEW, added 2026-07-30 alongside migration 0041 - real ask,
+          // directly from the user: "The human eye naturally drifts to
+          // the event classes your subconsciously interested in only to
+          // realize those details are not there. They are grouped above
+          // with everything else... Details pertaining to each class
+          // (cost to enter, end caps, max entries etc) should be listed
+          // WITH the checkbox indicating attendance." This is that detail,
+          // read right off THIS division's own entry - not the shared,
+          // whole-event description above, which no longer needs to carry
+          // per-class specifics for events that provide this.
+          const detail = event.division_details?.[String(d)];
           return (
-            <View key={d} style={styles.divisionPill}>
-              {!producerView ? (
-                <Pressable onPress={() => onToggleAttend?.(d)} style={[styles.attendCheck, attending && styles.attendCheckOn]}>
-                  {attending ? <Ionicons name="checkmark" size={11} color={colors.bone} /> : null}
-                </Pressable>
-              ) : null}
-              <Text style={styles.divisionText}>
-                {formatDivision(d)} <Text style={styles.divisionCount}>{count} attending</Text>
-              </Text>
-              {!producerView ? (
-                <Pressable onPress={() => onShowPartners?.(d)} style={styles.partnersBtn}>
-                  <Text style={styles.partnersBtnText}>Partners</Text>
-                </Pressable>
-              ) : null}
+            <View key={d} style={[styles.divisionPill, detail && styles.divisionPillWithDetail]}>
+              <View style={styles.divisionTopRow}>
+                {!producerView ? (
+                  <Pressable onPress={() => onToggleAttend?.(d)} style={[styles.attendCheck, attending && styles.attendCheckOn]}>
+                    {attending ? <Ionicons name="checkmark" size={11} color={colors.bone} /> : null}
+                  </Pressable>
+                ) : null}
+                <Text style={styles.divisionText}>
+                  {formatDivision(d)} <Text style={styles.divisionCount}>{count} attending</Text>
+                </Text>
+                {!producerView ? (
+                  <Pressable onPress={() => onShowPartners?.(d)} style={styles.partnersBtn}>
+                    <Text style={styles.partnersBtnText}>Partners</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              {detail ? <Text style={styles.divisionDetailText}>{detail}</Text> : null}
             </View>
           );
         })}
@@ -216,9 +230,6 @@ const styles = StyleSheet.create({
   flier: { width: '100%', height: 160, borderRadius: radii.md, marginTop: 10 },
   divisionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   divisionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     borderWidth: 1.5,
     borderColor: colors.saddle,
     borderRadius: radii.pill,
@@ -226,6 +237,30 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 6,
     backgroundColor: colors.bone,
+  },
+  // NEW, added 2026-07-30 - a division carrying its own cost/cap/etc.
+  // detail (division_details) needs room for a second line of text below
+  // the checkbox/label/Partners row, and reads better taking the full
+  // card width rather than staying a small inline chip next to other
+  // divisions - a plain division with no detail stays the original
+  // compact pill shape, unchanged.
+  divisionPillWithDetail: {
+    flexBasis: '100%',
+    borderRadius: radii.md,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  divisionTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  divisionDetailText: {
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    color: colors.ink,
+    marginTop: 4,
+    lineHeight: 15,
   },
   attendCheck: {
     width: 16,

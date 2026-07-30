@@ -12,12 +12,13 @@ import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { PhotoChooserSheet } from '@/src/components/PhotoChooserSheet';
+import { DivisionDetailsFields } from '@/src/components/DivisionDetailsFields';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile, publicUrlFor } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
-import { useEventById, useUpdateAdminEvent } from '@/src/hooks/useEvents';
+import { useEventById, useUpdateAdminEvent, buildDivisionDetailsPayload } from '@/src/hooks/useEvents';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
@@ -44,6 +45,9 @@ export default function AdminEditEvent() {
   const [location, setLocation] = useState('');
   const [fee, setFee] = useState('');
   const [divisions, setDivisions] = useState<number[]>([]);
+  // NEW, added 2026-07-30 alongside migration 0041 - see create-event.tsx's
+  // matching comment. Prefilled from event.division_details below.
+  const [divisionDetails, setDivisionDetails] = useState<Record<string, string>>({});
   const [description, setDescription] = useState('');
   const [flierOpen, setFlierOpen] = useState(false);
   const [flierUri, setFlierUri] = useState<string | null>(null);
@@ -64,6 +68,7 @@ export default function AdminEditEvent() {
       setLocation(event.location);
       setFee(event.entry_fee ?? '');
       setDivisions(event.divisions);
+      setDivisionDetails(event.division_details ?? {});
       setDescription(event.description ?? '');
       setFlierPath(event.flier_path);
       setFlierUri(publicUrlFor('event-fliers', event.flier_path));
@@ -113,6 +118,7 @@ export default function AdminEditEvent() {
         description: description.trim() || 'No description provided.',
         flier_path: flierPath,
         external_producer_name: producerName.trim(),
+        division_details: buildDivisionDetailsPayload(divisions, divisionDetails),
       });
       showToast(`"${name.trim()}" updated`);
       router.back();
@@ -185,12 +191,18 @@ export default function AdminEditEvent() {
         </View>
         <Text style={styles.helper}>Tap every class listed on the flier - at least one required.</Text>
 
+        <DivisionDetailsFields divisions={divisions} details={divisionDetails} onChange={setDivisionDetails} />
+
         <Text style={styles.label}>Description</Text>
+        <Text style={styles.helper}>
+          Whole-event details that apply no matter the class or day - venue rules, payback, sponsors, contact
+          info, membership requirements. Class-specific details belong above, not here.
+        </Text>
         <TextInput
           style={styles.textarea}
           value={description}
           onChangeText={setDescription}
-          placeholder="Details from the flier - cattle, added money, format..."
+          placeholder="Venue address, payback %, sponsors, contact info, membership rules..."
           placeholderTextColor="#9c8a6b"
           multiline
           numberOfLines={4}

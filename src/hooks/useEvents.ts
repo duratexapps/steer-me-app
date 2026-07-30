@@ -26,6 +26,18 @@ export type EventRow = {
   location: string;
   entry_fee: string | null;
   description: string | null;
+  // NEW, added 2026-07-30 alongside migration 0041 - real ask: cost,
+  // caps, max entries etc vary PER DIVISION on a real flier, and mixing
+  // all of that into the single shared `description` above disconnected
+  // it from the specific division a reader actually cares about. Keyed
+  // by division number AS A STRING (JSON object keys are always strings -
+  // e.g. divisionDetails?.['9.5']), each value a short free-text blob for
+  // that one division only. Absent/null for a division falls back to the
+  // event's shared entry_fee - most events still just have one fee for
+  // everything and don't need this at all. See EventCard.tsx for where
+  // this actually renders (alongside that division's own checkbox, not
+  // above the division list with everything else).
+  division_details: Record<string, string> | null;
   divisions: number[];
   flier_path: string | null;
   status: 'pending_review' | 'published' | 'removed';
@@ -40,6 +52,26 @@ export type EventRow = {
 };
 
 export type EventWithProducer = EventRow & { producer_org_name: string | null };
+
+// NEW, added 2026-07-30 alongside migration 0041 - shared by
+// create-event.tsx, admin-post-event.tsx, and admin-edit-event.tsx.
+// DivisionDetailsFields.tsx collects one free-text box per division
+// regardless of whether the producer/admin actually typed anything into
+// it - this trims that down to just the divisions that are both
+// currently selected AND actually have real text, so toggling a
+// division off (or never touching its box) never leaves stale/empty
+// keys sitting in the stored JSON. Returns null (not {}) when nothing
+// qualifies, matching division_details' own "nothing here, fall back to
+// the shared entry_fee" convention.
+export function buildDivisionDetailsPayload(
+  divisions: number[],
+  details: Record<string, string>
+): Record<string, string> | null {
+  const entries = divisions
+    .map((d) => [String(d), details[String(d)]?.trim()] as const)
+    .filter((entry): entry is [string, string] => !!entry[1]);
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
 
 type PublicProducerProfile = { id: string; org_name: string; verification_status: string };
 
@@ -108,6 +140,9 @@ export function useCreateEvent() {
       divisions: number[];
       description: string;
       flier_path: string | null;
+      // NEW, added 2026-07-30 alongside migration 0041 - optional,
+      // omit/null when every division shares the same fee/details.
+      division_details?: Record<string, string> | null;
     }) => {
       const { error } = await supabase.from('events').insert(input);
       if (error) throw error;
@@ -144,6 +179,7 @@ export function useCreateAdminEvent() {
       flier_path: string | null;
       external_producer_name: string;
       admin_poster_id: string;
+      division_details?: Record<string, string> | null;
     }) => {
       const { error } = await supabase.from('events').insert({
         ...input,
@@ -212,6 +248,7 @@ export function useUpdateAdminEvent() {
       description: string;
       flier_path: string | null;
       external_producer_name: string;
+      division_details?: Record<string, string> | null;
     }) => {
       const { error } = await supabase.from('events').update(input).eq('id', eventId).eq('posted_by_admin', true);
       if (error) throw error;
