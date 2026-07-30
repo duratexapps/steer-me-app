@@ -6,7 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { TextField } from '@/src/components/ui/TextField';
+import { AutocompleteField } from '@/src/components/ui/AutocompleteField';
 import { DateField } from '@/src/components/ui/DateField';
+import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { PhotoChooserSheet } from '@/src/components/PhotoChooserSheet';
@@ -42,6 +44,12 @@ export default function AdminPostEvent() {
   const [producerName, setProducerName] = useState('');
   const [name, setName] = useState('');
   const [date, setDate] = useState<string | null>(null);
+  // NEW, added 2026-07-29 alongside migration 0039 - same optional
+  // multi-day support as create-event.tsx (see that file's matching
+  // comment) - real fliers (Super 6 Productions, WSTR Heartland Finale,
+  // All Star Team Roping Finals) posted through this exact screen were
+  // the first real use of this.
+  const [endDate, setEndDate] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const [fee, setFee] = useState('');
   const [divisions, setDivisions] = useState<number[]>([]);
@@ -75,12 +83,17 @@ export default function AdminPostEvent() {
       showToast('Fill in producer name, event name, date, location, and at least one division');
       return;
     }
+    if (endDate && endDate < date) {
+      showToast('End date must be on or after the start date');
+      return;
+    }
 
     setSubmitting(true);
     try {
       await createAdminEvent.mutateAsync({
         name: name.trim(),
         event_date: date,
+        event_end_date: endDate,
         location: location.trim(),
         entry_fee: fee.trim() || 'See listing',
         divisions,
@@ -119,8 +132,19 @@ export default function AdminPostEvent() {
 
         <TextField label="Producer name" value={producerName} onChangeText={setProducerName} placeholder="e.g. Circle T Ropings" />
         <TextField label="Event name" value={name} onChangeText={setName} placeholder="e.g. Fall Qualifier" />
-        <DateField label="Date" value={date} onChange={setDate} minimumDate={new Date()} />
-        <TextField label="Location" value={location} onChangeText={setLocation} placeholder="e.g. Wickenburg, AZ" />
+        <DateField label={endDate ? 'Start date' : 'Date'} value={date} onChange={setDate} minimumDate={new Date()} />
+
+        <ToggleRow
+          title="Runs multiple days"
+          description="Turn on for a Fri-Sun roping or similar - off means a single-day event"
+          value={endDate !== null}
+          onToggle={() => setEndDate(endDate === null ? date ?? null : null)}
+        />
+        {endDate !== null ? (
+          <DateField label="End date" value={endDate} onChange={setEndDate} minimumDate={date ? new Date(`${date}T00:00:00`) : new Date()} />
+        ) : null}
+
+        <AutocompleteField label="Location" value={location} onChange={setLocation} placeholder="e.g. Wickenburg, AZ" required />
         <TextField label="Entry fee" value={fee} onChangeText={setFee} placeholder="e.g. $300/team" />
 
         <Text style={styles.label}>Divisions / classification caps</Text>

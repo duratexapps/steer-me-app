@@ -7,7 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
+import { AutocompleteField } from '@/src/components/ui/AutocompleteField';
 import { DateField } from '@/src/components/ui/DateField';
+import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { PhotoChooserSheet } from '@/src/components/PhotoChooserSheet';
@@ -30,6 +32,11 @@ export default function CreateEvent() {
   const [name, setName] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const [date, setDate] = useState<string | null>(null);
+  // NEW, added 2026-07-29 alongside migration 0039 - optional end date for
+  // a multi-day event (e.g. a Fri-Sun roping). null/unset means single-day,
+  // same as it always was - this is purely additive, nothing about the
+  // single-day path changed.
+  const [endDate, setEndDate] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const [fee, setFee] = useState('');
   const [divisions, setDivisions] = useState<number[]>([]);
@@ -62,12 +69,21 @@ export default function CreateEvent() {
       showToast('Fill in event name, date, location, and at least one division');
       return;
     }
+    // Mirrors migration 0039's own DB check constraint (event_end_date_after_start)
+    // client-side, so a producer sees a friendly message instead of a raw
+    // Postgres constraint-violation error if they pick an end date before
+    // the start date.
+    if (endDate && endDate < date) {
+      showToast('End date must be on or after the start date');
+      return;
+    }
 
     setSubmitting(true);
     try {
       await createEvent.mutateAsync({
         name: name.trim(),
         event_date: date,
+        event_end_date: endDate,
         location: location.trim(),
         entry_fee: fee.trim() || 'See listing',
         divisions,
@@ -88,8 +104,29 @@ export default function CreateEvent() {
       <ScreenHeader title="Create Event" subtitle="Listed under your verified producer profile" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <TextField label="Event name" value={name} onChangeText={setName} placeholder="e.g. Fall Qualifier" />
-        <DateField label="Date" value={date} onChange={setDate} minimumDate={new Date()} />
-        <TextField label="Location" value={location} onChangeText={setLocation} placeholder="e.g. Wickenburg, AZ" />
+        <DateField label={endDate ? 'Start date' : 'Date'} value={date} onChange={setDate} minimumDate={new Date()} />
+
+        {/* NEW, added 2026-07-29 alongside migration 0039 - real ask: "sometimes
+            an event will last several days... need to be able to pic 8/2-8/8/2026
+            vs 8/2/2026." Defaults off (most events are still single-day) - toggling
+            on reveals an end-date picker; toggling back off clears it rather than
+            leaving a stale hidden end date attached to a now-single-day event. */}
+        <ToggleRow
+          title="Runs multiple days"
+          description="Turn on for a Fri-Sun roping or similar - off means a single-day event"
+          value={endDate !== null}
+          onToggle={() => setEndDate(endDate === null ? date ?? null : null)}
+        />
+        {endDate !== null ? (
+          <DateField label="End date" value={endDate} onChange={setEndDate} minimumDate={date ? new Date(`${date}T00:00:00`) : new Date()} />
+        ) : null}
+
+        {/* Location must resolve to one real, specific town (not free text) -
+            same AutocompleteField, same ~32,000-place dataset Draw Pro's own
+            producer-event-setup.js type-ahead uses - so the new driving-distance
+            filter on Events has something consistent to look up for every event,
+            not just admin-posted ones. */}
+        <AutocompleteField label="Location" value={location} onChange={setLocation} placeholder="e.g. Wickenburg, AZ" required />
         <TextField label="Entry fee" value={fee} onChangeText={setFee} placeholder="e.g. $300/team" />
 
         <Text style={styles.label}>Divisions / classification caps</Text>

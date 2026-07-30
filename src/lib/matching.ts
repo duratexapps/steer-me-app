@@ -156,8 +156,17 @@ export function validateClassificationForEnd(value: number, end: 'header' | 'hee
   return null;
 }
 
+// NEW, added 2026-07-29 - real fliers handed to us directly by the user
+// (Heart of Texas Showdown's "#12 Slide", All Star Team Roping Finals'
+// "#16.5 Shootout") used caps that weren't in this list yet. Per direct
+// instruction - "Map as the flier states. If that means adding the slide
+// & the 16.5 to our available divisions then so be it." - added as real,
+// permanent options rather than rounded/dropped to the nearest existing
+// cap. Nothing else in the matching math is tied to this specific set of
+// values (canPair/maxAllowedFor just compare a header+heeler sum against
+// whatever cap number is passed in), so this is safe to extend.
 export const COMMON_CAPS = [
-  3, 4, 4.5, 5, 5.5, 6, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5,
+  3, 4, 4.5, 5, 5.5, 6, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12, 12.5, 13.5, 14.5, 15.5, 16.5,
 ];
 
 // "Open" is an industry term, not a real restriction: the highest a header
