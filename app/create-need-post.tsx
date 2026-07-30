@@ -20,7 +20,7 @@ import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
 import { DIVISION_OPTIONS, OPEN_CAP, formatPosition, formatClassificationTag } from '@/src/lib/matching';
 import { toClassification } from '@/src/hooks/useEligiblePartners';
-import { formatDateDisplay } from '@/src/lib/date';
+import { formatDateRangeDisplay } from '@/src/lib/date';
 import { useCreateNeedPost, type NeedPostVisibility } from '@/src/hooks/useNeedPosts';
 import { useSearchPublishedEvents, useNeedPostCountForEvent, type EventWithProducer } from '@/src/hooks/useEvents';
 import { useFavorites } from '@/src/hooks/useFavorites';
@@ -164,7 +164,7 @@ export default function CreateNeedPost() {
             <View style={{ flex: 1 }}>
               <Text style={styles.linkedName}>✓ Linked to {linkedEvent.name}</Text>
               <Text style={styles.linkedMeta}>
-                {linkedEvent.producer_org_name} · {formatDateDisplay(linkedEvent.event_date)}
+                {linkedEvent.producer_org_name} · {formatDateRangeDisplay(linkedEvent.event_date, linkedEvent.event_end_date)}
               </Text>
               {otherPostCount ? (
                 <Text style={styles.linkedCount}>
@@ -191,7 +191,7 @@ export default function CreateNeedPost() {
                   <Pressable key={event.id} style={styles.resultRow} onPress={() => handleLinkEvent(event)}>
                     <Text style={styles.resultName}>{event.name}</Text>
                     <Text style={styles.resultMeta}>
-                      {event.producer_org_name} · {formatDateDisplay(event.event_date)} · {event.location}
+                      {event.producer_org_name} · {formatDateRangeDisplay(event.event_date, event.event_end_date)} · {event.location}
                     </Text>
                   </Pressable>
                 ))}

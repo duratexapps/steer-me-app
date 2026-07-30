@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { formatDivision } from '@/src/lib/matching';
-import { formatDateDisplay } from '@/src/lib/date';
+import { formatDateRangeDisplay, isEventStillUpcoming } from '@/src/lib/date';
 import { publicUrlFor } from '@/src/lib/storage-upload';
 import type { EventWithProducer, RatingSummary } from '@/src/hooks/useEvents';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
@@ -44,7 +44,11 @@ export function EventCard({
       ? `★ ${ratingSummary.avg_stars?.toFixed(1)} (${ratingSummary.rating_count} rating${ratingSummary.rating_count === 1 ? '' : 's'})`
       : 'Not enough ratings yet';
 
-  const isPast = new Date(event.event_date) < new Date();
+  // FIXED live 2026-07-29 alongside migration 0039 (multi-day events) -
+  // this used to compare event_date alone, which would call a week-long
+  // roping "past" the moment its first day ended, even while it was
+  // still actively running.
+  const isPast = !isEventStillUpcoming(event.event_date, event.event_end_date);
   const attendedAnyDivision = event.divisions.some((d) => myAttendance?.has(`${event.id}:${d}`));
   const canRate = !producerView && isPast && attendedAnyDivision && !alreadyRated;
   const flierUrl = publicUrlFor('event-fliers', event.flier_path);
@@ -82,7 +86,7 @@ export function EventCard({
     <View style={styles.card}>
       <Text style={styles.name}>{event.name}</Text>
       <Text style={styles.producerLine}>
-        {event.producer_org_name ?? 'Posted via Draw Pro'} · {formatDateDisplay(event.event_date)}
+        {event.producer_org_name ?? 'Posted via Draw Pro'} · {formatDateRangeDisplay(event.event_date, event.event_end_date)}
       </Text>
       {/* NEW, added 2026-07-29 - TEMPORARY cold-start bootstrap feature
           (migration 0038) - per direct instruction: "should show the

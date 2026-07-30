@@ -12,7 +12,17 @@ export type EventRow = {
   // 0029_draw_pro_event_sync.sql.
   producer_id: string | null;
   name: string;
+  // Start date - see event_end_date below. Kept as the sort/comparison
+  // anchor everywhere it already was (migration 0039) - only display
+  // logic and "is this still upcoming" checks need to know about the
+  // end date at all.
   event_date: string;
+  // NEW, added 2026-07-29 alongside migration 0039 - null for a
+  // single-day event. When set, the event runs event_date through
+  // event_end_date inclusive. Use formatDateRangeDisplay() to show
+  // both correctly, and isEventUpcoming()/isEventOngoingOrUpcoming
+  // rather than comparing event_date alone against today.
+  event_end_date: string | null;
   location: string;
   entry_fee: string | null;
   description: string | null;
@@ -91,6 +101,8 @@ export function useCreateEvent() {
     mutationFn: async (input: {
       name: string;
       event_date: string;
+      // NEW, added 2026-07-29 - optional, omit/null for a single-day event.
+      event_end_date?: string | null;
       location: string;
       entry_fee: string;
       divisions: number[];
@@ -124,6 +136,7 @@ export function useCreateAdminEvent() {
     mutationFn: async (input: {
       name: string;
       event_date: string;
+      event_end_date?: string | null;
       location: string;
       entry_fee: string;
       divisions: number[];
