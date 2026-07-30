@@ -1,0 +1,9 @@
+# Steer Me is a real, functioning app behind sign-in for almost every
+# screen - there's genuinely nothing useful for a crawler to index past
+# the public landing page and the sign-up/sign-in flow itself, so this
+# stays deliberately simple rather than trying to enumerate every
+# authenticated route as "disallowed."
+User-agent: *
+Allow: /
+
+Sitemap: https://steerme.ropingtools.com/sitemap.xml

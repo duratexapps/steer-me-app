@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Deliberately just the one real, public, content-rich URL - almost
+  every other route requires signing in, which isn't meaningful content
+  for a crawler to index anyway (Google can't get past the login wall,
+  and there's nothing to rank there even if it could). Add more <url>
+  entries here only as more genuinely public, unauthenticated pages get
+  built (e.g. a blog/resource section).
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://steerme.ropingtools.com/</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

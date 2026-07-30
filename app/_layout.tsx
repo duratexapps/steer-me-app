@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { Slot } from 'expo-router';
+import { Slot, usePathname } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
@@ -85,7 +85,20 @@ export default function RootLayout() {
     onLayoutRootView();
   }, [onLayoutRootView]);
 
-  if (!fontsLoaded || !isReady) {
+  // NEW, added 2026-07-30 - real SEO gap flagged directly by the user:
+  // the root "/" route used to render nothing but a blank colored box
+  // until fonts + the session check both resolved, for every visitor -
+  // including a search crawler, which would see literally no content at
+  // all. app/index.tsx is now a real, static-renderable public landing
+  // page rather than an unconditional redirect, but it still needs to
+  // actually render its content immediately rather than sit behind this
+  // same gate. Everything else (the authenticated app itself) keeps the
+  // exact same wait-for-fonts-and-session behavior as before - this is
+  // narrowly scoped to the one public marketing route.
+  const pathname = usePathname();
+  const isPublicLandingRoute = pathname === '/';
+
+  if (!isPublicLandingRoute && (!fontsLoaded || !isReady)) {
     return <View style={{ flex: 1, backgroundColor: colors.bone }} />;
   }
 
