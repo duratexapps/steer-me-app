@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionTile } from '@/src/components/ui/ActionTile';
 import { Tag } from '@/src/components/ui/Tag';
 import { HelpModal } from '@/src/components/HelpModal';
+import { AndroidTesterBanner } from '@/src/components/AndroidTesterBanner';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
@@ -16,6 +17,11 @@ import { formatPosition, formatClassificationTag } from '@/src/lib/matching';
 import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 
 export default function Home() {
+  // NEW, added 2026-07-30 - see sign-up.tsx's matching comment. Shown only
+  // right after a brand-new web sign-up completes (once, via this param),
+  // not on every ordinary return visit to Home - AndroidTesterBanner
+  // itself already no-ops on native regardless.
+  const { justSignedUp } = useLocalSearchParams<{ justSignedUp?: string }>();
   const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
   const hasProducerProfile = useSessionStore((s) => s.hasProducerProfile);
   const { data: profile, isLoading: profileLoading } = useMyProfile();
@@ -45,6 +51,7 @@ export default function Home() {
         <Text style={styles.helpBtnText}>?</Text>
       </Pressable>
       <ScrollView contentContainerStyle={styles.content}>
+        {justSignedUp ? <AndroidTesterBanner /> : null}
         {hasAthleteProfile && profile ? (
           <View style={styles.hero}>
             <Text style={styles.greet}>Welcome back</Text>

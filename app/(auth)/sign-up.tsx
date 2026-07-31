@@ -226,7 +226,13 @@ export default function SignUp() {
         ? 'Profile created - your card shows as expired, so your profile will display as "not current" to other ropers until you update it.'
         : 'Profile created'
     );
-    router.replace('/(tabs)');
+    // NEW, added 2026-07-30 - real ask: recruit Android testers for the
+    // real app from right here, since a brand-new web sign-up is exactly
+    // who'd want to know it exists. Passed unconditionally (not gated to
+    // Platform.OS === 'web' here) - AndroidTesterBanner itself already
+    // no-ops on native, so this param is simply ignored there rather than
+    // needing the same platform check duplicated in two places.
+    router.replace({ pathname: '/(tabs)', params: { justSignedUp: '1' } });
   }
 
   return (

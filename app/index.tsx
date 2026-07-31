@@ -5,6 +5,7 @@ import Head from 'expo-router/head';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSessionStore } from '@/src/state/session-store';
 import { BackToRopingToolsLink } from '@/src/components/ui/BackToRopingToolsLink';
+import { AndroidTesterBanner } from '@/src/components/AndroidTesterBanner';
 import { Button } from '@/src/components/ui/Button';
 import { colors, fonts, radii } from '@/src/theme/theme';
 
@@ -96,6 +97,7 @@ export default function Landing() {
       <BackToRopingToolsLink />
 
       <ScrollView contentContainerStyle={styles.content}>
+        <AndroidTesterBanner />
         <View style={styles.hero}>
           <Image source={require('@/assets/logo.png')} style={styles.logo} contentFit="contain" />
           {/* Real H1 (RN Text renders as a <p> on web by default, but the
