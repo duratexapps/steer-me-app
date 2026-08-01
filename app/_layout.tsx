@@ -1,4 +1,5 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import { Slot, usePathname } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
@@ -22,6 +23,7 @@ import { queryClient } from '@/src/lib/query-client';
 import { useSessionStore } from '@/src/state/session-store';
 import { checkProfileStatus } from '@/src/lib/profile-status';
 import { configurePurchases } from '@/src/lib/purchases';
+import { registerForPushNotifications } from '@/src/lib/push-notifications';
 import { colors } from '@/src/theme/theme';
 import { ToastHost } from '@/src/components/ui/ToastHost';
 
@@ -48,14 +50,25 @@ export default function RootLayout() {
   const setHasAthleteProfile = useSessionStore((s) => s.setHasAthleteProfile);
   const setHasProducerProfile = useSessionStore((s) => s.setHasProducerProfile);
 
+  // NEW, added 2026-07-31 - tracks the current signed-in user id so the
+  // AppState listener below (a separate effect, fires independently of
+  // bootstrap) can re-register for push notifications on app foreground
+  // without needing its own auth-state subscription.
+  const currentUserIdRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     async function bootstrap(userId: string | undefined) {
+      currentUserIdRef.current = userId;
       if (!userId) {
         setHasAthleteProfile(false);
         setHasProducerProfile(false);
         return;
       }
       configurePurchases(userId);
+      // Fire-and-forget, same as configurePurchases() above - a
+      // notification-permission prompt or registration failure should
+      // never hold up session bootstrap.
+      registerForPushNotifications(userId);
       const { hasAthleteProfile, hasProducerProfile } = await checkProfileStatus(userId);
       setHasAthleteProfile(hasAthleteProfile);
       setHasProducerProfile(hasProducerProfile);
@@ -74,6 +87,19 @@ export default function RootLayout() {
 
     return () => subscription.subscription.unsubscribe();
   }, [setSession, setReady, setHasAthleteProfile, setHasProducerProfile]);
+
+  // NEW, added 2026-07-31 - "on login and app foreground" per the Draw Pro
+  // notifications plan. registerForPushNotifications() itself no-ops if
+  // already registered for this same user id this session, so this is
+  // safe to call on every foreground transition, not just the first one.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && currentUserIdRef.current) {
+        registerForPushNotifications(currentUserIdRef.current);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded && isReady) {

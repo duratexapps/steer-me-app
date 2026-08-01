@@ -23,7 +23,7 @@ import { signedUrlFor } from '@/src/lib/storage-upload';
 import { formatDivision, formatClassificationTag, resolvePairingRoles } from '@/src/lib/matching';
 import { toClassification } from '@/src/hooks/useEligiblePartners';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
-import { useCreateEntryHandoff, withHandoffParam } from '@/src/hooks/useEntryHandoff';
+import { useCreateEntryHandoff, withHandoffParam, useCreateDrawProEntryLink, withEntryLinkParam } from '@/src/hooks/useEntryHandoff';
 import { showToast } from '@/src/state/toast-store';
 
 const STATUS_LABEL: Record<PartnerRequestWithProfile['status'], string> = {
@@ -65,6 +65,11 @@ function RequestCard({
   // full handoff mechanism and why it isn't just query params.
   const { data: me } = useMyProfile();
   const createHandoff = useCreateEntryHandoff();
+  // NEW, added 2026-07-31 - see EventCard.tsx's matching comment. This
+  // call site actually knows the resolved role (meRole below) at link-
+  // creation time, unlike EventCard's solo case - passed through so the
+  // link records it up front rather than leaving it null.
+  const createEntryLink = useCreateDrawProEntryLink();
   const canEnterDraw =
     request.status === 'accepted' &&
     !!request.event?.draw_pro_entry_url &&
@@ -92,6 +97,7 @@ function RequestCard({
     // the counterpart, with no mode-based swap needed.
     const meRole = roles.aRole;
     const partnerRole = roles.bRole;
+    let url = request.event.draw_pro_entry_url;
     try {
       const handoffId = await createHandoff.mutateAsync({
         eventId: request.event.id,
@@ -99,11 +105,17 @@ function RequestCard({
         meRole,
         partnerRole,
       });
-      Linking.openURL(withHandoffParam(request.event.draw_pro_entry_url, handoffId));
+      url = withHandoffParam(url, handoffId);
     } catch (err) {
       console.warn('[my-requests] entry handoff failed, falling back to plain link', err);
-      Linking.openURL(request.event.draw_pro_entry_url);
     }
+    try {
+      const token = await createEntryLink.mutateAsync({ eventId: request.event.id, role: meRole });
+      url = withEntryLinkParam(url, token);
+    } catch (err) {
+      console.warn('[my-requests] entry link creation failed - team number/results wont be able to sync back', err);
+    }
+    Linking.openURL(url);
   }
 
   const [cardOpen, setCardOpen] = useState(false);

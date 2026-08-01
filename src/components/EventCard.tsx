@@ -8,7 +8,7 @@ import { formatDateRangeDisplay, isEventStillUpcoming } from '@/src/lib/date';
 import { publicUrlFor } from '@/src/lib/storage-upload';
 import type { EventWithProducer, RatingSummary } from '@/src/hooks/useEvents';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
-import { useCreateEntryHandoff, withHandoffParam } from '@/src/hooks/useEntryHandoff';
+import { useCreateEntryHandoff, withHandoffParam, useCreateDrawProEntryLink, withEntryLinkParam } from '@/src/hooks/useEntryHandoff';
 
 const RATING_MIN_TO_SHOW = 3;
 
@@ -67,20 +67,33 @@ export function EventCard({
   // a failed prefill should never block someone from entering at all.
   const { data: me } = useMyProfile();
   const createHandoff = useCreateEntryHandoff();
+  // NEW, added 2026-07-31 - the durable counterpart to the handoff above
+  // (see useEntryHandoff.ts's matching comment). Best-effort and
+  // independent of the handoff: a failure here should never block entry,
+  // and it shouldn't stop the handoff prefill from working either, so
+  // it's attempted separately rather than bundled into one try/catch that
+  // could fail both for one's sake.
+  const createEntryLink = useCreateDrawProEntryLink();
 
   async function handleEnterDraw() {
-    const url = event.draw_pro_entry_url!;
+    let url = event.draw_pro_entry_url!;
     if (!me) {
       Linking.openURL(url);
       return;
     }
     try {
       const handoffId = await createHandoff.mutateAsync({ eventId: event.id });
-      Linking.openURL(withHandoffParam(url, handoffId));
+      url = withHandoffParam(url, handoffId);
     } catch (err) {
       console.warn('[EventCard] entry handoff failed, falling back to plain link', err);
-      Linking.openURL(url);
     }
+    try {
+      const token = await createEntryLink.mutateAsync({ eventId: event.id });
+      url = withEntryLinkParam(url, token);
+    } catch (err) {
+      console.warn('[EventCard] entry link creation failed - team number/results wont be able to sync back', err);
+    }
+    Linking.openURL(url);
   }
 
   return (

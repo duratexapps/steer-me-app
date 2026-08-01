@@ -14,14 +14,15 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    ```
 2. Copy `.env.example` to `.env` and fill in your project's URL/anon key
    (Project Settings -> API) and your RevenueCat public SDK keys.
-3. Deploy all three Edge Functions:
+3. Deploy all Edge Functions:
    ```
    npx supabase functions deploy revenuecat-webhook
    npx supabase functions deploy ban-suspended-user
    npx supabase functions deploy verify-classification-card
+   npx supabase functions deploy draw-pro-results-webhook
    ```
 4. Set secrets for the Edge Functions (Project Settings -> Edge Functions ->
-   Secrets, or via CLI). Generate both into shell variables and reuse the
+   Secrets, or via CLI). Generate into shell variables and reuse the
    variables everywhere below - don't retype/copy the raw value by hand
    more than once, a single mistyped character here silently breaks the
    whole webhook (it did during development; see the vault step below for
@@ -29,8 +30,17 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    ```
    DB_SECRET=$(openssl rand -hex 24)
    RC_SECRET=$(openssl rand -hex 24)
-   npx supabase secrets set DB_WEBHOOK_SECRET="$DB_SECRET" REVENUECAT_WEBHOOK_AUTH="$RC_SECRET"
+   DRAW_PRO_SECRET=$(openssl rand -hex 24)
+   npx supabase secrets set DB_WEBHOOK_SECRET="$DB_SECRET" REVENUECAT_WEBHOOK_AUTH="$RC_SECRET" DRAW_PRO_WEBHOOK_AUTH="$DRAW_PRO_SECRET"
    ```
+   Also set two values in Wix Secrets Manager (ropingtools-site) -
+   `backend/steerMeResultsSync.jsw` reads both under these exact names:
+   - `draw-pro-results-webhook-auth` = `$DRAW_PRO_SECRET`'s value (same
+     "generate once, paste twice" gotcha as `DB_SECRET`/the vault step
+     below).
+   - `steerme-results-webhook-url` = the deployed `draw-pro-results-webhook`
+     function's URL (Studio -> Edge Functions, or
+     `https://<project-ref>.supabase.co/functions/v1/draw-pro-results-webhook`).
    `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected - you
    don't need to set those yourself.
 4.5. **NEW, added 2026-07-27** - set the Anthropic API key that
@@ -466,6 +476,49 @@ role pair, then check the resulting `entry_handoffs` row has the
 counterpart's REAL profile data (not whatever you might try to pass as
 partner info - the function should ignore that entirely for anyone
 who isn't actually a party to an accepted request naming them).
+
+## Draw Pro results hand-off (Draw Pro -> Steer Me team number/results)
+
+**NEW, added 2026-07-31.** The reverse direction of the entry hand-off
+above: once a user is actually in the draw, they have no way to find out
+their team number or results without leaving the app. Fixed via a durable
+per-(user, event) link (`draw_pro_entry_links` table, migration 0042)
+created at the same "Enter the Draw" tap that creates the (short-lived)
+entry handoff - independent of it, and best-effort in the same way (a
+failure here never blocks entry).
+
+**How it works:**
+1. `EventCard.tsx`'s and `my-requests.tsx`'s "Enter the Draw" handlers
+   both also call `create_draw_pro_entry_link()` (`SECURITY DEFINER`,
+   scoped to `auth.uid()`) and append `&steerRef=<token>` to the URL -
+   independent of, and in addition to, the existing `handoff=<id>` param.
+2. `entrant-entry-form.js` reads `?steerRef=` and stores it as
+   `steerMeEntryLinkToken` on the `DrawProEntrants` row it creates.
+3. When a producer finalizes a draw (`executeDraw()` in
+   `matching-engine.jsw`), `backend/steerMeResultsSync.jsw` fires a
+   fire-and-forget POST to this project's `draw-pro-results-webhook`
+   function for every team with a linked entrant, carrying
+   `{ token, teamNumber }`.
+4. The webhook updates that token's `draw_pro_entry_links.team_number` via
+   the service-role client (bypasses RLS by design, same as
+   `steerMeSync.jsw`'s writes to `public.events`).
+5. RLS on `draw_pro_entry_links` only grants `select` where
+   `auth.uid() = steer_me_user_id` - no client insert/update policy at
+   all, matching `entry_handoffs`'s access shape.
+
+Round-by-round results (time, penalties, no-time eliminations) extend this
+same webhook and table set - see migration 0043 and
+`app/my-entries.tsx` once built.
+
+**To test end-to-end:** tap "Enter the Draw" as a real Steer Me user on a
+Draw-Pro-synced event, confirm a `draw_pro_entry_links` row appears with a
+token; complete a real (or scripted) Draw Pro entry using that
+`steerRef` value, confirm `DrawProEntrants.steerMeEntryLinkToken` is set;
+run a draw for that class, confirm the webhook fires
+(`curl -X POST <function-url> -H "Authorization: $DRAW_PRO_SECRET" -H
+"Content-Type: application/json" -d '{"token":"<token>","teamNumber":3}'`
+should update the row) and `draw_pro_entry_links.team_number` lands
+correctly; confirm a different signed-in user cannot `select` this row.
 
 ## Admin-posted events (temporary cold-start bootstrap feature)
 

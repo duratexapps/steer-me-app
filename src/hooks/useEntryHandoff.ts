@@ -33,3 +33,30 @@ export function withHandoffParam(entryUrl: string, handoffId: string): string {
   const separator = entryUrl.includes('?') ? '&' : '?';
   return `${entryUrl}${separator}handoff=${handoffId}`;
 }
+
+// NEW, added 2026-07-31 alongside migration 0042_draw_pro_entry_links.sql -
+// the durable counterpart to the handoff above. handoff=<id> is a
+// short-lived, single-use prefill snapshot; steerRef=<token> is a
+// long-lived link Draw Pro stores on the entrant record and later uses to
+// push a team number (and, once built, round results) back to this
+// specific user. Deliberately a second, independent param rather than
+// reusing the handoff id itself - the handoff row gets consumed/expires
+// within the hour, which is the wrong lifetime for something that needs
+// to still resolve weeks later when a producer finalizes a draw.
+export function useCreateDrawProEntryLink() {
+  return useMutation({
+    mutationFn: async (args: { eventId: string; role?: 'header' | 'heeler' }) => {
+      const { data, error } = await supabase.rpc('create_draw_pro_entry_link', {
+        p_event_id: args.eventId,
+        p_role: args.role ?? null,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+  });
+}
+
+export function withEntryLinkParam(entryUrl: string, token: string): string {
+  const separator = entryUrl.includes('?') ? '&' : '?';
+  return `${entryUrl}${separator}steerRef=${token}`;
+}

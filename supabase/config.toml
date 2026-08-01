@@ -422,3 +422,6 @@ verify_jwt = false
 
 [functions.ban-suspended-user]
 verify_jwt = false
+
+[functions.draw-pro-results-webhook]
+verify_jwt = false

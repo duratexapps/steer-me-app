@@ -57,6 +57,14 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
     title: 'Update your classification',
     body: 'Upload a new Global Handicap screenshot to update your classification number or position. Your previous screenshot is deleted once the new one is verified.',
   },
+  'my-entries': {
+    title: 'My Entries',
+    body: "Once you tap \"Enter the Draw\" on an event, your team number appears here once the producer runs the draw, and your round-by-round results (time, penalties, or a No Time) appear here as the producer enters them - no need to track anyone down at the event.",
+  },
+  'account-settings': {
+    title: 'Account settings',
+    body: "Change the email or password you use to sign in. Changing your password re-confirms your current one first. Changing your email may require confirming a link sent to your inbox, depending on how your account is set up.",
+  },
   'blocked-users': {
     title: 'Blocked users',
     body: "Manage everyone you've blocked. They can't contact you or appear in your matches. Unblock anyone here at any time.",
@@ -94,6 +102,8 @@ export const HELP_TOPIC_ORDER = [
   'profile',
   'edit-profile',
   'update-classification',
+  'account-settings',
+  'my-entries',
   'blocked-users',
   'producer',
   'create-event',
