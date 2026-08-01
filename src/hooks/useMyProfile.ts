@@ -35,6 +35,10 @@ export type MyProfile = {
   // screen. Almost always false - only ever true on a small, trusted,
   // manually-granted set of accounts.
   is_admin: boolean;
+  // NEW, added 2026-07-31 alongside migration 0044. Null until the user
+  // enables notifications (account-settings.tsx) and permission is
+  // actually granted - see src/lib/push-notifications.ts.
+  expo_push_token: string | null;
 };
 
 export function useMyProfile() {

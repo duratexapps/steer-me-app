@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { Linking as RNLinking, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
+import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
+import { useSessionStore } from '@/src/state/session-store';
+import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
+import { registerForPushNotifications, unregisterPushNotifications } from '@/src/lib/push-notifications';
 
 // NEW, added 2026-07-31 - closes a real gap found while manually changing
 // an admin account's login email via the Supabase Admin API: there was no
@@ -20,6 +24,19 @@ import { showToast } from '@/src/state/toast-store';
 export default function AccountSettings() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+
+  // NEW, added 2026-07-31 - notifications toggle. Only meaningful for an
+  // athlete-profile account: draw_pro_entry_links.steer_me_user_id has a
+  // hard FK to profiles(id) (migration 0042), so a producer-only account
+  // (no profiles row at all - see profile.tsx's own !profile branch) can
+  // never have a Draw Pro entry to be notified about in the first place.
+  // Hidden entirely rather than shown-but-nonfunctional for that case.
+  const userId = useSessionStore((s) => s.session?.user.id);
+  const { data: profile } = useMyProfile();
+  const invalidateProfile = useInvalidateMyProfile();
+  const [notifSubmitting, setNotifSubmitting] = useState(false);
+  const [permissionBlocked, setPermissionBlocked] = useState(false);
+  const notificationsEnabled = !!profile?.expo_push_token;
 
   const [newEmail, setNewEmail] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
@@ -122,6 +139,37 @@ export default function AccountSettings() {
     showToast('Password updated');
   }
 
+  async function handleToggleNotifications() {
+    if (!userId) return;
+    setNotifSubmitting(true);
+    setPermissionBlocked(false);
+    try {
+      if (notificationsEnabled) {
+        await unregisterPushNotifications(userId);
+        showToast('Notifications turned off');
+      } else {
+        const result = await registerForPushNotifications(userId);
+        if (result === 'granted') {
+          showToast('Notifications enabled');
+        } else if (result === 'denied') {
+          // requestPermissionsAsync() only prompts the FIRST time - once
+          // denied (here or at any earlier point), the only way to
+          // change it is the OS Settings app, which the "Open Settings"
+          // button below links to.
+          setPermissionBlocked(true);
+          showToast('Notifications are blocked for Steer Me in your device settings');
+        } else if (result === 'unsupported') {
+          showToast('Notifications are not available on web yet - use the mobile app');
+        } else {
+          showToast('Could not enable notifications - try again');
+        }
+      }
+      invalidateProfile();
+    } finally {
+      setNotifSubmitting(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader
@@ -173,6 +221,27 @@ export default function AccountSettings() {
           loading={passwordSubmitting}
           style={styles.submit}
         />
+
+        {profile && Platform.OS !== 'web' ? (
+          <>
+            <Text style={[styles.sectionTitle, styles.secondSection]}>Notifications</Text>
+            <ToggleRow
+              title="Draw Pro notifications"
+              description="Get notified when a producer finalizes your draw or posts your results for an event you entered."
+              value={notificationsEnabled}
+              onToggle={handleToggleNotifications}
+            />
+            {notifSubmitting ? <Text style={styles.currentValue}>Updating…</Text> : null}
+            {permissionBlocked ? (
+              <Button
+                label="Open device settings"
+                variant="outline"
+                onPress={() => RNLinking.openSettings()}
+                style={styles.submit}
+              />
+            ) : null}
+          </>
+        ) : null}
       </ScrollView>
       <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="account-settings" />
     </SafeAreaView>

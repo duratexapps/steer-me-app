@@ -148,17 +148,6 @@ export default function Profile() {
         />
         <Text style={styles.retentionNote}>Uploading a new screenshot replaces and deletes the old one.</Text>
 
-        {/* NEW, added 2026-07-31 - see my-entries.tsx's file header. Only
-            meaningful for an athlete who's actually tapped "Enter the
-            Draw" on something, same reasoning as gating this to the
-            athlete-profile branch rather than showing it to a
-            producer-only account with nothing to ever see here. */}
-        <Button
-          label="My Entries (team numbers & results)"
-          variant="outline"
-          onPress={() => router.push('/my-entries')}
-          style={styles.spacedBtn}
-        />
 
         <Button
           label="View subscription plan"

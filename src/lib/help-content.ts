@@ -63,7 +63,7 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
   },
   'account-settings': {
     title: 'Account settings',
-    body: "Change the email or password you use to sign in. Changing your password re-confirms your current one first. Changing your email may require confirming a link sent to your inbox, depending on how your account is set up.",
+    body: "Change the email or password you use to sign in. Changing your password re-confirms your current one first. Changing your email may require confirming a link sent to your inbox, depending on how your account is set up. If you've entered an event through Steer Me, you can also turn on notifications here to hear about your team number and results as soon as the producer posts them.",
   },
   'blocked-users': {
     title: 'Blocked users',

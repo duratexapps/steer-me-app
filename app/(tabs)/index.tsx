@@ -97,6 +97,25 @@ export default function Home() {
         )}
 
         <View style={styles.tiles}>
+          {/* NEW, added 2026-07-31 - moved here from a Profile button per
+              direct instruction: first tile, same treatment as every
+              other tile here. Athlete-only, same reasoning as the other
+              athlete-gated tiles below - a Draw Pro entry link can only
+              ever exist for an athlete-profile account (hard FK on
+              draw_pro_entry_links.steer_me_user_id -> profiles.id, see
+              migration 0042), so a producer-only account has nothing to
+              ever see here. */}
+          {hasAthleteProfile ? (
+            <View style={{ width: tileWidth }}>
+              <ActionTile
+                icon="ribbon-outline"
+                title="My Entries"
+                description="Team numbers and results for events you've entered"
+                onPress={() => router.push('/my-entries')}
+              />
+            </View>
+          ) : null}
+
           <View style={{ width: tileWidth }}>
             <ActionTile
               icon="calendar-outline"
