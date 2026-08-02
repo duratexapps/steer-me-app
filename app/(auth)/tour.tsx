@@ -24,6 +24,13 @@ import { colors, fonts, radii, spacing } from '@/src/theme/theme';
 // docs/mockups/steer-me/*.html for the source and reasoning (a static
 // mockup rather than screenshotting the live running app, per explicit
 // direction, to avoid getting blocked on app-boot/env/seed-data issues).
+//
+// UPDATED 2026-07-31 - added the "Track Your Runs and Results" slide.
+// Its image (my-entries.png) is NOT one of the above HTML mockups - by
+// this point the real feature existed live in production, so it's an
+// actual cropped screenshot of app/my-entries.tsx (captured the same way
+// as the feature's promo video), not a mockup. No corresponding .html
+// source exists in ropingtools-site for this one specifically.
 const SLIDES = [
   {
     icon: 'people-outline' as const,
@@ -53,6 +60,16 @@ const SLIDES = [
     hints: [
       'One button on the event card - no separate link to go hunt down.',
       'Works whether you found a partner here or are drawing in solo.',
+    ],
+  },
+  {
+    icon: 'ribbon-outline' as const,
+    image: require('@/assets/tour/my-entries.png'),
+    title: 'Track Your Runs and Results',
+    body: "Enter through Steer Me and we'll track it - your team number the moment the draw is final, then every round's time and penalties as the producer enters them.",
+    hints: [
+      'No more texting the producer to ask your team number.',
+      'Turn on notifications in Account Settings to get pinged the moment results post.',
     ],
   },
   {
