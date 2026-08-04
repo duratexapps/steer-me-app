@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -7,7 +7,7 @@ import { BackToRopingToolsLink } from '@/src/components/ui/BackToRopingToolsLink
 import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
-import { colors } from '@/src/theme/theme';
+import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
@@ -56,6 +56,9 @@ export default function SignIn() {
           textContentType="password"
           placeholder="Your password"
         />
+        <Pressable onPress={() => router.push('/(auth)/forgot-password')} style={styles.forgotLink} hitSlop={8}>
+          <Text style={styles.forgotText}>Forgot password?</Text>
+        </Pressable>
         <Button label="Sign in" onPress={handleSignIn} loading={loading} style={styles.submit} />
       </ScrollView>
           <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="sign-in" />
@@ -66,5 +69,7 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, ...webMaxWidth },
+  forgotLink: { alignSelf: 'flex-end', marginTop: -4, marginBottom: 4 },
+  forgotText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.brass },
   submit: { marginTop: 8 },
 });
