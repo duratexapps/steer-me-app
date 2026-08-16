@@ -1,29 +1,39 @@
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
 
-// NEW, added 2026-07-30 - real ask, directly from the user, while the
-// real Android app sits in Google Play's Internal Testing track (a
-// closed group, up to 100 testers, no public listing yet): recruit
-// testers directly from the web version, since that's the only
-// public-facing surface Steer Me has right now. Web-only - a native app
-// user has no need to be told how to get the native app, they're
-// already using it. Dismissible, not persisted across reloads - this is
-// a temporary recruitment push, not a permanent fixture, so it doesn't
-// need the complexity of AsyncStorage-backed "seen it once" tracking.
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.duratexapplications.steerme';
+
+// UPDATED 2026-08-16 - real ask, directly from the user: the Android app
+// (originally pushed to Google Play's Internal Testing track, not meant to
+// be public yet) turned out to already be a real, searchable Play Store
+// listing reachable by anyone with the link - not the closed 100-tester
+// group this banner originally assumed. Rather than keep asking people to
+// email in for tester access, link straight to the real listing. iOS has
+// no equivalent yet (no App Store submission has happened) - shown as a
+// plain "coming soon" line, not a link, so it doesn't imply a listing that
+// doesn't exist. Web-only - a native app user has no need to be told how
+// to get the native app, they're already using it. Dismissible, not
+// persisted across reloads, same as before.
 export function AndroidTesterBanner() {
   const [dismissed, setDismissed] = useState(false);
   if (Platform.OS !== 'web' || dismissed) return null;
 
   return (
     <View style={styles.banner}>
-      <Ionicons name="logo-android" size={22} color={colors.brass} style={styles.icon} />
-      <Text style={styles.text}>
-        Have an Android device? Help us test the real Steer Me app before it launches - email{' '}
-        <Text style={styles.email}>support@ropingtools.com</Text> with your Google Play email address and we'll add
-        you to our tester group so you can download it early.
-      </Text>
+      <View style={styles.rows}>
+        <Pressable style={styles.row} onPress={() => Linking.openURL(PLAY_STORE_URL)}>
+          <Ionicons name="logo-google-playstore" size={20} color={colors.brass} style={styles.icon} />
+          <Text style={styles.text}>
+            The real Steer Me app is on Google Play - <Text style={styles.linkText}>download it now</Text>.
+          </Text>
+        </Pressable>
+        <View style={styles.row}>
+          <Ionicons name="logo-apple" size={20} color={colors.saddle} style={styles.icon} />
+          <Text style={styles.text}>iPhone app - coming soon.</Text>
+        </View>
+      </View>
       <Pressable onPress={() => setDismissed(true)} hitSlop={10} style={styles.closeBtn}>
         <Ionicons name="close" size={18} color={colors.saddle} />
       </Pressable>
@@ -43,7 +53,9 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
   },
-  icon: { marginTop: 2 },
+  rows: { flex: 1, gap: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  icon: {},
   text: {
     flex: 1,
     fontFamily: fonts.body,
@@ -51,6 +63,6 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 18,
   },
-  email: { fontFamily: fonts.bodyBold, color: colors.brass },
+  linkText: { fontFamily: fonts.bodyBold, color: colors.brass, textDecorationLine: 'underline' },
   closeBtn: { padding: 2 },
 });
