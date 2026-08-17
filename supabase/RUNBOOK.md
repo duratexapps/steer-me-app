@@ -20,7 +20,16 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    npx supabase functions deploy ban-suspended-user
    npx supabase functions deploy verify-classification-card
    npx supabase functions deploy draw-pro-results-webhook
+   npx supabase functions deploy extract-flier-contact-info
+   npx supabase functions deploy send-welcome-email
    ```
+   `extract-flier-contact-info` (NEW, added 2026-08-09) reuses the same
+   `ANTHROPIC_API_KEY` secret as `verify-classification-card` below - no
+   new secret needed if that one's already set.
+   `send-welcome-email` (NEW, added 2026-08-11) needs its own `RESEND_API_KEY`
+   secret (see step 6.5 below) and a verified sending domain in Resend -
+   until both exist it silently skips rather than erroring, same principle
+   as the Anthropic-key gap in step 4.5.
 4. Set secrets for the Edge Functions (Project Settings -> Edge Functions ->
    Secrets, or via CLI). Generate into shell variables and reuse the
    variables everywhere below - don't retype/copy the raw value by hand
@@ -55,6 +64,23 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    to be available to the function for verifying the calling user's own
    session - this is auto-injected the same way `SUPABASE_URL`/
    `SUPABASE_SERVICE_ROLE_KEY` are, no separate step needed.
+4.6. **NEW, added 2026-08-11** - set the Resend API key that
+   `send-welcome-email` needs to actually send the new-signup welcome
+   email:
+   ```
+   npx supabase secrets set RESEND_API_KEY="<your key from resend.com>"
+   ```
+   Requires a domain verified in Resend that can send as
+   `welcome@ropingtoolsmail.com` (see Resend's Domains page for the DNS
+   records to add) - NOT ropingtools.com or duratex-ie.com, both of which
+   are on Wix nameservers and can't take the MX/DKIM records Resend needs
+   (confirmed 2026-08-11 via Wix Support: nameservers can't be changed
+   without a full domain transfer). `ropingtoolsmail.com` was registered
+   specifically as a dedicated send-only domain with normal DNS control.
+   `reply_to` is set to `support@ropingtools.com` - nothing routes to a
+   personal inbox. Until the key is set (or the domain isn't verified yet),
+   the function skips silently and account creation is unaffected - same
+   degrade-gracefully principle as step 4.5.
 5. In the RevenueCat dashboard (Project Settings -> Integrations ->
    Webhooks): set the webhook URL to your deployed `revenuecat-webhook`
    function URL, and set the "Authorization header" value to the same string
@@ -71,6 +97,16 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    ```
    Until both vault secrets exist, the trigger no-ops (profile suspension
    itself still works; only the login-ban side effect is skipped).
+6.5. **NEW, added 2026-08-11** - `profiles insert -> send-welcome-email` is
+   wired the same way, via migration `0051_welcome_email_webhook.sql`. It
+   reuses the same `db_webhook_secret` vault value from the step above - only
+   the function's own URL secret is new:
+   ```sql
+   select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/send-welcome-email', 'send_welcome_email_function_url');
+   ```
+   Until this vault secret AND `RESEND_API_KEY` (step 4.6) both exist, the
+   trigger no-ops and account creation is unaffected - only the welcome
+   email itself is skipped.
 
 ## Turning on email confirmation for new sign-ups
 

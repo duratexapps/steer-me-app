@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, fonts, radii } from '@/src/theme/theme';
-import { HOME_AREAS, type HomeAreaEntry } from '@/src/data/home-areas';
+import { supabase } from '@/src/lib/supabase';
 
 type AutocompleteFieldProps = {
   label: string;
@@ -11,24 +11,10 @@ type AutocompleteFieldProps = {
   required?: boolean;
 };
 
-function labelFor(entry: HomeAreaEntry) {
-  return `${entry.city}, ${entry.state}`;
-}
+type PlaceResult = { city: string; state: string };
 
-function search(query: string): HomeAreaEntry[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  const startsWith: HomeAreaEntry[] = [];
-  const contains: HomeAreaEntry[] = [];
-  for (const entry of HOME_AREAS) {
-    const city = entry.city.toLowerCase();
-    if (city.startsWith(q)) {
-      startsWith.push(entry);
-    } else if (labelFor(entry).toLowerCase().includes(q)) {
-      contains.push(entry);
-    }
-  }
-  return [...startsWith, ...contains].slice(0, 8);
+function labelFor(entry: PlaceResult) {
+  return `${entry.city}, ${entry.state}`;
 }
 
 // Home area must resolve to one real, specific place - not whatever text
@@ -39,12 +25,41 @@ function search(query: string): HomeAreaEntry[] {
 // is no bypass: text that was never confirmed by tapping a suggestion is
 // discarded on blur, and `value` (what the parent screen actually stores)
 // only ever changes via handleSelect.
+//
+// PERF, 2026-08-16: the ~32,000-place search used to run client-side over
+// an array bundled directly into the app (React Native has no client/
+// server split, so that array shipped and got parsed on every install at
+// cold start, whether or not this field was ever touched). Now debounces
+// and calls the search-places Edge Function instead - the dataset lives
+// server-side only. The 200ms debounce was already here for the old
+// client-side path too (to avoid re-filtering on every keystroke); it
+// does double duty now covering the network round trip.
 export function AutocompleteField({ label, value, onChange, placeholder, required }: AutocompleteFieldProps) {
   const [query, setQuery] = useState(value);
+  const [results, setResults] = useState<PlaceResult[]>([]);
   const [open, setOpen] = useState(false);
   const selectingRef = useRef(false);
 
-  const results = useMemo(() => search(query), [query]);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('search-places', { body: { query: q } });
+        if (!cancelled) setResults(!error && Array.isArray(data?.results) ? data.results : []);
+      } catch {
+        if (!cancelled) setResults([]);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   function handleChangeText(text: string) {
     setQuery(text);
@@ -52,7 +67,7 @@ export function AutocompleteField({ label, value, onChange, placeholder, require
     if (value) onChange(''); // editing after a confirmed pick invalidates it until reselected
   }
 
-  function handleSelect(entry: HomeAreaEntry) {
+  function handleSelect(entry: PlaceResult) {
     selectingRef.current = true;
     const picked = labelFor(entry);
     setQuery(picked);

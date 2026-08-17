@@ -39,6 +39,10 @@ export type MyProfile = {
   // enables notifications (account-settings.tsx) and permission is
   // actually granted - see src/lib/push-notifications.ts.
   expo_push_token: string | null;
+  // NEW, added 2026-08-06 alongside migration
+  // 0047_draw_pro_entry_cancellation.sql - see account-settings.tsx's own
+  // comment on the toggle that sets this.
+  auto_cancel_team_entry_on_partner_cancel: boolean;
 };
 
 export function useMyProfile() {

@@ -11,6 +11,7 @@ import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Built 2026-07-25: this used to assume the Supabase project had
 // "Confirm email" turned off entirely, specifically because there was no
@@ -60,7 +61,7 @@ export default function CreateAccount() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Create Account" subtitle="Sets up your login - your profile comes next" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Create Account" subtitle="Sets up your login - your profile comes next" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.helper}>This is what you'll use to sign back in to Steer Me.</Text>
         <TextField

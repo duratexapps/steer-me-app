@@ -8,6 +8,7 @@ import { Pill } from '@/src/components/ui/Pill';
 import { colors, fonts, radii, spacing } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { LEGAL_DOCUMENTS, type LegalDocumentId } from '@/src/content/legal';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // NEW, added 2026-07-28 - "present but not overly conspicuous": reachable
 // from a small text link on role-select/sign-up (see those files) rather
@@ -25,7 +26,7 @@ export default function Legal() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Legal" subtitle="Terms, privacy, and community rules" onBack={() => router.back()} />
+      <ScreenHeader title="Legal" subtitle="Terms, privacy, and community rules" onBack={() => goBackOrHome()} />
       <View style={styles.pillRow}>
         {LEGAL_DOCUMENTS.map((d) => (
           <Pill key={d.id} label={d.title} selected={d.id === activeId} onPress={() => setActiveId(d.id)} />

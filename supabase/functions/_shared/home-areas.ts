@@ -1,3 +1,14 @@
+// MOVED here from src/data/home-areas.ts on 2026-08-16 (perf pass) -
+// Expo/React Native has no client/server split, so this ~1.2MB array was
+// being bundled into every user's app install/JS bundle and parsed at
+// every cold start, even though it's only ever touched on sign-up and
+// event-creation screens. Now lives server-side only, served by the
+// search-places Edge Function (supabase/functions/search-places) -
+// AutocompleteField.tsx debounces and fetches instead of scanning this
+// array in-app. Same relocation pattern as Draw Pro's copy
+// (src/data/us-places.ts), which was already server-only there since
+// Next.js keeps server-only imports out of the client bundle by default.
+//
 // Home Area autocomplete dataset - every incorporated place and census-
 // designated place in the U.S. (Puerto Rico excluded), sourced from the
 // U.S. Census Bureau's 2023 Gazetteer Files (public domain):

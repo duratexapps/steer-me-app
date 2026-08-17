@@ -11,6 +11,7 @@ import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
 import { formatPosition, formatClassificationTag } from '@/src/lib/matching';
 import { toClassification } from '@/src/hooks/useEligiblePartners';
 import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Accessible from Profile rather than a Home-page tab, per the earlier
 // decision to keep Favorites scoped to "add via a star on partner cards,
@@ -29,7 +30,7 @@ export default function MyFavorites() {
       <ScreenHeader
         title="Favorites"
         subtitle="Ropers you've saved for quick access"
-        onBack={() => router.back()}
+        onBack={() => goBackOrHome()}
         onHelp={() => setHelpOpen(true)}
       />
       <ScrollView contentContainerStyle={styles.content}>

@@ -9,7 +9,18 @@ import { showToast } from '@/src/state/toast-store';
 // revenuecat-webhook Edge Function), not the client SDK's local cache. The
 // SDK is only used here to drive the purchase transaction itself; whether
 // the UI treats the user as subscribed always comes from this query.
-export function useSubscriptionStatus() {
+//
+// PERF, 2026-08-16: `enablePolling` defaults to false now - this hook is
+// also called (via useRequireSubscription below) from events.tsx,
+// browse.tsx, and post.tsx, none of which ever read the fetched status
+// while SUBSCRIPTION_REQUIRED is false (useRequireSubscription short-
+// circuits before touching it). The old unconditional 4s interval meant
+// every signed-in user sitting on any of those three tabs fired a
+// Supabase query every 4 seconds indefinitely, for data nobody was using.
+// Only app/subscription.tsx - the actual purchase screen, where a fresh
+// entitlement really is worth polling briefly for right after a purchase -
+// opts in.
+export function useSubscriptionStatus(enablePolling = false) {
   const userId = useSessionStore((s) => s.session?.user.id);
   return useQuery({
     queryKey: ['subscription-status', userId],
@@ -25,7 +36,7 @@ export function useSubscriptionStatus() {
     },
     // The webhook can take a few seconds to land after a purchase - poll
     // briefly rather than make the user manually refresh.
-    refetchInterval: (query) => (query.state.data?.entitlement_active ? false : 4000),
+    refetchInterval: enablePolling ? (query) => (query.state.data?.entitlement_active ? false : 4000) : false,
   });
 }
 

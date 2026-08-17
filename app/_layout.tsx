@@ -64,8 +64,25 @@ export default function RootLayout() {
         setHasProducerProfile(false);
         return;
       }
-      configurePurchases(userId);
-      // Fire-and-forget, same as configurePurchases() above - a
+      // FIXED live 2026-08-11 - real bug confirmed on a real Android
+      // build: configurePurchases() was called unguarded, but
+      // Purchases.configure() can throw synchronously on-device (bad key,
+      // native-module hiccup, etc). That throw propagated up through the
+      // un-caught `await bootstrap(...)` below, which meant setReady(true)
+      // never ran - isReady stayed false forever, so app/index.tsx's
+      // `if (isReady && session)` redirect into the signed-in app never
+      // fired, even with a perfectly valid saved session. Every cold
+      // launch left the user stranded on the marketing landing page,
+      // looking exactly like "forced to log in every time." Wrapped here
+      // the same way registerForPushNotifications already is treated
+      // (comment below) - a purchases/notifications failure should never
+      // hold up session bootstrap.
+      try {
+        configurePurchases(userId);
+      } catch (err) {
+        console.error('[RootLayout] configurePurchases failed - continuing without it', err);
+      }
+      // Fire-and-forget, same reasoning as configurePurchases() above - a
       // notification-permission prompt or registration failure should
       // never hold up session bootstrap.
       registerForPushNotifications(userId);
@@ -74,11 +91,25 @@ export default function RootLayout() {
       setHasProducerProfile(hasProducerProfile);
     }
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      await bootstrap(data.session?.user.id);
-      setReady(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        setSession(data.session);
+        await bootstrap(data.session?.user.id);
+      })
+      .catch((err) => {
+        // Same principle as the try/catch above, one level up - ANY
+        // failure in session bootstrap (a profile-status query timing out
+        // on a flaky cold-start network connection, for example) must
+        // never permanently block isReady. Worst case here is the user
+        // sees a stale hasAthleteProfile/hasProducerProfile state for one
+        // launch, which is far better than being stuck unable to log in
+        // at all.
+        console.error('[RootLayout] session bootstrap failed - app will still render', err);
+      })
+      .finally(() => {
+        setReady(true);
+      });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
@@ -92,10 +123,24 @@ export default function RootLayout() {
   // notifications plan. registerForPushNotifications() itself no-ops if
   // already registered for this same user id this session, so this is
   // safe to call on every foreground transition, not just the first one.
+  //
+  // ADDED 2026-08-11 - real gap flagged by Supabase's own React Native
+  // docs: `autoRefreshToken: true` on the client (src/lib/supabase.ts)
+  // isn't sufficient by itself on native. Without explicitly calling
+  // startAutoRefresh()/stopAutoRefresh() on foreground/background, the
+  // refresh timer can silently stop firing while backgrounded, so a
+  // session can expire without ever being renewed - a second, separate way
+  // to end up looking "logged out" after reopening the app, distinct from
+  // the isReady-never-resolves bug fixed above in bootstrap().
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active' && currentUserIdRef.current) {
-        registerForPushNotifications(currentUserIdRef.current);
+      if (nextState === 'active') {
+        supabase.auth.startAutoRefresh();
+        if (currentUserIdRef.current) {
+          registerForPushNotifications(currentUserIdRef.current);
+        }
+      } else {
+        supabase.auth.stopAutoRefresh();
       }
     });
     return () => subscription.remove();
@@ -121,10 +166,35 @@ export default function RootLayout() {
   // same gate. Everything else (the authenticated app itself) keeps the
   // exact same wait-for-fonts-and-session behavior as before - this is
   // narrowly scoped to the one public marketing route.
+  //
+  // UPDATED 2026-08-06 - the same blank-forever failure mode was
+  // discovered on a cold direct load of /tour: a browser blocking or
+  // stalling the Google Fonts request (e.g. Brave Shields) or the
+  // Supabase session check never lets fontsLoaded/isReady flip true, so
+  // any route outside this exemption renders nothing indefinitely - not
+  // even a spinner. That only wasn't obvious for /tour before because
+  // it's normally reached via in-app client-side navigation (Get
+  // Started -> role-select -> tour), by which point fonts/session had
+  // already resolved while sitting on "/". A cold direct load of any of
+  // these routes - a shared link, a password-reset email, a bookmark -
+  // hits the exact same gate. Every screen in the (auth) group is a
+  // pre-login, public-facing route with no need to wait on session
+  // bootstrap, so all of them are exempted the same way "/" already was,
+  // rather than patching /tour alone and leaving the same bug for
+  // sign-in/sign-up/create-account/forgot-password/role-select.
   const pathname = usePathname();
-  const isPublicLandingRoute = pathname === '/';
+  const PUBLIC_ROUTES = new Set([
+    '/',
+    '/tour',
+    '/role-select',
+    '/sign-in',
+    '/sign-up',
+    '/create-account',
+    '/forgot-password',
+  ]);
+  const isPublicRoute = PUBLIC_ROUTES.has(pathname);
 
-  if (!isPublicLandingRoute && (!fontsLoaded || !isReady)) {
+  if (!isPublicRoute && (!fontsLoaded || !isReady)) {
     return <View style={{ flex: 1, backgroundColor: colors.bone }} />;
   }
 

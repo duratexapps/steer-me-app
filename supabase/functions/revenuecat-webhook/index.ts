@@ -55,8 +55,13 @@ type RevenueCatEvent = {
 };
 
 Deno.serve(async (req) => {
+  // FIXED live 2026-08-12, security review (Draw Pro review, same
+  // fail-open bug found and fixed in draw-pro-results-webhook): the
+  // `expectedAuth &&` guard meant a missing/misconfigured
+  // REVENUECAT_WEBHOOK_AUTH secret made this check a no-op entirely,
+  // accepting every request unauthenticated instead of rejecting them.
   const expectedAuth = Deno.env.get('REVENUECAT_WEBHOOK_AUTH');
-  if (expectedAuth && req.headers.get('authorization') !== expectedAuth) {
+  if (!expectedAuth || req.headers.get('authorization') !== expectedAuth) {
     return new Response('Unauthorized', { status: 401 });
   }
 

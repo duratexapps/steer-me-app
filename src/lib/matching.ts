@@ -165,8 +165,12 @@ export function validateClassificationForEnd(value: number, end: 'header' | 'hee
 // cap. Nothing else in the matching math is tied to this specific set of
 // values (canPair/maxAllowedFor just compare a header+heeler sum against
 // whatever cap number is passed in), so this is safe to extend.
+// UPDATED 2026-08-12 - real fliers (Sarasota Summer Splash's "#10 SLIDE",
+// Sarasota's/Lazy V 105's "#13 SLIDE") used two more caps not yet in this
+// list - same "map as the flier states" precedent as the 2026-07-29
+// addition above, extended to 10 and 13.
 export const COMMON_CAPS = [
-  3, 4, 4.5, 5, 5.5, 6, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12, 12.5, 13.5, 14.5, 15.5, 16.5,
+  3, 4, 4.5, 5, 5.5, 6, 6.5, 7.5, 8.5, 9.5, 10, 10.5, 11.5, 12, 12.5, 13, 13.5, 14.5, 15.5, 16.5,
 ];
 
 // "Open" is an industry term, not a real restriction: the highest a header

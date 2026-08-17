@@ -15,6 +15,7 @@ import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
 import { registerForPushNotifications, unregisterPushNotifications } from '@/src/lib/push-notifications';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // NEW, added 2026-07-31 - closes a real gap found while manually changing
 // an admin account's login email via the Supabase Admin API: there was no
@@ -37,6 +38,32 @@ export default function AccountSettings() {
   const [notifSubmitting, setNotifSubmitting] = useState(false);
   const [permissionBlocked, setPermissionBlocked] = useState(false);
   const notificationsEnabled = !!profile?.expo_push_token;
+
+  // NEW, added 2026-08-06 - see migration 0047_draw_pro_entry_cancellation.sql.
+  // A preformed team entry pairs two specific people - if one cancels
+  // before the draw, the pairing is broken either way. This controls
+  // whether the OTHER person's entry gets auto-cancelled too (with a
+  // notification after the fact) or they just get notified their partner
+  // backed out and can cancel their own from My Entries. Defaults to
+  // false (notify-only) - losing your entry silently is a worse failure
+  // mode than one extra tap to confirm it yourself.
+  const [autoCancelSubmitting, setAutoCancelSubmitting] = useState(false);
+  const autoCancelEnabled = !!profile?.auto_cancel_team_entry_on_partner_cancel;
+
+  async function handleToggleAutoCancel() {
+    if (!userId) return;
+    setAutoCancelSubmitting(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ auto_cancel_team_entry_on_partner_cancel: !autoCancelEnabled })
+      .eq('id', userId);
+    setAutoCancelSubmitting(false);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    invalidateProfile();
+  }
 
   const [newEmail, setNewEmail] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
@@ -175,7 +202,7 @@ export default function AccountSettings() {
       <ScreenHeader
         title="Account Settings"
         subtitle="Change your login email or password"
-        onBack={() => router.back()}
+        onBack={() => goBackOrHome()}
         onHelp={() => setHelpOpen(true)}
       />
       <ScrollView contentContainerStyle={styles.content}>
@@ -240,6 +267,14 @@ export default function AccountSettings() {
                 style={styles.submit}
               />
             ) : null}
+
+            <ToggleRow
+              title="Auto-cancel my team entry"
+              description="If your confirmed partner cancels their entry before the draw runs, automatically cancel yours too (you'll be notified either way). Off means you'll just be notified and can cancel it yourself."
+              value={autoCancelEnabled}
+              onToggle={handleToggleAutoCancel}
+            />
+            {autoCancelSubmitting ? <Text style={styles.currentValue}>Updating…</Text> : null}
           </>
         ) : null}
       </ScrollView>

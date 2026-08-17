@@ -160,7 +160,10 @@ site_url = "http://127.0.0.1:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# "steerme://confirm-email" ADDED 2026-08-12, required for enable_confirmations
+# below to actually work in the real app - see app/confirm-email.tsx and
+# RUNBOOK.md's "Turning on email confirmation for new sign-ups" section.
+additional_redirect_urls = ["https://127.0.0.1:3000", "steerme://confirm-email"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -178,11 +181,18 @@ enable_signup = true
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
+# FIXED live 2026-08-12 - real gap flagged in a security review: this was
+# left at the CLI's own default (6, no character-class requirement) while
+# the app's own sign-up UI already enforces 8+ characters - meaning the
+# actual server-side floor was weaker than what the client happened to
+# show, so a request that bypassed the app UI could still create an
+# account with a 6-character, single-character-class password. Now matches
+# (and backs up) what the UI already enforces.
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
-password_requirements = ""
+password_requirements = "letters_digits"
 
 # Configure passkey sign-ins.
 # [auth.passkey]
@@ -222,8 +232,15 @@ enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
+# FIXED live 2026-08-12 - real gap flagged in a security review: this was
+# left OFF deliberately until app/confirm-email.tsx existed to receive the
+# redirect (see RUNBOOK.md) - that handler is built now, so leaving this
+# off any longer just means anyone can sign up with any email address,
+# unconfirmed, indefinitely. Turned on; see additional_redirect_urls above
+# and [auth.email.smtp] below (needed so real confirmation volume isn't
+# capped at the shared SMTP's 2/hour default).
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -233,15 +250,34 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# ADDED 2026-08-12, alongside turning enable_confirmations on above - real
+# gap: without a custom SMTP provider, Supabase's own shared SMTP caps
+# outgoing auth emails (confirmation, password reset) at 2/hour (see
+# [auth.rate_limit] email_sent above) - fine for zero real signups, not
+# fine the moment this app has any real volume. Reuses the SAME Resend
+# domain already verified for send-welcome-email (see
+# supabase/functions/send-welcome-email and RUNBOOK.md step 4.6) - one
+# provider instead of standing up a second one just for these system
+# emails. noreply@, not welcome@ - these are transactional confirm/reset
+# links, a distinctly different tone from the welcome email's "feel free
+# to reply to support@" framing.
+#
+# `env(RESEND_API_KEY)` below is resolved by `supabase config push` from
+# THIS MACHINE's shell environment, not from the Supabase project secrets
+# store - the two are separate systems (project secrets are write-only via
+# the CLI, there's no way to read RESEND_API_KEY's real value back out of
+# `secrets list` to populate this). RESEND_API_KEY must be exported in the
+# shell that runs `supabase config push`, e.g.:
+#   export RESEND_API_KEY="re_..."
+#   npx supabase config push
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "noreply@ropingtoolsmail.com"
+sender_name = "Steer Me"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
@@ -424,4 +460,14 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.draw-pro-results-webhook]
+verify_jwt = false
+
+[functions.send-welcome-email]
+verify_jwt = false
+
+# Public by design, not an oversight - see this function's own header
+# comment for why it's safe (only ever returns pre-aggregated counts,
+# never raw rows/PII). Called from a static page (a Claude Artifact) with
+# no logged-in Supabase session, so a JWT requirement would break it.
+[functions.get-user-stats]
 verify_jwt = false

@@ -11,6 +11,7 @@ import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -37,7 +38,7 @@ export default function SignIn() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <BackToRopingToolsLink />
-      <ScreenHeader title="Sign In" subtitle="Welcome back" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Sign In" subtitle="Welcome back" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <TextField
           label="Email"

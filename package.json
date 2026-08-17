@@ -48,8 +48,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "db:push": "supabase db push",
-    "db:types": "supabase gen types typescript --linked > src/lib/database.types.ts"
+    "db:push": "npx supabase db push",
+    "db:types": "npx supabase gen types typescript --linked > src/lib/database.types.ts"
   },
   "private": true
 }

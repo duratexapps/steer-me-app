@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { colors, fonts, radii, spacing } from '@/src/theme/theme';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Marketing-style feature carousel for anonymous visitors - deliberately
 // separate from the in-app "Replay Tutorial" walkthroughs that exist
@@ -26,11 +28,35 @@ import { colors, fonts, radii, spacing } from '@/src/theme/theme';
 // direction, to avoid getting blocked on app-boot/env/seed-data issues).
 //
 // UPDATED 2026-07-31 - added the "Track Your Runs and Results" slide.
-// Its image (my-entries.png) is NOT one of the above HTML mockups - by
-// this point the real feature existed live in production, so it's an
-// actual cropped screenshot of app/my-entries.tsx (captured the same way
-// as the feature's promo video), not a mockup. No corresponding .html
-// source exists in ropingtools-site for this one specifically.
+// Its image (my-entries.png) was originally a real cropped screenshot of
+// app/my-entries.tsx rather than a mockup, captured the same way as the
+// feature's promo video.
+//
+// UPDATED 2026-08-06 - my-entries.png is now a hand-built mockup
+// (docs/mockups/steer-me/steerme-my-entries-results-mockup.html in
+// ropingtools-site), matching the extra-run/cancel-entry slides' own
+// convention. The original screenshot only showed a single Round 1 time
+// with no partner assigned yet - not representative of what a finished
+// multi-round entry looks like, and re-capturing a live multi-round
+// example depends on a specific test event's state at screenshot time,
+// which isn't durable for evergreen tour content. The mockup instead
+// shows one team across 4 rounds covering the full range of a result: a
+// clean time, a broken-barrier penalty, a one-leg-catch penalty, and a
+// No Time elimination.
+//
+// UPDATED 2026-08-06 - added "Get Paid Runs Without a Phone Call" and
+// "Cancel Right From Your Phone", covering the extra-run pay/decline
+// flow and pre-draw self-service cancellation (see supabase migrations
+// 0046_draw_pro_extra_run_charges.sql and
+// 0047_draw_pro_entry_cancellation.sql). Both images
+// (extra-run.png/cancel-entry.png) are hand-built HTML mockups
+// (ropingtools-site's docs/mockups/steer-me/steerme-extra-run-mockup.html
+// and steerme-cancel-entry-mockup.html), not live screenshots - unlike
+// my-entries.png, these depict specific in-flight states (a pending
+// extra-run charge, a pending cancellation + a partner-notified card)
+// that don't reliably exist in the live app to screenshot on demand, so
+// this follows the original browse/events/enter-draw mockup convention
+// instead.
 const SLIDES = [
   {
     icon: 'people-outline' as const,
@@ -70,6 +96,27 @@ const SLIDES = [
     hints: [
       'No more texting the producer to ask your team number.',
       'Turn on notifications in Account Settings to get pinged the moment results post.',
+      'Broken barriers, one-leg catches, and No Time eliminations all show up with the math behind them.',
+    ],
+  },
+  {
+    icon: 'cash-outline' as const,
+    image: require('@/assets/tour/extra-run.png'),
+    title: 'Get Paid Runs Without a Phone Call',
+    body: "If a producer gives you an extra run beyond what you already paid for, you decide right from your phone - pay the fee, or decline and take reduced winnings instead.",
+    hints: [
+      'Used to mean the producer tracking you down in person to explain it and collect payment.',
+      'Your choice shows up on the producer’s draw sheet next to your team immediately.',
+    ],
+  },
+  {
+    icon: 'close-circle-outline' as const,
+    image: require('@/assets/tour/cancel-entry.png'),
+    title: 'Cancel Right From Your Phone',
+    body: "Change of plans before the draw runs? Cancel your entry here instead of calling the producer - they'll process your refund (minus processing fees) and remove you from the pool.",
+    hints: [
+      'If you entered with a partner, they’re notified the moment you cancel.',
+      'Turn on auto-cancel in Account Settings if you’d rather your partner’s cancellation automatically cancel your matching entry too.',
     ],
   },
   {
@@ -94,7 +141,7 @@ export default function Tour() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="How Steer Me Works" onBack={() => router.back()} />
+      <ScreenHeader title="How Steer Me Works" onBack={() => goBackOrHome()} />
       <View style={styles.content}>
         <Pressable style={styles.skip} onPress={skip} hitSlop={10}>
           <Text style={styles.skipText}>Skip</Text>
@@ -107,7 +154,7 @@ export default function Tour() {
             docs/ARCHITECTURE.md 2026-07-27 entry); scrolling here avoids
             the same class of problem rather than waiting to hit it. */}
         <ScrollView style={styles.slideScroll} contentContainerStyle={styles.slide} showsVerticalScrollIndicator={false}>
-          <Image source={SLIDES[index].image} style={styles.screenshot} resizeMode="contain" />
+          <Image source={SLIDES[index].image} style={styles.screenshot} contentFit="contain" />
           <View style={styles.iconCircle}>
             <Ionicons name={SLIDES[index].icon} size={28} color={colors.bone} />
           </View>

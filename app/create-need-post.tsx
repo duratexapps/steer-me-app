@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -25,6 +25,7 @@ import { useCreateNeedPost, type NeedPostVisibility } from '@/src/hooks/useNeedP
 import { useSearchPublishedEvents, useNeedPostCountForEvent, type EventWithProducer } from '@/src/hooks/useEvents';
 import { useFavorites } from '@/src/hooks/useFavorites';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 type Selection = { kind: 'cap'; value: number } | { kind: 'goat' } | null;
 
@@ -53,8 +54,18 @@ export default function CreateNeedPost() {
   const [helpOpen, setHelpOpen] = useState(false);
 
   const [eventSearch, setEventSearch] = useState('');
+  // PERF, 2026-08-16: useSearchPublishedEvents keys its query on this value,
+  // so without debouncing, every keystroke was a brand-new Supabase network
+  // round trip (React Query has no way to coalesce different cache keys).
+  // eventSearch itself stays bound directly to the TextField so typing
+  // never feels laggy - only what actually reaches the query is debounced.
+  const [debouncedEventSearch, setDebouncedEventSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedEventSearch(eventSearch), 250);
+    return () => clearTimeout(timer);
+  }, [eventSearch]);
   const [linkedEvent, setLinkedEvent] = useState<EventWithProducer | null>(null);
-  const { data: searchResults, isLoading: searching } = useSearchPublishedEvents(eventSearch);
+  const { data: searchResults, isLoading: searching } = useSearchPublishedEvents(debouncedEventSearch);
   const { data: otherPostCount } = useNeedPostCountForEvent(linkedEvent?.id ?? null);
 
   const [eventDate, setEventDate] = useState<string | null>(null);
@@ -137,7 +148,7 @@ export default function CreateNeedPost() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Post a Need" subtitle="Give others the details to check their schedule" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Post a Need" subtitle="Give others the details to check their schedule" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>Choose your event cap</Text>
         <DividerNote>

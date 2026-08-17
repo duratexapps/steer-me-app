@@ -9,6 +9,7 @@ import { webMaxWidth } from '@/src/theme/web-layout';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useReferralStats } from '@/src/hooks/useReferralStats';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // NEW, added 2026-07-27 - "refer a friend," reachable from every screen
 // via ScreenHeader's gift icon (see that file). Reward mechanics live in
@@ -41,7 +42,7 @@ export default function Referral() {
   if (!profile) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
-        <ScreenHeader title="Refer a Friend" onBack={() => router.back()} />
+        <ScreenHeader title="Refer a Friend" onBack={() => goBackOrHome()} />
         <View style={styles.content}>
           <DividerNote>Sign in to get your own referral code.</DividerNote>
         </View>
@@ -51,7 +52,7 @@ export default function Referral() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Refer a Friend" subtitle="You both get a free month" onBack={() => router.back()} />
+      <ScreenHeader title="Refer a Friend" subtitle="You both get a free month" onBack={() => goBackOrHome()} />
       <View style={styles.content}>
         <DividerNote>
           Share your code with a friend. Once they sign up and subscribe, you'll both get a free month -

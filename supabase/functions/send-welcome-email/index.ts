@@ -42,8 +42,11 @@ const EMAIL_ASSETS_BASE = 'https://ryjjwtsoeqyaiveslrat.supabase.co/storage/v1/o
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.duratexapplications.steerme';
 
 Deno.serve(async (req) => {
+  // FIXED live 2026-08-17, security review finding: `secret &&` meant a
+  // missing/misconfigured DB_WEBHOOK_SECRET made this check a no-op - see
+  // ban-suspended-user/index.ts's matching comment for the full reasoning.
   const secret = Deno.env.get('DB_WEBHOOK_SECRET');
-  if (secret && req.headers.get('x-webhook-secret') !== secret) {
+  if (!secret || req.headers.get('x-webhook-secret') !== secret) {
     return new Response('Unauthorized', { status: 401 });
   }
 

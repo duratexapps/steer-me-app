@@ -19,6 +19,7 @@ import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
 import { validateClassificationForEnd } from '@/src/lib/matching';
 import { friendlySupabaseError } from '@/src/lib/errors';
 import { verifyClassificationCard } from '@/src/lib/verification';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Mirrors "Update my classification" from Profile (Screen 6) - re-verifying
 // replaces and deletes the old screenshot, per Privacy Policy section 5.
@@ -161,7 +162,7 @@ export default function UpdateClassification() {
       <ScreenHeader
         title="Update Classification"
         subtitle="Uploading a new screenshot replaces and deletes the old one"
-        onBack={() => router.back()}
+        onBack={() => goBackOrHome()}
         onHelp={() => setHelpOpen(true)}
       />
       <ScrollView contentContainerStyle={styles.content}>

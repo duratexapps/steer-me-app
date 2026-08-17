@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -25,6 +25,7 @@ import { toClassification } from '@/src/hooks/useEligiblePartners';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useCreateEntryHandoff, withHandoffParam, useCreateDrawProEntryLink, withEntryLinkParam } from '@/src/hooks/useEntryHandoff';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 const STATUS_LABEL: Record<PartnerRequestWithProfile['status'], string> = {
   pending: 'Pending',
@@ -98,6 +99,24 @@ function RequestCard({
     const meRole = roles.aRole;
     const partnerRole = roles.bRole;
     let url = request.event.draw_pro_entry_url;
+
+    // FIXED live 2026-08-06 - same root cause as EventCard.tsx's own
+    // handleEnterDraw() fix: awaiting both RPC calls below before calling
+    // Linking.openURL() breaks the synchronous-user-gesture requirement
+    // browsers impose on window.open() on web, so it gets silently popup-
+    // blocked (Brave especially) with a truly blank tab and no error -
+    // nothing to do with entry count or already having entered. Opening
+    // the tab synchronously now, then redirecting it once the URL is
+    // ready, fixes it the same way. Native has no popup-blocker concept,
+    // so it keeps the original behavior.
+    // FIXED live 2026-08-06, second pass - same root cause as EventCard.tsx's
+    // own fix: window.open() with 'noopener' on THIS call returns null in
+    // Chromium/Brave, so webTab was always null and this fell through to
+    // Linking.openURL() after the awaits, which then got popup-blocked
+    // itself - leaving the first blank tab stranded forever. Omitting
+    // 'noopener' here specifically is required to keep the reference.
+    const webTab = Platform.OS === 'web' && typeof window !== 'undefined' ? window.open('', '_blank') : null;
+
     try {
       const handoffId = await createHandoff.mutateAsync({
         eventId: request.event.id,
@@ -115,7 +134,12 @@ function RequestCard({
     } catch (err) {
       console.warn('[my-requests] entry link creation failed - team number/results wont be able to sync back', err);
     }
-    Linking.openURL(url);
+
+    if (webTab) {
+      webTab.location.href = url;
+    } else {
+      Linking.openURL(url);
+    }
   }
 
   const [cardOpen, setCardOpen] = useState(false);
@@ -243,7 +267,7 @@ export default function MyRequests() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="My Requests" subtitle="Track your outgoing and incoming requests" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="My Requests" subtitle="Track your outgoing and incoming requests" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <View style={styles.tabRow}>
         <Pill label="Sent" selected={tab === 'sent'} onPress={() => setTab('sent')} />
         <Pill label="Received" selected={tab === 'received'} onPress={() => setTab('received')} />

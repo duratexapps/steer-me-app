@@ -22,6 +22,7 @@ import type { PickedImage } from '@/src/lib/image-picker';
 import { useCreateEvent, buildDivisionDetailsPayload } from '@/src/hooks/useEvents';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Divisions are picked from the exact same option set as Post a Need
 // (DIVISION_OPTIONS) rather than typed in as free text - a producer can no
@@ -40,6 +41,12 @@ export default function CreateEvent() {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const [fee, setFee] = useState('');
+  // NEW, added 2026-08-17 alongside migration 0054 - optional venue
+  // booking link/phone, so entrants can book their stall/RV spot straight
+  // from the listing when the venue has one. See EventCard.tsx for the
+  // entrant-facing render.
+  const [bookingLink, setBookingLink] = useState('');
+  const [bookingPhone, setBookingPhone] = useState('');
   const [divisions, setDivisions] = useState<number[]>([]);
   // NEW, added 2026-07-30 alongside migration 0041 - optional per-division
   // free text (cost, caps, max entries, etc.), keyed by division number as
@@ -95,6 +102,8 @@ export default function CreateEvent() {
         description: description.trim() || 'No description provided.',
         flier_path: flierPath,
         division_details: buildDivisionDetailsPayload(divisions, divisionDetails),
+        booking_link: bookingLink.trim() || null,
+        booking_phone: bookingPhone.trim() || null,
       });
       showToast(`"${name.trim()}" posted`);
       router.back();
@@ -107,7 +116,7 @@ export default function CreateEvent() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Create Event" subtitle="Listed under your verified producer profile" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Create Event" subtitle="Listed under your verified producer profile" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <TextField label="Event name" value={name} onChangeText={setName} placeholder="e.g. Fall Qualifier" />
         <DateField label={endDate ? 'Start date' : 'Date'} value={date} onChange={setDate} minimumDate={new Date()} />
@@ -134,6 +143,21 @@ export default function CreateEvent() {
             not just admin-posted ones. */}
         <AutocompleteField label="Location" value={location} onChange={setLocation} placeholder="e.g. Wickenburg, AZ" required />
         <TextField label="Entry fee" value={fee} onChangeText={setFee} placeholder="e.g. $300/team" />
+        <TextField
+          label="Venue booking link (optional)"
+          value={bookingLink}
+          onChangeText={setBookingLink}
+          placeholder="e.g. openstalls.com/..."
+          autoCapitalize="none"
+          keyboardType="url"
+        />
+        <TextField
+          label="Venue booking phone (optional)"
+          value={bookingPhone}
+          onChangeText={setBookingPhone}
+          placeholder="e.g. (555) 123-4567"
+          keyboardType="phone-pad"
+        />
 
         <Text style={styles.label}>Divisions / classification caps</Text>
         <View style={styles.pillWrap}>

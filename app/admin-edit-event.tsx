@@ -22,6 +22,7 @@ import { useEventById, useUpdateAdminEvent, buildDivisionDetailsPayload } from '
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // NEW, added 2026-07-29 - real gap flagged directly by the user: nobody,
 // not even an admin, had any way to fix a typo or attach a flier to an
@@ -44,6 +45,10 @@ export default function AdminEditEvent() {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const [fee, setFee] = useState('');
+  // NEW, added 2026-08-17 alongside migration 0054 - see create-event.tsx's
+  // matching comment.
+  const [bookingLink, setBookingLink] = useState('');
+  const [bookingPhone, setBookingPhone] = useState('');
   const [divisions, setDivisions] = useState<number[]>([]);
   // NEW, added 2026-07-30 alongside migration 0041 - see create-event.tsx's
   // matching comment. Prefilled from event.division_details below.
@@ -52,6 +57,10 @@ export default function AdminEditEvent() {
   const [flierOpen, setFlierOpen] = useState(false);
   const [flierUri, setFlierUri] = useState<string | null>(null);
   const [flierPath, setFlierPath] = useState<string | null>(null);
+  // NEW, added 2026-08-09 - see extract-flier-contact-info Edge Function
+  // and admin-post-event.tsx's matching comment.
+  const [contactInfo, setContactInfo] = useState('');
+  const [scanningContact, setScanningContact] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
@@ -72,6 +81,9 @@ export default function AdminEditEvent() {
       setDescription(event.description ?? '');
       setFlierPath(event.flier_path);
       setFlierUri(publicUrlFor('event-fliers', event.flier_path));
+      setContactInfo(event.producer_contact_info ?? '');
+      setBookingLink(event.booking_link ?? '');
+      setBookingPhone(event.booking_phone ?? '');
       setPrefilled(true);
     }
   }, [event, prefilled]);
@@ -89,8 +101,34 @@ export default function AdminEditEvent() {
     try {
       const path = await uploadUserFile('event-fliers', user.id, image, `admin-flier-${Date.now()}`);
       setFlierPath(path);
+      // NEW, added 2026-08-09 - a REPLACED flier's old contact info may be
+      // stale, so re-scan automatically here too - same fire-and-suggest
+      // behavior as admin-post-event.tsx, still just a suggestion the
+      // admin reviews before saving, never auto-applied silently.
+      scanFlierForContactInfo(path);
     } catch {
       showToast('Could not upload flier - try again');
+    }
+  }
+
+  async function scanFlierForContactInfo(path: string) {
+    setScanningContact(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-flier-contact-info', {
+        body: { flierPath: path },
+      });
+      if (error) throw error;
+      if (data?.contactInfo) {
+        setContactInfo(data.contactInfo);
+      } else if (data?.skipped) {
+        showToast('Could not auto-read the flier - type contact info in manually.');
+      } else {
+        showToast('No contact info found on the flier - add it manually if needed.');
+      }
+    } catch {
+      showToast('Could not scan the flier for contact info - type it in manually.');
+    } finally {
+      setScanningContact(false);
     }
   }
 
@@ -119,6 +157,9 @@ export default function AdminEditEvent() {
         flier_path: flierPath,
         external_producer_name: producerName.trim(),
         division_details: buildDivisionDetailsPayload(divisions, divisionDetails),
+        producer_contact_info: contactInfo.trim() || null,
+        booking_link: bookingLink.trim() || null,
+        booking_phone: bookingPhone.trim() || null,
       });
       showToast(`"${name.trim()}" updated`);
       router.back();
@@ -146,7 +187,7 @@ export default function AdminEditEvent() {
   if (eventLoading || !prefilled) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
-        <ScreenHeader title="Edit Event (Admin)" onBack={() => router.back()} />
+        <ScreenHeader title="Edit Event (Admin)" onBack={() => goBackOrHome()} />
         <ActivityIndicator color={colors.brass} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
@@ -154,7 +195,7 @@ export default function AdminEditEvent() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Edit Event (Admin)" subtitle="Fix a typo, swap the flier, or update details" onBack={() => router.back()} />
+      <ScreenHeader title="Edit Event (Admin)" subtitle="Fix a typo, swap the flier, or update details" onBack={() => goBackOrHome()} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.adminNotice}>
           Editing this event updates the live listing immediately - it's still shown as posted by the real producer,
@@ -177,6 +218,21 @@ export default function AdminEditEvent() {
 
         <AutocompleteField label="Location" value={location} onChange={setLocation} placeholder="e.g. Wickenburg, AZ" required />
         <TextField label="Entry fee" value={fee} onChangeText={setFee} placeholder="e.g. $300/team" />
+        <TextField
+          label="Venue booking link (optional)"
+          value={bookingLink}
+          onChangeText={setBookingLink}
+          placeholder="e.g. openstalls.com/..."
+          autoCapitalize="none"
+          keyboardType="url"
+        />
+        <TextField
+          label="Venue booking phone (optional)"
+          value={bookingPhone}
+          onChangeText={setBookingPhone}
+          placeholder="e.g. (555) 123-4567"
+          keyboardType="phone-pad"
+        />
 
         <Text style={styles.label}>Divisions / classification caps</Text>
         <View style={styles.pillWrap}>
@@ -223,6 +279,33 @@ export default function AdminEditEvent() {
             </>
           )}
         </Pressable>
+
+        <Text style={styles.label}>Producer contact info</Text>
+        <Text style={styles.helper}>
+          How an entrant reaches the producer or enters, since there's no online entry for this event -
+          {scanningContact ? ' scanning the flier…' : ' auto-suggested from the flier. Review and correct before saving.'}
+        </Text>
+        <View style={styles.contactRow}>
+          <TextInput
+            style={[styles.textarea, styles.contactInput]}
+            value={contactInfo}
+            onChangeText={setContactInfo}
+            placeholder="e.g. Contact Blake Larmon 918-837-0048"
+            placeholderTextColor="#9c8a6b"
+            multiline
+            numberOfLines={2}
+          />
+          {flierPath ? (
+            <Pressable
+              style={styles.rescanBtn}
+              onPress={() => scanFlierForContactInfo(flierPath)}
+              disabled={scanningContact}
+            >
+              <Ionicons name="scan-outline" size={14} color={colors.espresso} />
+              <Text style={styles.rescanBtnText}>{scanningContact ? 'Scanning…' : 'Re-scan flier'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         <Button label="Save changes" onPress={handleSubmit} loading={submitting} style={{ marginTop: 8 }} />
       </ScrollView>
@@ -282,4 +365,19 @@ const styles = StyleSheet.create({
   dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso, marginTop: 6 },
   dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2 },
   dropzoneDone: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.green },
+  contactRow: { marginBottom: 16 },
+  contactInput: { minHeight: 50, marginBottom: 8 },
+  rescanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1.5,
+    borderColor: colors.brass,
+    borderRadius: radii.sm,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  rescanBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.espresso },
 });

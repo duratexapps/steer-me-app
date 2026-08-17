@@ -1,4 +1,4 @@
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,18 @@ import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useCreateEntryHandoff, withHandoffParam, useCreateDrawProEntryLink, withEntryLinkParam } from '@/src/hooks/useEntryHandoff';
 
 const RATING_MIN_TO_SHOW = 3;
+
+// Bare domains/paths ("openstalls.com/...") are common for this field since
+// producers copy them straight off a flier - Linking.openURL requires a
+// real scheme, so this is the same "assume https if none given" convention
+// used for other producer-entered link fields in this project.
+function normalizeBookingLink(link: string) {
+  return /^https?:\/\//i.test(link) ? link : `https://${link}`;
+}
+
+function digitsOnly(phone: string) {
+  return phone.replace(/[^0-9+]/g, '');
+}
 
 type EventCardProps = {
   event: EventWithProducer;
@@ -81,6 +93,32 @@ export function EventCard({
       Linking.openURL(url);
       return;
     }
+
+    // FIXED live 2026-08-06 - real bug flagged directly by a producer's
+    // test: re-tapping "Enter the Draw" on web sometimes opened a truly
+    // blank tab instead of the entry form. Root cause: this function used
+    // to await both RPC calls below BEFORE calling Linking.openURL(), which
+    // on web maps to window.open(). Browsers only allow window.open() to
+    // succeed as a real tab when it's called synchronously inside the
+    // click handler - once two network round trips are awaited first, the
+    // browser silently blocks it as a popup (Brave especially), with no
+    // error surfaced anywhere. Nothing to do with entry count or having
+    // "already entered" - it's a timing issue that could hit any tap
+    // depending on network latency. Fix: open the tab synchronously, right
+    // now, then redirect it once the real URL is ready. Native has no
+    // popup-blocker concept at all, so it keeps the original behavior.
+    // FIXED live 2026-08-06, second pass - real bug: window.open() with
+    // 'noopener' on THIS call returns null in Chromium/Brave (noopener
+    // severs the JS reference in both directions, including the return
+    // value needed to redirect it later) - webTab was always null, so
+    // this fell through to the Linking.openURL(url) fallback below, which
+    // by then runs AFTER the two awaits and gets silently popup-blocked
+    // itself, leaving the first blank tab stranded forever (worse than
+    // the original bug - now it's blank every time, not just sometimes).
+    // Omitting 'noopener' here specifically is required to keep the
+    // reference; the fallback path still uses it via Linking.openURL().
+    const webTab = Platform.OS === 'web' && typeof window !== 'undefined' ? window.open('', '_blank') : null;
+
     try {
       const handoffId = await createHandoff.mutateAsync({ eventId: event.id });
       url = withHandoffParam(url, handoffId);
@@ -93,7 +131,12 @@ export function EventCard({
     } catch (err) {
       console.warn('[EventCard] entry link creation failed - team number/results wont be able to sync back', err);
     }
-    Linking.openURL(url);
+
+    if (webTab) {
+      webTab.location.href = url;
+    } else {
+      Linking.openURL(url);
+    }
   }
 
   return (
@@ -126,6 +169,29 @@ export function EventCard({
       <Text style={styles.meta}>
         {event.location} · {event.entry_fee ?? 'See listing'}
       </Text>
+      {/* NEW, added 2026-08-17 alongside migration 0054 - real ask: entrants
+          should be able to book their stall/RV spot straight from the
+          listing when the venue has a link or phone for it. Independent of
+          draw_pro_entry_url/producerView below - whether or not this
+          producer is on Draw Pro has nothing to do with whether their venue
+          takes bookings. Link and phone are separate, typed fields (not one
+          combined string) specifically so this can render a real clickable
+          link vs. a tel: link instead of guessing which one a string is. */}
+      {event.booking_link || event.booking_phone ? (
+        <View style={styles.bookingRow}>
+          <Text style={styles.bookingLabel}>Book your stall/RV spot:</Text>
+          {event.booking_link ? (
+            <Pressable onPress={() => Linking.openURL(normalizeBookingLink(event.booking_link!))}>
+              <Text style={styles.bookingLink}>{event.booking_link}</Text>
+            </Pressable>
+          ) : null}
+          {event.booking_phone ? (
+            <Pressable onPress={() => Linking.openURL(`tel:${digitsOnly(event.booking_phone!)}`)}>
+              <Text style={styles.bookingLink}>{event.booking_phone}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       {!producerView ? (
         <Text style={[styles.rating, ratingSummary && ratingSummary.rating_count >= RATING_MIN_TO_SHOW ? styles.ratingActive : styles.ratingMuted]}>
           {ratingText}
@@ -184,7 +250,29 @@ export function EventCard({
           <Ionicons name="open-outline" size={14} color={colors.bone} />
           <Text style={styles.enterDrawBtnText}>Enter the Draw</Text>
         </Pressable>
-      ) : null}
+      ) : (
+        // NEW, added 2026-08-09 - real gap flagged directly by the user:
+        // an event with no draw_pro_entry_url just showed no button at
+        // all, with nothing explaining why or what to do instead. Also
+        // doubles as an intentional nudge - RopingTools plans to keep
+        // uploading fliers for producers not yet on Draw Pro to build
+        // traction, and every one of those listings is a chance to show
+        // entrants what they're missing so they ask their producer about
+        // it. Same `!producerView` gate as the button itself - a producer
+        // viewing their own unlinked listing doesn't need this pointed
+        // out to them.
+        !producerView ? (
+          <View style={styles.noDrawProNote}>
+            <Text style={styles.noDrawProNoteText}>
+              This producer isn't on Draw Pro yet — no online entry, automatic team numbers, or live round
+              results here.{' '}
+              {event.producer_contact_info
+                ? event.producer_contact_info
+                : 'See the flier or contact the producer directly to enter.'}
+            </Text>
+          </View>
+        ) : null
+      )}
 
       {canRate ? (
         <View style={styles.ratePrompt}>
@@ -236,6 +324,14 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   meta: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginTop: 4, lineHeight: 16 },
+  bookingRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
+  bookingLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.espresso },
+  bookingLink: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11.5,
+    color: colors.brass,
+    textDecorationLine: 'underline',
+  },
   rating: { fontSize: 12.5, fontFamily: fonts.bodyBold, marginTop: 6 },
   ratingActive: { color: colors.brass },
   ratingMuted: { color: colors.saddle },
@@ -304,6 +400,19 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   enterDrawBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.bone },
+  // NEW, added 2026-08-09 - see the render logic's own comment above.
+  // Muted/dashed rather than styled like a real button (enterDrawBtn) -
+  // this is informational, not actionable, and shouldn't visually
+  // compete with a real "Enter the Draw" button on other cards.
+  noDrawProNote: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.saddle,
+    borderRadius: radii.sm,
+    padding: 9,
+    marginTop: 10,
+  },
+  noDrawProNoteText: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, lineHeight: 15 },
   ratePrompt: {
     backgroundColor: colors.tan,
     borderWidth: 1,

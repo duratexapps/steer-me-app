@@ -20,6 +20,7 @@ import type { PickedImage } from '@/src/lib/image-picker';
 import type { Position } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
 import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // There was previously no way to update anything set at sign-up besides
 // classification (which has its own dedicated re-verification flow) - a
@@ -99,7 +100,7 @@ export default function EditProfile() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Edit Profile" subtitle="Update your info any time" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Edit Profile" subtitle="Update your info any time" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.label}>Profile photo</Text>
         <Pressable style={styles.avatarRow} onPress={() => setPhotoOpen(true)}>

@@ -19,6 +19,7 @@ import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProducerProfile, useInvalidateProducerProfile } from '@/src/hooks/useProducerProfile';
 import { useMyEvents, useAttendanceCounts } from '@/src/hooks/useEvents';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Mirrors Screen 12 (#producer) - sign-up form when no producer profile
 // exists yet, dashboard once it does.
@@ -95,7 +96,7 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Producer Tools" subtitle="Set up a producer profile to list your own events" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Producer Tools" subtitle="Set up a producer profile to list your own events" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <DividerNote>
           Producer accounts are separate from your athlete profile - you can hold both. Producer listings
@@ -149,7 +150,7 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Producer Tools" subtitle={`Managing events for ${producer.org_name}`} onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Producer Tools" subtitle={`Managing events for ${producer.org_name}`} onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         {producer.verification_status !== 'verified' ? (
           <DividerNote>

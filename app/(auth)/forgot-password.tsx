@@ -10,6 +10,7 @@ import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Landing page for "Forgot password?" on sign-in.tsx. Sends a Supabase
 // recovery email pointing at reset-password.tsx (see that file's own
@@ -46,7 +47,7 @@ export default function ForgotPassword() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Reset Password" subtitle="We'll email you a link" onBack={() => router.back()} />
+      <ScreenHeader title="Reset Password" subtitle="We'll email you a link" onBack={() => goBackOrHome()} />
       <ScrollView contentContainerStyle={styles.content}>
         {sent ? (
           <Text style={styles.confirmText}>

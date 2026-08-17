@@ -11,6 +11,7 @@ import { webMaxWidth } from '@/src/theme/web-layout';
 import { useBlockedProfiles, useUnblockUser } from '@/src/hooks/useBlocking';
 import { formatClassificationTag } from '@/src/lib/matching';
 import { toClassification } from '@/src/hooks/useEligiblePartners';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 export default function BlockedUsers() {
   const { data: blocked } = useBlockedProfiles();
@@ -22,7 +23,7 @@ export default function BlockedUsers() {
       <ScreenHeader
         title="Blocked Users"
         subtitle="They can't contact you, request you, or appear in your matches"
-        onBack={() => router.back()}
+        onBack={() => goBackOrHome()}
         onHelp={() => setHelpOpen(true)}
       />
       <ScrollView contentContainerStyle={styles.content}>

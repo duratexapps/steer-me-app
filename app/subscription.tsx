@@ -13,6 +13,7 @@ import { webMaxWidth } from '@/src/theme/web-layout';
 import { fetchOfferings } from '@/src/lib/purchases';
 import { useSubscriptionStatus, useInvalidateSubscriptionStatus } from '@/src/hooks/useSubscriptionStatus';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 type Plan = 'annual' | 'monthly';
 
@@ -32,7 +33,7 @@ export default function Subscription() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [purchasing, setPurchasing] = useState(false);
-  const { data: status } = useSubscriptionStatus();
+  const { data: status } = useSubscriptionStatus(true); // poll briefly - this is the purchase screen
   const invalidateStatus = useInvalidateSubscriptionStatus();
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function Subscription() {
   if (Platform.OS === 'web') {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
-        <ScreenHeader title="Subscription" subtitle="One membership, unlimited draw-in fees skipped" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+        <ScreenHeader title="Subscription" subtitle="One membership, unlimited draw-in fees skipped" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
         <ScrollView contentContainerStyle={styles.content}>
           {status?.entitlement_active ? (
             <DividerNote>
@@ -96,7 +97,7 @@ export default function Subscription() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Subscription" subtitle="One membership, unlimited draw-in fees skipped" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Subscription" subtitle="One membership, unlimited draw-in fees skipped" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         {status?.entitlement_active ? (
           <DividerNote>

@@ -88,31 +88,46 @@ export type Database = {
       }
       draw_pro_entry_link_teams: {
         Row: {
+          cancellation_requested_at: string | null
           created_at: string
           entry_link_id: string
+          entry_type: string
           id: string
           partner_classification_number: number | null
           partner_name: string | null
           partner_role: string | null
-          team_number: number
+          requested_run_count: number
+          submitted_at: string
+          team_number: number | null
+          total_teams: number | null
         }
         Insert: {
+          cancellation_requested_at?: string | null
           created_at?: string
           entry_link_id: string
+          entry_type?: string
           id?: string
           partner_classification_number?: number | null
           partner_name?: string | null
           partner_role?: string | null
-          team_number: number
+          requested_run_count?: number
+          submitted_at?: string
+          team_number?: number | null
+          total_teams?: number | null
         }
         Update: {
+          cancellation_requested_at?: string | null
           created_at?: string
           entry_link_id?: string
+          entry_type?: string
           id?: string
           partner_classification_number?: number | null
           partner_name?: string | null
           partner_role?: string | null
-          team_number?: number
+          requested_run_count?: number
+          submitted_at?: string
+          team_number?: number | null
+          total_teams?: number | null
         }
         Relationships: [
           {
@@ -169,6 +184,41 @@ export type Database = {
             columns: ["steer_me_user_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      draw_pro_extra_run_charges: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          entry_link_team_id: string
+          fee_amount: number
+          id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          entry_link_team_id: string
+          fee_amount: number
+          id?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          entry_link_team_id?: string
+          fee_amount?: number
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draw_pro_extra_run_charges_entry_link_team_id_fkey"
+            columns: ["entry_link_team_id"]
+            isOneToOne: true
+            referencedRelation: "draw_pro_entry_link_teams"
             referencedColumns: ["id"]
           },
         ]
@@ -233,12 +283,14 @@ export type Database = {
           id: string
           me_classification: number | null
           me_contact: string | null
+          me_entry_link_token: string | null
           me_first_name: string
           me_global_membership_id: string | null
           me_last_name: string
           me_role: string | null
           partner_classification: number | null
           partner_contact: string | null
+          partner_entry_link_token: string | null
           partner_first_name: string | null
           partner_global_membership_id: string | null
           partner_last_name: string | null
@@ -253,12 +305,14 @@ export type Database = {
           id?: string
           me_classification?: number | null
           me_contact?: string | null
+          me_entry_link_token?: string | null
           me_first_name: string
           me_global_membership_id?: string | null
           me_last_name: string
           me_role?: string | null
           partner_classification?: number | null
           partner_contact?: string | null
+          partner_entry_link_token?: string | null
           partner_first_name?: string | null
           partner_global_membership_id?: string | null
           partner_last_name?: string | null
@@ -273,12 +327,14 @@ export type Database = {
           id?: string
           me_classification?: number | null
           me_contact?: string | null
+          me_entry_link_token?: string | null
           me_first_name?: string
           me_global_membership_id?: string | null
           me_last_name?: string
           me_role?: string | null
           partner_classification?: number | null
           partner_contact?: string | null
+          partner_entry_link_token?: string | null
           partner_first_name?: string | null
           partner_global_membership_id?: string | null
           partner_last_name?: string | null
@@ -458,6 +514,8 @@ export type Database = {
       events: {
         Row: {
           admin_poster_id: string | null
+          booking_link: string | null
+          booking_phone: string | null
           created_at: string
           description: string | null
           division_details: Json | null
@@ -473,12 +531,15 @@ export type Database = {
           location: string
           name: string
           posted_by_admin: boolean
+          producer_contact_info: string | null
           producer_id: string | null
           status: string
           updated_at: string
         }
         Insert: {
           admin_poster_id?: string | null
+          booking_link?: string | null
+          booking_phone?: string | null
           created_at?: string
           description?: string | null
           division_details?: Json | null
@@ -494,12 +555,15 @@ export type Database = {
           location: string
           name: string
           posted_by_admin?: boolean
+          producer_contact_info?: string | null
           producer_id?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           admin_poster_id?: string | null
+          booking_link?: string | null
+          booking_phone?: string | null
           created_at?: string
           description?: string | null
           division_details?: Json | null
@@ -515,6 +579,7 @@ export type Database = {
           location?: string
           name?: string
           posted_by_admin?: boolean
+          producer_contact_info?: string | null
           producer_id?: string | null
           status?: string
           updated_at?: string
@@ -872,6 +937,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auto_cancel_team_entry_on_partner_cancel: boolean
           avatar_url: string | null
           contact: string | null
           created_at: string
@@ -902,6 +968,7 @@ export type Database = {
           verification_screenshot_path: string | null
         }
         Insert: {
+          auto_cancel_team_entry_on_partner_cancel?: boolean
           avatar_url?: string | null
           contact?: string | null
           created_at?: string
@@ -932,6 +999,7 @@ export type Database = {
           verification_screenshot_path?: string | null
         }
         Update: {
+          auto_cancel_team_entry_on_partner_cancel?: boolean
           avatar_url?: string | null
           contact?: string | null
           created_at?: string
@@ -977,6 +1045,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limit_hits: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          scope: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          scope: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          scope?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -1165,6 +1254,23 @@ export type Database = {
       }
     }
     Functions: {
+      choose_extra_run_payment: {
+        Args: { p_charge_id: string; p_decision: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          entry_link_team_id: string
+          fee_amount: number
+          id: string
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "draw_pro_extra_run_charges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_draw_pro_entry_link: {
         Args: { p_event_id: string; p_role?: string }
         Returns: string
@@ -1219,7 +1325,23 @@ export type Database = {
         Returns: boolean
       }
       is_suspended: { Args: { uid: string }; Returns: boolean }
+      register_draw_pro_entry_submission: {
+        Args: {
+          p_entry_type: string
+          p_requested_run_count: number
+          p_token: string
+        }
+        Returns: string
+      }
+      request_draw_pro_entry_submission_cancellation: {
+        Args: { p_entry_id: string }
+        Returns: undefined
+      }
       resolve_referral_code: { Args: { code: string }; Returns: string }
+      send_push_via_edge_function: {
+        Args: { p_body: string; p_title: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

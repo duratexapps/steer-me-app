@@ -49,6 +49,21 @@ export type EventRow = {
   // producer's behalf (from a flier), before that producer has any
   // account here at all. See useCreateAdminEvent() for the full reasoning.
   posted_by_admin: boolean;
+  // NEW, added 2026-08-09 - see extract-flier-contact-info Edge Function
+  // and EventCard.tsx's noDrawProNote. Free text, admin-entered/reviewed -
+  // "how to enter or who to contact," not a structured phone/email field,
+  // since fliers vary too widely to fit rigid columns.
+  producer_contact_info: string | null;
+  // NEW, added 2026-08-17 - real ask: entrants should be able to book
+  // their stall/RV spot straight from the event listing when the venue
+  // has one or the other. Typed separately (not one combined free-text
+  // field) so the UI can render a real clickable link vs. a tel: link
+  // instead of guessing which one a string is. For a Draw-Pro-synced
+  // event these come from that event's own event_site_booking_link/phone
+  // (see steerMeSync.ts on the Draw Pro side); for a Steer Me-native
+  // event (self-serve or admin-posted) they're entered directly here.
+  booking_link: string | null;
+  booking_phone: string | null;
 };
 
 export type EventWithProducer = EventRow & { producer_org_name: string | null };
@@ -143,6 +158,10 @@ export function useCreateEvent() {
       // NEW, added 2026-07-30 alongside migration 0041 - optional,
       // omit/null when every division shares the same fee/details.
       division_details?: Record<string, string> | null;
+      // NEW, added 2026-08-17 alongside migration 0054 - optional venue
+      // booking link/phone, see EventRow's own comment for the reasoning.
+      booking_link?: string | null;
+      booking_phone?: string | null;
     }) => {
       const { error } = await supabase.from('events').insert(input);
       if (error) throw error;
@@ -180,6 +199,9 @@ export function useCreateAdminEvent() {
       external_producer_name: string;
       admin_poster_id: string;
       division_details?: Record<string, string> | null;
+      producer_contact_info?: string | null;
+      booking_link?: string | null;
+      booking_phone?: string | null;
     }) => {
       const { error } = await supabase.from('events').insert({
         ...input,
@@ -249,6 +271,9 @@ export function useUpdateAdminEvent() {
       flier_path: string | null;
       external_producer_name: string;
       division_details?: Record<string, string> | null;
+      producer_contact_info?: string | null;
+      booking_link?: string | null;
+      booking_phone?: string | null;
     }) => {
       const { error } = await supabase.from('events').update(input).eq('id', eventId).eq('posted_by_admin', true);
       if (error) throw error;

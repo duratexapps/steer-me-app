@@ -16,6 +16,7 @@ import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useMyProducerProfile } from '@/src/hooks/useProducerProfile';
 import { useSubmitIssueReport, type ReporterRole } from '@/src/hooks/useIssueReports';
 import type { PickedImage } from '@/src/lib/image-picker';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Reachable from every screen via ScreenHeader's flag icon. Deliberately
 // asks who the reporter is rather than trusting the session alone - a
@@ -58,7 +59,7 @@ export default function ReportIssue() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Report an Issue" subtitle="Ran into a bug or something confusing? Tell us." onBack={() => router.back()} />
+      <ScreenHeader title="Report an Issue" subtitle="Ran into a bug or something confusing? Tell us." onBack={() => goBackOrHome()} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.label}>You are a</Text>
         <View style={styles.pillRow}>

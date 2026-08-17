@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +27,7 @@ import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useTownDistances } from '@/src/hooks/useTownDistances';
 import { applyEventFilters, distinctStates, DEFAULT_EVENT_FILTERS, type EventFilters } from '@/src/lib/event-filters';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // Mirrors Screen 11 (#events) - athlete-facing browse, attend toggle, and
 // the "Partners" jump into Browse pre-filtered to this event+division
@@ -42,8 +43,15 @@ export default function Events() {
   // just re-filtering data already sitting in memory.
   const distances = useTownDistances(profile?.home_area, (events ?? []).map((e) => e.location));
   const [filters, setFilters] = useState<EventFilters>(DEFAULT_EVENT_FILTERS);
-  const filteredEvents = applyEventFilters(events ?? [], filters, distances);
-  const states = distinctStates(events ?? []);
+  // PERF, 2026-08-16: both scan the full events array - memoized so an
+  // unrelated re-render (toggling attendance, opening the report modal,
+  // submitting a rating) doesn't re-run a full-array pass every time,
+  // only when the events/filters/distances actually changed.
+  const filteredEvents = useMemo(
+    () => applyEventFilters(events ?? [], filters, distances),
+    [events, filters, distances]
+  );
+  const states = useMemo(() => distinctStates(events ?? []), [events]);
 
   const eventIds = filteredEvents.map((e) => e.id);
   const { data: counts } = useAttendanceCounts(eventIds);
@@ -75,7 +83,7 @@ export default function Events() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Events" subtitle="Posted by real producers - mark your plans to attend" onBack={() => router.back()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Events" subtitle="Posted by real producers - mark your plans to attend" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         {eventsLoading ? (
           <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />

@@ -46,6 +46,7 @@
 // profiles.home_area and events.location already use exactly that
 // format (AutocompleteField-constrained town names).
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
+import { callerIpScope, checkRateLimit } from '../_shared/rate-limit.ts';
 
 const ROUTE_MATRIX_URL = 'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
 const METERS_PER_MILE = 1609.344;
@@ -90,6 +91,21 @@ Deno.serve(async (req) => {
     if (cacheError) throw cacheError;
     if (cached) {
       return new Response(JSON.stringify({ miles: cached.miles, cached: true }), {
+        headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Only gates the paid path below (a cache hit above already returned) -
+    // abuse ceiling, not a real usage cap, see _shared/rate-limit.ts. A
+    // real first-time browse session can legitimately hit dozens of
+    // never-before-seen town pairs at once, so this stays generous; it
+    // exists to stop a scripted loop feeding many distinct fake pairs to
+    // force repeated cache misses, not to limit normal browsing.
+    const rateLimitScope = await callerIpScope(req);
+    const allowed = await checkRateLimit(rateLimitScope, 'get_town_distance', 200, 1440);
+    if (!allowed) {
+      return new Response(JSON.stringify({ miles: null, cached: false, error: 'Too many requests - try again later.' }), {
+        status: 429,
         headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
       });
     }

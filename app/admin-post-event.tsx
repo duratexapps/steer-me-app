@@ -22,6 +22,7 @@ import { useCreateAdminEvent, buildDivisionDetailsPayload } from '@/src/hooks/us
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
+import { goBackOrHome } from '@/src/lib/navigation';
 
 // ============================================================
 // TEMPORARY/REMOVABLE FEATURE - see migration 0038_admin_posted_events.sql
@@ -53,6 +54,11 @@ export default function AdminPostEvent() {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const [fee, setFee] = useState('');
+  // NEW, added 2026-08-17 alongside migration 0054 - see create-event.tsx's
+  // matching comment. Most useful right here, since a real flier (Curry
+  // County Event Center, JB Wells) is exactly where this info comes from.
+  const [bookingLink, setBookingLink] = useState('');
+  const [bookingPhone, setBookingPhone] = useState('');
   const [divisions, setDivisions] = useState<number[]>([]);
   // NEW, added 2026-07-30 alongside migration 0041 - see create-event.tsx's
   // matching comment.
@@ -61,6 +67,12 @@ export default function AdminPostEvent() {
   const [flierOpen, setFlierOpen] = useState(false);
   const [flierUri, setFlierUri] = useState<string | null>(null);
   const [flierPath, setFlierPath] = useState<string | null>(null);
+  // NEW, added 2026-08-09 - see extract-flier-contact-info Edge Function.
+  // Always editable, whether it was typed by hand or pre-filled by the
+  // scan below - the scan only ever suggests a starting point, never
+  // saves anything on its own.
+  const [contactInfo, setContactInfo] = useState('');
+  const [scanningContact, setScanningContact] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   function toggleDivision(d: number) {
@@ -76,8 +88,38 @@ export default function AdminPostEvent() {
     try {
       const path = await uploadUserFile('event-fliers', user.id, image, `admin-flier-${Date.now()}`);
       setFlierPath(path);
+      // NEW, added 2026-08-09 - fires automatically once the upload
+      // finishes, since the admin's next real action is filling in the
+      // rest of the form anyway - scanning up front means the contact
+      // field is usually already suggested by the time they get to it,
+      // rather than requiring a separate manual step to remember.
+      scanFlierForContactInfo(path);
     } catch {
       showToast('Could not upload flier - try again');
+    }
+  }
+
+  async function scanFlierForContactInfo(path: string) {
+    setScanningContact(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-flier-contact-info', {
+        body: { flierPath: path },
+      });
+      if (error) throw error;
+      if (data?.contactInfo) {
+        setContactInfo(data.contactInfo);
+      } else if (data?.skipped) {
+        // AI extraction not configured/unavailable - fail soft, same
+        // principle as the Edge Function itself. The admin can still
+        // just type the contact info in by hand.
+        showToast('Could not auto-read the flier - type contact info in manually.');
+      } else {
+        showToast('No contact info found on the flier - add it manually if needed.');
+      }
+    } catch {
+      showToast('Could not scan the flier for contact info - type it in manually.');
+    } finally {
+      setScanningContact(false);
     }
   }
 
@@ -106,6 +148,9 @@ export default function AdminPostEvent() {
         external_producer_name: producerName.trim(),
         admin_poster_id: me.id,
         division_details: buildDivisionDetailsPayload(divisions, divisionDetails),
+        producer_contact_info: contactInfo.trim() || null,
+        booking_link: bookingLink.trim() || null,
+        booking_phone: bookingPhone.trim() || null,
       });
       showToast(`"${name.trim()}" posted on behalf of ${producerName.trim()}`);
       router.back();
@@ -128,7 +173,7 @@ export default function AdminPostEvent() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Post an Event (Admin)" subtitle="On a producer's behalf - temporary bootstrap tool" onBack={() => router.back()} />
+      <ScreenHeader title="Post an Event (Admin)" subtitle="On a producer's behalf - temporary bootstrap tool" onBack={() => goBackOrHome()} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.adminNotice}>
           This event will show as posted by the real producer, with a small note that RopingTools posted it on their
@@ -151,6 +196,21 @@ export default function AdminPostEvent() {
 
         <AutocompleteField label="Location" value={location} onChange={setLocation} placeholder="e.g. Wickenburg, AZ" required />
         <TextField label="Entry fee" value={fee} onChangeText={setFee} placeholder="e.g. $300/team" />
+        <TextField
+          label="Venue booking link (optional)"
+          value={bookingLink}
+          onChangeText={setBookingLink}
+          placeholder="e.g. openstalls.com/..."
+          autoCapitalize="none"
+          keyboardType="url"
+        />
+        <TextField
+          label="Venue booking phone (optional)"
+          value={bookingPhone}
+          onChangeText={setBookingPhone}
+          placeholder="e.g. (555) 123-4567"
+          keyboardType="phone-pad"
+        />
 
         <Text style={styles.label}>Divisions / classification caps</Text>
         <View style={styles.pillWrap}>
@@ -197,6 +257,33 @@ export default function AdminPostEvent() {
             </>
           )}
         </Pressable>
+
+        <Text style={styles.label}>Producer contact info</Text>
+        <Text style={styles.helper}>
+          How an entrant reaches the producer or enters, since there's no online entry for this event -
+          {scanningContact ? ' scanning the flier…' : ' auto-suggested from the flier once uploaded. Review and correct before posting.'}
+        </Text>
+        <View style={styles.contactRow}>
+          <TextInput
+            style={[styles.textarea, styles.contactInput]}
+            value={contactInfo}
+            onChangeText={setContactInfo}
+            placeholder="e.g. Contact Blake Larmon 918-837-0048"
+            placeholderTextColor="#9c8a6b"
+            multiline
+            numberOfLines={2}
+          />
+          {flierPath ? (
+            <Pressable
+              style={styles.rescanBtn}
+              onPress={() => scanFlierForContactInfo(flierPath)}
+              disabled={scanningContact}
+            >
+              <Ionicons name="scan-outline" size={14} color={colors.espresso} />
+              <Text style={styles.rescanBtnText}>{scanningContact ? 'Scanning…' : 'Re-scan flier'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         <Button label="Post event" onPress={handleSubmit} loading={submitting} style={{ marginTop: 8 }} />
       </ScrollView>
@@ -256,4 +343,19 @@ const styles = StyleSheet.create({
   dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso, marginTop: 6 },
   dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2 },
   dropzoneDone: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.green },
+  contactRow: { marginBottom: 16 },
+  contactInput: { minHeight: 50, marginBottom: 8 },
+  rescanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1.5,
+    borderColor: colors.brass,
+    borderRadius: radii.sm,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  rescanBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.espresso },
 });

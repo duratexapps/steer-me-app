@@ -27,6 +27,7 @@
 // expired badge; currency is purely that date compared to today.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
+import { checkRateLimit } from '../_shared/rate-limit.ts';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001'; // fast/cheap is fine for structured extraction, not nuanced judgment
@@ -67,6 +68,15 @@ Deno.serve(async (req) => {
   const { data: callerData, error: callerError } = await callerClient.auth.getUser();
   if (callerError || !callerData?.user) {
     return Response.json({ error: 'Not signed in' }, { status: 401 });
+  }
+
+  // Abuse ceiling, not a real usage cap - see _shared/rate-limit.ts. A real
+  // person verifies this once, maybe retries a couple times over a blurry
+  // photo - 10/day comfortably covers that without being a meaningful cap
+  // on a scripted loop.
+  const allowed = await checkRateLimit(`user:${callerData.user.id}`, 'verify_classification_card', 10, 1440);
+  if (!allowed) {
+    return Response.json({ error: 'Too many requests - try again later.' }, { status: 429 });
   }
 
   let body: VerifyRequest;

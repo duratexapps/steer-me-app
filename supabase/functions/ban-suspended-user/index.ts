@@ -12,8 +12,16 @@ import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 const PERMANENT_BAN_DURATION = '876000h';
 
 Deno.serve(async (req) => {
+  // FIXED live 2026-08-17, security review finding: `secret &&` meant a
+  // missing/misconfigured DB_WEBHOOK_SECRET made this check a no-op - EVERY
+  // request would be accepted with no auth at all (fail-open) instead of
+  // being rejected (fail-closed). Same bug already fixed in
+  // draw-pro-results-webhook and revenuecat-webhook; this sibling function
+  // (and send-push-notification/send-welcome-email, which share this exact
+  // pattern) never got the same fix applied. Particularly consequential
+  // here since this function permanently bans accounts.
   const secret = Deno.env.get('DB_WEBHOOK_SECRET');
-  if (secret && req.headers.get('x-webhook-secret') !== secret) {
+  if (!secret || req.headers.get('x-webhook-secret') !== secret) {
     return new Response('Unauthorized', { status: 401 });
   }
 
