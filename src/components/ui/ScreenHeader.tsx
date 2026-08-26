@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   backBtn: { paddingRight: 4 },
-  logo: { width: 44, height: 27 },
+  logo: { width: 28, height: 28 },
   title: {
     fontFamily: fonts.display,
     color: colors.bone,

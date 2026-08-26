@@ -64,14 +64,16 @@ export default function Landing() {
           content="Find your own team roping partner and browse real ropings near you. Match by classification number, skip the draw-in fee, and enter with confidence."
         />
         <meta property="og:url" content="https://steerme.ropingtools.com/" />
-        <meta property="og:image" content="https://steerme.ropingtools.com/logo.png" />
+        <meta property="og:image" content="https://steerme.ropingtools.com/social-share.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Steer Me — Team Roping Partner App" />
         <meta
           name="twitter:description"
           content="Find your own team roping partner and browse real ropings near you."
         />
-        <meta name="twitter:image" content="https://steerme.ropingtools.com/logo.png" />
+        <meta name="twitter:image" content="https://steerme.ropingtools.com/social-share.png" />
         {/* Structured data so search engines understand this is a real app,
             not just a generic web page - SoftwareApplication is the
             schema.org type Google's own docs point to for app listings. */}
