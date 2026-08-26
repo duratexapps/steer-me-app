@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -523,6 +523,8 @@ export type Database = {
           draw_pro_entry_url: string | null
           draw_pro_event_id: string | null
           entry_fee: string | null
+          entry_method: string | null
+          entry_phone: string | null
           event_date: string
           event_end_date: string | null
           external_producer_name: string | null
@@ -547,6 +549,8 @@ export type Database = {
           draw_pro_entry_url?: string | null
           draw_pro_event_id?: string | null
           entry_fee?: string | null
+          entry_method?: string | null
+          entry_phone?: string | null
           event_date: string
           event_end_date?: string | null
           external_producer_name?: string | null
@@ -571,6 +575,8 @@ export type Database = {
           draw_pro_entry_url?: string | null
           draw_pro_event_id?: string | null
           entry_fee?: string | null
+          entry_method?: string | null
+          entry_phone?: string | null
           event_date?: string
           event_end_date?: string | null
           external_producer_name?: string | null
@@ -709,6 +715,63 @@ export type Database = {
           triaged_at?: string | null
         }
         Relationships: []
+      }
+      membership_id_conflicts: {
+        Row: {
+          attempted_by_user_id: string | null
+          attempted_name: string
+          attempted_position: string
+          attempted_screenshot_path: string | null
+          created_at: string
+          existing_profile_id: string | null
+          id: string
+          membership_id_normalized: string
+          resolved_at: string | null
+          resolved_note: string | null
+          status: string
+        }
+        Insert: {
+          attempted_by_user_id?: string | null
+          attempted_name: string
+          attempted_position: string
+          attempted_screenshot_path?: string | null
+          created_at?: string
+          existing_profile_id?: string | null
+          id?: string
+          membership_id_normalized: string
+          resolved_at?: string | null
+          resolved_note?: string | null
+          status?: string
+        }
+        Update: {
+          attempted_by_user_id?: string | null
+          attempted_name?: string
+          attempted_position?: string
+          attempted_screenshot_path?: string | null
+          created_at?: string
+          existing_profile_id?: string | null
+          id?: string
+          membership_id_normalized?: string
+          resolved_at?: string | null
+          resolved_note?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_id_conflicts_existing_profile_id_fkey"
+            columns: ["existing_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_id_conflicts_existing_profile_id_fkey"
+            columns: ["existing_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       need_post_visible_to: {
         Row: {
@@ -945,12 +1008,14 @@ export type Database = {
           full_name: string
           global_classification: number | null
           global_membership_id: string | null
+          global_membership_id_normalized: string | null
           guardian_consent_at: string | null
           guardian_contact: string | null
           guardian_name: string | null
           guidelines_accepted_at: string
           header_classification: number | null
           heeler_classification: number | null
+          hidden_from_matching: boolean
           home_area: string
           id: string
           is_admin: boolean
@@ -976,12 +1041,14 @@ export type Database = {
           full_name: string
           global_classification?: number | null
           global_membership_id?: string | null
+          global_membership_id_normalized?: string | null
           guardian_consent_at?: string | null
           guardian_contact?: string | null
           guardian_name?: string | null
           guidelines_accepted_at?: string
           header_classification?: number | null
           heeler_classification?: number | null
+          hidden_from_matching?: boolean
           home_area: string
           id?: string
           is_admin?: boolean
@@ -1007,12 +1074,14 @@ export type Database = {
           full_name?: string
           global_classification?: number | null
           global_membership_id?: string | null
+          global_membership_id_normalized?: string | null
           guardian_consent_at?: string | null
           guardian_contact?: string | null
           guardian_name?: string | null
           guidelines_accepted_at?: string
           header_classification?: number | null
           heeler_classification?: number | null
+          hidden_from_matching?: boolean
           home_area?: string
           id?: string
           is_admin?: boolean
@@ -1339,7 +1408,12 @@ export type Database = {
       }
       resolve_referral_code: { Args: { code: string }; Returns: string }
       send_push_via_edge_function: {
-        Args: { p_body: string; p_title: string; p_user_id: string }
+        Args: {
+          p_body: string
+          p_data?: Json
+          p_title: string
+          p_user_id: string
+        }
         Returns: undefined
       }
     }
