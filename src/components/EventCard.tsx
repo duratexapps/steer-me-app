@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
-import { formatDivision } from '@/src/lib/matching';
+import { formatDivision, formatClassificationTag } from '@/src/lib/matching';
 import { formatDateRangeDisplay, isEventStillUpcoming } from '@/src/lib/date';
 import { publicUrlFor } from '@/src/lib/storage-upload';
+import { FlierViewerModal } from '@/src/components/FlierViewerModal';
 import type { EventWithProducer, RatingSummary } from '@/src/hooks/useEvents';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useCreateEntryHandoff, withHandoffParam, useCreateDrawProEntryLink, withEntryLinkParam } from '@/src/hooks/useEntryHandoff';
@@ -22,6 +24,37 @@ function normalizeBookingLink(link: string) {
 
 function digitsOnly(phone: string) {
   return phone.replace(/[^0-9+]/g, '');
+}
+
+// NEW, added 2026-08-18 alongside migration 0057 - real gap: a huge share
+// of team roping fliers say "enter by text" or "enter by call" (e.g.
+// X-Treme Team Roping), with nothing between that and no online entry at
+// all before now. This doesn't ask the producer for anything or touch
+// their system in any way - it opens the entrant's OWN native SMS/phone
+// composer, addressed to the producer's published number, with the
+// entrant's own info pre-filled from their own profile. The entrant still
+// reviews and taps send themselves, from their own number - functionally
+// identical to them typing it by hand, just without the retyping. See
+// this file's handleEnterDraw() for the online-entry equivalent.
+//
+// iOS and Android use different query separators for a pre-filled SMS
+// body (iOS: sms:<number>&body=..., Android: sms:<number>?body=...) -
+// there's no single URI that works correctly on both.
+function buildSmsUrl(phone: string, body: string): string {
+  const number = digitsOnly(phone);
+  const separator = Platform.OS === 'ios' ? '&' : '?';
+  return `sms:${number}${separator}body=${encodeURIComponent(body)}`;
+}
+
+function buildEntryMessage(event: { name: string }, me: { full_name: string; position: string; global_classification: number | null; header_classification: number | null; heeler_classification: number | null } | null | undefined): string {
+  if (!me) return `Hi, I'd like to enter ${event.name}.`;
+  const classification = formatClassificationTag({
+    position: me.position as 'Header' | 'Heeler' | 'Switch',
+    globalClassification: me.global_classification,
+    headerClassification: me.header_classification,
+    heelerClassification: me.heeler_classification,
+  });
+  return `Hi, I'd like to enter ${event.name}. Name: ${me.full_name}, ${me.position} #${classification}. (via Steer Me)`;
 }
 
 type EventCardProps = {
@@ -64,7 +97,15 @@ export function EventCard({
   const isPast = !isEventStillUpcoming(event.event_date, event.event_end_date);
   const attendedAnyDivision = event.divisions.some((d) => myAttendance?.has(`${event.id}:${d}`));
   const canRate = !producerView && isPast && attendedAnyDivision && !alreadyRated;
-  const flierUrl = publicUrlFor('event-fliers', event.flier_path);
+  // Rendered at 160px tall in this card - width=400 covers up to a
+  // 3-column web layout at retina density without shipping the full
+  // multi-hundred-KB original just to downscale it on-device.
+  const flierUrl = publicUrlFor('event-fliers', event.flier_path, { width: 400, quality: 70 });
+  // Real gap flagged directly by the user - tapping the flier thumbnail
+  // did nothing at all. Full resolution here (no transform), since this
+  // is the one place someone's actually trying to read it.
+  const fullFlierUrl = publicUrlFor('event-fliers', event.flier_path);
+  const [flierViewerOpen, setFlierViewerOpen] = useState(false);
 
   // NEW, added 2026-07-28 - real friction gap flagged directly by the
   // user: a Steer Me user tapping "Enter the Draw" had to retype their
@@ -139,7 +180,19 @@ export function EventCard({
     }
   }
 
+  // NEW, added 2026-08-18 - see buildSmsUrl()'s own comment for the full
+  // reasoning. 'call' just opens the dialer with the number entered (no
+  // message body possible for a phone call) - the entrant still says
+  // their own info out loud themselves, same "entrant does the final
+  // action" principle as the text case.
+  function handlePhoneEntry() {
+    if (!event.entry_phone) return;
+    const url = event.entry_method === 'text' ? buildSmsUrl(event.entry_phone, buildEntryMessage(event, me)) : `tel:${digitsOnly(event.entry_phone)}`;
+    Linking.openURL(url);
+  }
+
   return (
+    <>
     <View style={styles.card}>
       <Text style={styles.name}>{event.name}</Text>
       <Text style={styles.producerLine}>
@@ -198,7 +251,11 @@ export function EventCard({
         </Text>
       ) : null}
       {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
-      {flierUrl ? <Image source={{ uri: flierUrl }} style={styles.flier} contentFit="cover" /> : null}
+      {flierUrl ? (
+        <Pressable onPress={() => setFlierViewerOpen(true)}>
+          <Image source={{ uri: flierUrl }} style={styles.flier} contentFit="cover" />
+        </Pressable>
+      ) : null}
 
       <View style={styles.divisionRow}>
         {event.divisions.map((d) => {
@@ -250,6 +307,20 @@ export function EventCard({
           <Ionicons name="open-outline" size={14} color={colors.bone} />
           <Text style={styles.enterDrawBtnText}>Enter the Draw</Text>
         </Pressable>
+      ) : !producerView && event.entry_method && event.entry_phone ? (
+        // NEW, added 2026-08-18 alongside migration 0057 - the phone-based
+        // equivalent of the button above, for a producer with no online
+        // entry at all who takes entries by text or call (e.g. X-Treme
+        // Team Roping's real entry line). See buildSmsUrl()'s comment -
+        // this requires nothing from the producer, it just pre-fills what
+        // the entrant would otherwise type by hand.
+        <>
+          <Pressable style={styles.enterDrawBtn} onPress={handlePhoneEntry}>
+            <Ionicons name={event.entry_method === 'text' ? 'chatbubble-outline' : 'call-outline'} size={14} color={colors.bone} />
+            <Text style={styles.enterDrawBtnText}>{event.entry_method === 'text' ? 'Text to Enter' : 'Call to Enter'}</Text>
+          </Pressable>
+          {event.producer_contact_info ? <Text style={styles.entryMethodNote}>{event.producer_contact_info}</Text> : null}
+        </>
       ) : (
         // NEW, added 2026-08-09 - real gap flagged directly by the user:
         // an event with no draw_pro_entry_url just showed no button at
@@ -289,6 +360,8 @@ export function EventCard({
         </Pressable>
       ) : null}
     </View>
+    <FlierViewerModal visible={flierViewerOpen} onClose={() => setFlierViewerOpen(false)} uri={fullFlierUrl} />
+    </>
   );
 }
 
@@ -400,6 +473,10 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   enterDrawBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.bone },
+  // NEW, added 2026-08-18 - supplementary text under the Text/Call to
+  // Enter button when there's still more context worth showing (a name,
+  // membership requirement, etc.) beyond just the number itself.
+  entryMethodNote: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 6, lineHeight: 15 },
   // NEW, added 2026-08-09 - see the render logic's own comment above.
   // Muted/dashed rather than styled like a real button (enterDrawBtn) -
   // this is informational, not actionable, and shouldn't visually

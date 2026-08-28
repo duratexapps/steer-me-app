@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -22,7 +22,7 @@ import {
 import { useSubmitEventReport, EVENT_REPORT_OFFENSES } from '@/src/hooks/useReporting';
 import { useMyRatedEventIds, useSubmitRating } from '@/src/hooks/useRatings';
 import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
-import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
+import { useResponsiveColumns } from '@/src/hooks/useResponsiveColumns';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useTownDistances } from '@/src/hooks/useTownDistances';
 import { applyEventFilters, distinctStates, DEFAULT_EVENT_FILTERS, type EventFilters } from '@/src/lib/event-filters';
@@ -63,7 +63,6 @@ export default function Events() {
   const submitRating = useSubmitRating();
   const requireSubscription = useRequireSubscription();
   const numColumns = useResponsiveColumns();
-  const itemWidth = gridItemWidthPercent(numColumns);
 
   const [reportTarget, setReportTarget] = useState<EventWithProducer | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -84,13 +83,21 @@ export default function Events() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Events" subtitle="Posted by real producers - mark your plans to attend" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
-      <ScrollView contentContainerStyle={styles.content}>
-        {eventsLoading ? (
-          <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
-        ) : !events || events.length === 0 ? (
-          <DividerNote>No events posted yet.</DividerNote>
-        ) : (
-          <>
+      {/* PERF, 2026-08-27: was a ScrollView + .map() over the full filtered
+          list - every card (and every full-resolution flier image inside
+          it) mounted at once regardless of scroll position, no windowing
+          at all. FlatList only renders what's near the viewport, same
+          numColumns/columnWrapperStyle/key pattern browse.tsx already
+          uses (numColumns can't change without a remount, hence the key). */}
+      <FlatList
+        key={numColumns}
+        contentContainerStyle={styles.content}
+        data={filteredEvents}
+        keyExtractor={(item) => item.id}
+        numColumns={numColumns}
+        columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
+        ListHeaderComponent={
+          events && events.length > 0 ? (
             <EventFiltersBar
               filters={filters}
               onChange={setFilters}
@@ -98,32 +105,35 @@ export default function Events() {
               homeArea={profile?.home_area}
               resultCount={filteredEvents.length}
             />
-            {filteredEvents.length === 0 ? (
-              <DividerNote>No events match these filters - try widening your search.</DividerNote>
-            ) : (
-              <View style={styles.grid}>
-                {filteredEvents.map((event) => (
-                  <View key={event.id} style={{ width: itemWidth }}>
-                    <EventCard
-                      event={event}
-                      counts={counts}
-                      myAttendance={myAttendance}
-                      alreadyRated={ratedEventIds?.has(event.id)}
-                      ratingSummary={ratingSummaries?.get(event.id)}
-                      onToggleAttend={(division) => handleToggle(event, division)}
-                      onShowPartners={(division) =>
-                        router.push({ pathname: '/(tabs)/browse', params: { eventId: event.id, division: String(division), eventName: event.name } })
-                      }
-                      onReport={() => setReportTarget(event)}
-                      onRatePress={() => setRatingTarget(event)}
-                    />
-                  </View>
-                ))}
-              </View>
-            )}
-          </>
+          ) : null
+        }
+        renderItem={({ item: event }) => (
+          <View style={numColumns > 1 ? styles.gridItem : undefined}>
+            <EventCard
+              event={event}
+              counts={counts}
+              myAttendance={myAttendance}
+              alreadyRated={ratedEventIds?.has(event.id)}
+              ratingSummary={ratingSummaries?.get(event.id)}
+              onToggleAttend={(division) => handleToggle(event, division)}
+              onShowPartners={(division) =>
+                router.push({ pathname: '/(tabs)/browse', params: { eventId: event.id, division: String(division), eventName: event.name } })
+              }
+              onReport={() => setReportTarget(event)}
+              onRatePress={() => setRatingTarget(event)}
+            />
+          </View>
         )}
-      </ScrollView>
+        ListEmptyComponent={
+          eventsLoading ? (
+            <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
+          ) : !events || events.length === 0 ? (
+            <DividerNote>No events posted yet.</DividerNote>
+          ) : (
+            <DividerNote>No events match these filters - try widening your search.</DividerNote>
+          )
+        }
+      />
 
       {reportTarget ? (
         <ReportModal
@@ -160,5 +170,6 @@ export default function Events() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  columnWrapper: { gap: 14 },
+  gridItem: { flex: 1 },
 });

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { publicUrlFor } from '@/src/lib/storage-upload';
+import { FlierViewerModal } from '@/src/components/FlierViewerModal';
 import { formatDivision, formatPosition, formatClassificationTag, isMembershipCurrent } from '@/src/lib/matching';
 import { formatDateDisplay } from '@/src/lib/date';
 import { toClassification } from '@/src/hooks/useEligiblePartners';
@@ -23,9 +25,14 @@ type NeedPostCardProps = {
 // a producer who isn't on Steer Me yet still gets their name and flier
 // seen by everyone who views the post.
 export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBlock, onDelete }: NeedPostCardProps) {
-  const flierUrl = publicUrlFor('need-fliers', post.flier_path);
+  // Same fix as EventCard's flier - resized thumbnail instead of the
+  // full-resolution original for a card rendered small in a list.
+  const flierUrl = publicUrlFor('need-fliers', post.flier_path, { width: 400, quality: 70 });
+  const fullFlierUrl = publicUrlFor('need-fliers', post.flier_path);
+  const [flierViewerOpen, setFlierViewerOpen] = useState(false);
 
   return (
+    <>
     <View style={styles.card}>
       <View style={styles.headRow}>
         {post.poster ? <Tag value={formatClassificationTag(toClassification(post.poster))} /> : null}
@@ -51,7 +58,11 @@ export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBl
         </View>
       </View>
 
-      {flierUrl ? <Image source={{ uri: flierUrl }} style={styles.flier} contentFit="cover" /> : null}
+      {flierUrl ? (
+        <Pressable onPress={() => setFlierViewerOpen(true)}>
+          <Image source={{ uri: flierUrl }} style={styles.flier} contentFit="cover" />
+        </Pressable>
+      ) : null}
 
       {post.facebook_link ? (
         <Pressable onPress={() => Linking.openURL(post.facebook_link!)} style={styles.cursorPointer}>
@@ -82,6 +93,8 @@ export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBl
         ) : null}
       </View>
     </View>
+    <FlierViewerModal visible={flierViewerOpen} onClose={() => setFlierViewerOpen(false)} uri={fullFlierUrl} />
+    </>
   );
 }
 
