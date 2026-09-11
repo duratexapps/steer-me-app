@@ -52,3 +52,34 @@ export async function verifyClassificationCard(args: VerifyCardArgs): Promise<Ve
     return { verified: true, mismatches: [], skipped: true, reason: 'Unexpected error' };
   }
 }
+
+type ReportConflictArgs = {
+  membershipId: string;
+  claimedName: string;
+  position: Position;
+  screenshotPath: string | null;
+};
+
+/**
+ * Calls the report-membership-conflict Edge Function - fire-and-forget
+ * from the caller's point of view. Added 2026-08-18, alongside migration
+ * 0056, for the moment sign-up.tsx/update-classification.tsx's
+ * profiles insert/update comes back with a 23505 unique_violation on
+ * global_membership_id: logs the attempt for human review and emails
+ * both the existing account holder and the blocked person, rather than
+ * the conflict silently vanishing into a "contact support" toast.
+ *
+ * Never throws, same reasoning as verifyClassificationCard above - a
+ * failure here shouldn't compound the user's existing "your submission
+ * was blocked" moment with an unrelated crash.
+ */
+export async function reportMembershipConflict(args: ReportConflictArgs): Promise<void> {
+  try {
+    const { error } = await supabase.functions.invoke('report-membership-conflict', { body: args });
+    if (error) {
+      console.error('report-membership-conflict invoke error', error);
+    }
+  } catch (err) {
+    console.error('report-membership-conflict unexpected failure', err);
+  }
+}

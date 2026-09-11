@@ -77,7 +77,18 @@ import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 const EXPO_PUSH_API_URL = 'https://exp.host/--/api/v2/push/send';
 
 type WebhookPayload = {
-  action?: 'getExtraRunStatuses' | 'getCancellationRequests' | 'confirmCancellation' | 'registerSubmission';
+  action?:
+    | 'getExtraRunStatuses'
+    | 'getCancellationRequests'
+    | 'confirmCancellation'
+    | 'registerSubmission'
+    // NEW, added for real standings - a "you're now in Nth place" push
+    // fired once a round becomes fully complete on Draw Pro's side. A
+    // distinct explicit action rather than folding into the implicit
+    // token+teamNumber+round round-result shape below - that shape is
+    // structurally tied to writing draw_pro_round_results, and a standing
+    // isn't a recorded run, it must never trigger that write.
+    | 'pushRoundStandings';
   lookups?: { token: string; teamNumber: number }[];
   // NEW, added 2026-08-06 for migration 0047_draw_pro_entry_cancellation.sql
   // - drawProEventId is Draw Pro's OWN event id (a Wix string), not this
@@ -114,6 +125,10 @@ type WebhookPayload = {
   oneLegCatch?: boolean;
   penaltySeconds?: number;
   finalTime?: number | null;
+  // NEW - pushRoundStandings' own fields, alongside the token/teamNumber/
+  // round fields already above.
+  rank?: number;
+  totalActiveTeams?: number;
 };
 
 Deno.serve(async (req) => {
@@ -155,6 +170,20 @@ Deno.serve(async (req) => {
 
   if (body.action === 'registerSubmission') {
     return handleRegisterSubmission(supabaseAdmin, body.token ?? '', body.entryType, body.requestedRunCount);
+  }
+
+  if (body.action === 'pushRoundStandings') {
+    return handlePushRoundStandings(supabaseAdmin, body);
+  }
+
+  // Any other non-empty action string is unrecognized, not implicit - reject
+  // it here rather than falling through to the round-result/team-assignment
+  // logic below. Without this, a typo'd or malformed action (still carrying
+  // token+teamNumber+round, since that's a strict subset of the standings
+  // payload shape) would silently be treated as a real round-result call and
+  // overwrite a live result with final_time: null.
+  if (body.action) {
+    return new Response(`Unknown action: ${body.action}`, { status: 400 });
   }
 
   if (!body.token) {
@@ -353,6 +382,66 @@ Deno.serve(async (req) => {
 
   return Response.json({ found: true, linkId: link.id, round: body.round, teamNumber: body.teamNumber });
 });
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+// NEW - round standings notification. Distinct from the round-result
+// branch above: this never writes to draw_pro_round_results (a standing
+// isn't a recorded run), it only resolves token -> steer_me_user_id and
+// notifies. Draw Pro computes rank/totalActiveTeams itself and only ever
+// calls this for teams currently in the top 20 - no ranking or filtering
+// happens on this side.
+async function handlePushRoundStandings(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdmin>,
+  body: WebhookPayload
+) {
+  if (!body.token || body.teamNumber == null || body.rank == null || body.round == null) {
+    return new Response('Missing token, teamNumber, round, or rank', { status: 400 });
+  }
+
+  const { data: link, error: linkError } = await supabaseAdmin
+    .from('draw_pro_entry_links')
+    .select('id, steer_me_user_id, event_id, events(name)')
+    .eq('token', body.token)
+    .maybeSingle();
+
+  if (linkError) {
+    console.error('[draw-pro-results-webhook] pushRoundStandings link lookup failed', body.token, linkError);
+    return Response.json({ error: linkError.message }, { status: 500 });
+  }
+  if (!link) {
+    console.warn('[draw-pro-results-webhook] pushRoundStandings no link for token', body.token);
+    return Response.json({ found: false }, { status: 404 });
+  }
+
+  const eventRecord = Array.isArray(link.events) ? link.events[0] : link.events;
+  const eventName: string = eventRecord?.name ?? 'your event';
+
+  const { data: team } = await supabaseAdmin
+    .from('draw_pro_entry_link_teams')
+    .select('team_number, total_teams')
+    .eq('entry_link_id', link.id)
+    .eq('team_number', body.teamNumber)
+    .maybeSingle();
+  const teamLabel = team?.total_teams != null
+    ? ` — Team #${body.teamNumber} of ${team.total_teams}`
+    : ` — Team #${body.teamNumber}`;
+
+  const rankText = ordinal(body.rank);
+  const fieldText = body.totalActiveTeams != null ? ` of ${body.totalActiveTeams}` : '';
+  sendPushNotification(
+    supabaseAdmin,
+    link.steer_me_user_id,
+    `Round ${body.round} standings — ${rankText} place`,
+    `You're sitting ${rankText}${fieldText} after Round ${body.round} at ${eventName}${teamLabel}.`
+  ).catch((err) => console.error('[draw-pro-results-webhook] pushRoundStandings push failed', err));
+
+  return Response.json({ found: true, linkId: link.id, teamNumber: body.teamNumber, rank: body.rank });
+}
 
 // NEW, 2026-08-05 - see this file's header comment. Draw Pro has no
 // standing knowledge of this database's internal ids (entry_link_id,

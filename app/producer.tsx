@@ -24,6 +24,7 @@ import { goBackOrHome } from '@/src/lib/navigation';
 // Mirrors Screen 12 (#producer) - sign-up form when no producer profile
 // exists yet, dashboard once it does.
 export default function Producer() {
+  const profileStatusChecked = useSessionStore((s) => s.profileStatusChecked);
   const hasProducerProfile = useSessionStore((s) => s.hasProducerProfile);
   const setHasProducerProfile = useSessionStore((s) => s.setHasProducerProfile);
   const { data: producer, isLoading } = useMyProducerProfile();
@@ -32,7 +33,9 @@ export default function Producer() {
   // hasProducerProfile flips true at session bootstrap, slightly before
   // useMyProducerProfile's own fetch resolves - without this guard, that
   // gap briefly flashes the sign-up form for a producer who already exists.
-  if (hasProducerProfile && isLoading) {
+  // !profileStatusChecked covers the earlier cold-start gap - see
+  // app/(tabs)/index.tsx's matching guard comment.
+  if (!profileStatusChecked || (hasProducerProfile && isLoading)) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
         <ActivityIndicator color={colors.brass} style={{ marginTop: 40 }} />

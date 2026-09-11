@@ -1,0 +1,19 @@
+-- REAL BUG, found live 2026-08-19 during verification of migration 0058:
+-- `create or replace function send_push_via_edge_function(uuid, text,
+-- text, jsonb default null)` does NOT replace the original 3-argument
+-- version from migration 0047 - Postgres only replaces a function with
+-- the exact same argument list, so adding p_data created a SECOND,
+-- overloaded function instead. Every 3-argument call site (the
+-- auto-cancel branch of request_draw_pro_entry_submission_cancellation,
+-- and notify_ban_suspended_user() if it calls this - it doesn't, but any
+-- future 3-arg caller would) then became genuinely ambiguous between
+-- "the 3-arg function" and "the 4-arg function with p_data defaulted",
+-- which Postgres refuses to resolve on its own (42725, "not unique").
+-- Confirmed live: this broke the auto-cancel path entirely (400 error on
+-- every call) even though the notify-only path happened to still work
+-- (it's the one that now always passes 4 explicit arguments).
+--
+-- Fix: explicitly drop the stale 3-arg overload so only the 4-arg
+-- (p_data defaulting to null) version exists - every existing 3-arg call
+-- site keeps working unchanged, now unambiguously.
+drop function if exists public.send_push_via_edge_function(uuid, text, text);

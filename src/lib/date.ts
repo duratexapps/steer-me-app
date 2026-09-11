@@ -58,3 +58,20 @@ export function isEventStillUpcoming(startIsoDate: string, endIsoDate: string | 
   const d = new Date(`${anchor}T23:59:59`); // through the END of that day, not midnight at its start
   return d.getTime() >= Date.now();
 }
+
+// NEW, added for My Entries' offline/stale-cache banner - `timestampMs` is
+// a plain epoch-ms value (matches TanStack Query's own `dataUpdatedAt`, so
+// callers never need a separate timestamp-tracking mechanism). Falls back
+// to a real date past 24h rather than an ever-growing "N hours ago", since
+// "37 hours ago" reads worse than the actual date at that point.
+export function relativeTime(timestampMs: number): string {
+  if (!timestampMs) return 'unknown';
+  const diffMs = Date.now() - timestampMs;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  return new Date(timestampMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}

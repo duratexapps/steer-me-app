@@ -16,10 +16,18 @@ import type { PostgrestError } from '@supabase/supabase-js';
 // only unique constraint that exists on profiles today.
 export function friendlySupabaseError(error: PostgrestError): string {
   if (error.code === '23505') {
+    // NEW, updated 2026-08-18 alongside migration 0056 and
+    // report-membership-conflict - this conflict is no longer a dead
+    // end the blocked person has to think to escalate themselves. The
+    // caller (sign-up.tsx/update-classification.tsx) also fires
+    // reportMembershipConflict() right when this error comes back, which
+    // logs the attempt for review and emails both the existing account
+    // holder and the blocked person - this copy reflects that it already
+    // happened, not that the user needs to go do it.
     return (
       "That Global Membership ID is already registered to another Steer Me account. " +
-      "If this is your own ID and you believe someone else is using your identity, " +
-      "contact support so we can investigate."
+      "We've flagged this for review and let the existing account holder know. " +
+      "If this is genuinely your own ID, contact support with a photo of your card and we'll help sort it out."
     );
   }
   return error.message;

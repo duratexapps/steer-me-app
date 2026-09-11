@@ -6,7 +6,7 @@ import { Button } from '@/src/components/ui/Button';
 import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
-import { formatDateDisplay } from '@/src/lib/date';
+import { formatDateDisplay, relativeTime } from '@/src/lib/date';
 import { showToast } from '@/src/state/toast-store';
 import { confirmAsync } from '@/src/lib/confirm';
 import { goBackOrHome } from '@/src/lib/navigation';
@@ -52,8 +52,16 @@ function formatSubmittedAt(isoTimestamp: string) {
 // each showing exactly what that one entry was and with its own Cancel
 // button that only touches that one entry.
 export default function MyEntries() {
-  const { data: entries, isLoading } = useMyDrawProEntries();
+  // FIXED - real bug found alongside the offline-resilience work: this
+  // never checked isError before, so a failed fetch (entries: undefined,
+  // isLoading: false) fell straight into the empty-state branch below,
+  // indistinguishable from a real "you have no entries" account. Now a
+  // failure only looks like "no entries" if it's ALSO true there's no
+  // cached data to fall back on - see the render logic below.
+  const { data: entries, isLoading, isError, dataUpdatedAt, refetch } = useMyDrawProEntries();
   const [helpOpen, setHelpOpen] = useState(false);
+
+  const hasEntries = !!entries && entries.length > 0;
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -65,15 +73,25 @@ export default function MyEntries() {
       />
       {isLoading ? (
         <ActivityIndicator color={colors.brass} style={{ marginTop: 40 }} />
+      ) : isError && !hasEntries ? (
+        <View style={styles.content}>
+          <Text style={styles.empty}>Couldn't load your entries. Check your connection.</Text>
+          <Button label="Retry" onPress={() => refetch()} style={{ marginTop: 12 }} />
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
-          {!entries || entries.length === 0 ? (
+          {isError && hasEntries && (
+            <Text style={styles.staleBanner} onPress={() => refetch()}>
+              Showing results from {relativeTime(dataUpdatedAt)} — tap to retry
+            </Text>
+          )}
+          {!hasEntries ? (
             <Text style={styles.empty}>
               Once you tap "Enter the Draw" on an event, your team number and results will show up here as the
               producer runs the draw and enters results.
             </Text>
           ) : (
-            entries.map((entry) => <EntryCard key={entry.id} entry={entry} />)
+            entries!.map((entry) => <EntryCard key={entry.id} entry={entry} />)
           )}
         </ScrollView>
       )}
@@ -305,6 +323,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 30,
     lineHeight: 19,
+  },
+  staleBanner: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.brass,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+    marginBottom: 12,
   },
   card: {
     backgroundColor: colors.tanLight,

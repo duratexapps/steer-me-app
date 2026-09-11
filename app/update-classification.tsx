@@ -18,7 +18,7 @@ import { showToast } from '@/src/state/toast-store';
 import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
 import { validateClassificationForEnd } from '@/src/lib/matching';
 import { friendlySupabaseError } from '@/src/lib/errors';
-import { verifyClassificationCard } from '@/src/lib/verification';
+import { verifyClassificationCard, reportMembershipConflict } from '@/src/lib/verification';
 import { goBackOrHome } from '@/src/lib/navigation';
 
 // Mirrors "Update my classification" from Profile (Screen 6) - re-verifying
@@ -135,6 +135,16 @@ export default function UpdateClassification() {
       // actionable message here too, since a user can also trigger this
       // conflict when updating their ID later, not just at signup.
       showToast(friendlySupabaseError(error));
+      // NEW, added 2026-08-18 - same conflict report/notify flow
+      // (migration 0056) as sign-up.tsx. Fire-and-forget.
+      if (error.code === '23505') {
+        void reportMembershipConflict({
+          membershipId: globalMembershipId.trim(),
+          claimedName: profile?.full_name ?? '',
+          position: profile?.position ?? 'Heeler',
+          screenshotPath,
+        });
+      }
       return;
     }
 

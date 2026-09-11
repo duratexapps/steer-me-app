@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { router } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { TextField } from '@/src/components/ui/TextField';
@@ -13,12 +12,21 @@ import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
 
 // Landing page for "Forgot password?" on sign-in.tsx. Sends a Supabase
-// recovery email pointing at reset-password.tsx (see that file's own
-// comment for how the actual link-back is handled) - same
-// Linking.createURL() idiom create-account.tsx already uses for its own
-// confirmation email, so this resolves correctly on native (steerme://...)
-// and web (a real https origin) without needing to know which one ahead
-// of time.
+// recovery email pointing at reset-password.tsx.
+//
+// FIXED 2026-09-01, real bug caught live: this used to call
+// Linking.createURL('reset-password'), which resolves relative to
+// whichever platform is SENDING the request (steerme://reset-password when
+// requested from the native app). That's the wrong axis - a password
+// reset email can be opened on any device, not just the one that
+// requested it (confirmed directly: request came from an iPad, the email
+// was opened on a Mac with the app not installed, and the native-only
+// deep link had nothing to hand off to). reset-password.tsx is already
+// served identically on the web build at steerme.ropingtools.com/reset-password
+// (confirmed live), so pointing here always works no matter which device
+// opens the link - a real fix, not a workaround.
+const RESET_PASSWORD_URL = 'https://steerme.ropingtools.com/reset-password';
+
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +39,7 @@ export default function ForgotPassword() {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: Linking.createURL('reset-password'),
+      redirectTo: RESET_PASSWORD_URL,
     });
     setLoading(false);
 

@@ -56,6 +56,12 @@ export default function CreateEvent() {
   const [flierOpen, setFlierOpen] = useState(false);
   const [flierUri, setFlierUri] = useState<string | null>(null);
   const [flierPath, setFlierPath] = useState<string | null>(null);
+  // NEW, added 2026-08-18 alongside migration 0057 - optional phone-based
+  // entry method, for a producer who takes entries by text/call instead
+  // of (or alongside) whatever online entry Steer Me otherwise offers.
+  // See EventCard.tsx for the entrant-facing pre-filled composer.
+  const [entryMethod, setEntryMethod] = useState<'text' | 'call' | null>(null);
+  const [entryPhone, setEntryPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   function toggleDivision(d: number) {
@@ -104,6 +110,8 @@ export default function CreateEvent() {
         division_details: buildDivisionDetailsPayload(divisions, divisionDetails),
         booking_link: bookingLink.trim() || null,
         booking_phone: bookingPhone.trim() || null,
+        entry_method: entryMethod,
+        entry_phone: entryMethod ? entryPhone.trim() || null : null,
       });
       showToast(`"${name.trim()}" posted`);
       router.back();
@@ -188,6 +196,26 @@ export default function CreateEvent() {
           multiline
           numberOfLines={4}
         />
+
+        <Text style={styles.label}>How ropers enter (optional)</Text>
+        <Text style={styles.helper}>
+          If you take entries by text or call, pick it here - Steer Me will pre-fill the entrant's own name and
+          classification into their phone's message/call so they don't have to retype it.
+        </Text>
+        <View style={styles.pillWrap}>
+          <Pill label="Not phone-based" selected={entryMethod === null} onPress={() => setEntryMethod(null)} />
+          <Pill label="Text to enter" selected={entryMethod === 'text'} onPress={() => setEntryMethod('text')} />
+          <Pill label="Call to enter" selected={entryMethod === 'call'} onPress={() => setEntryMethod('call')} />
+        </View>
+        {entryMethod ? (
+          <TextField
+            label={entryMethod === 'text' ? 'Number to text' : 'Number to call'}
+            value={entryPhone}
+            onChangeText={setEntryPhone}
+            placeholder="e.g. (432) 349-2572"
+            keyboardType="phone-pad"
+          />
+        ) : null}
 
         <Text style={[styles.label, { marginTop: 16 }]}>Event flier (optional)</Text>
         <Pressable style={styles.dropzone} onPress={() => setFlierOpen(true)}>

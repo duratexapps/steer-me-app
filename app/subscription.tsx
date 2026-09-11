@@ -17,6 +17,11 @@ import { goBackOrHome } from '@/src/lib/navigation';
 
 type Plan = 'annual' | 'monthly';
 
+// Apple rejected 1.3.4 under 2.3.10 for this screen naming Google Play in
+// the iOS binary - a reviewer should only ever see the store they're
+// reviewing on, never the other platform's name.
+const storeName = Platform.OS === 'ios' ? 'the App Store' : 'Google Play';
+
 const PLAN_COPY: Record<Plan, { title: string; price: string; sub: string }> = {
   annual: { title: 'Annual membership', price: '$39.99/yr', sub: '$39.99/year — works out to about $3.33/month' },
   monthly: { title: 'Monthly membership', price: '$6.99/mo', sub: '$6.99/month — billed every 30 days' },
@@ -126,7 +131,7 @@ export default function Subscription() {
           <Text style={styles.planSub}>{PLAN_COPY[plan].sub}</Text>
           <Text style={styles.planDesc}>
             Unlimited partner search, posting, requests, and event browsing. Cancel any time - billed
-            through the App Store or Google Play.
+            through {storeName}.
           </Text>
         </View>
 
@@ -138,8 +143,8 @@ export default function Subscription() {
         />
         {!offering ? (
           <Text style={styles.unavailableNote}>
-            Subscriptions aren't available yet in this build - the RevenueCat project and App
-            Store/Google Play products haven't been set up.
+            Subscriptions aren't available yet in this build - the RevenueCat project hasn't been
+            fully configured for this platform yet.
           </Text>
         ) : null}
       </ScrollView>

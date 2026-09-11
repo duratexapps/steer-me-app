@@ -19,6 +19,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
+import { buildExtractionSystemPrompt } from '../_shared/ai-safety-prompt.ts';
+
+// NEW, added 2026-08-18 - see _shared/ai-safety-prompt.ts's own header
+// comment for the full reasoning (standing, permanent policy - resist
+// prompt injection embedded in an upload, stay strictly on-topic).
+const SYSTEM_PROMPT = buildExtractionSystemPrompt(
+  'read a photo/scan of a team roping event flier and extract only how a contestant enters or who to contact.',
+  'a short plain-text line combining the entry/contact method actually printed on a real team roping flier - a name, phone number, email, or entry website'
+);
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001'; // fast/cheap is fine for structured extraction, not nuanced judgment
@@ -138,6 +147,7 @@ async function extractContactInfo(apiKey: string, base64Image: string, mediaType
     body: JSON.stringify({
       model: ANTHROPIC_MODEL,
       max_tokens: 512,
+      system: SYSTEM_PROMPT,
       messages: [
         {
           role: 'user',

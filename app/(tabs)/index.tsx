@@ -22,6 +22,7 @@ export default function Home() {
   // not on every ordinary return visit to Home - AndroidTesterBanner
   // itself already no-ops on native regardless.
   const { justSignedUp } = useLocalSearchParams<{ justSignedUp?: string }>();
+  const profileStatusChecked = useSessionStore((s) => s.profileStatusChecked);
   const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
   const hasProducerProfile = useSessionStore((s) => s.hasProducerProfile);
   const { data: profile, isLoading: profileLoading } = useMyProfile();
@@ -37,11 +38,21 @@ export default function Home() {
   const pendingCount = (sent ?? []).filter((r) => r.status === 'pending' || r.status === 'pending_guardian').length;
   const bookedCount = (sent ?? []).filter((r) => r.status === 'accepted').length;
 
-  // hasAthleteProfile flips true at session bootstrap, slightly before
-  // useMyProfile's own fetch resolves - without this guard, that gap
-  // briefly renders the "no profile yet" hero for an athlete who very much
-  // has one.
-  if (hasAthleteProfile && profileLoading) {
+  // Two separate gaps this guards against, both real and both confirmed
+  // live on a cold app launch:
+  // 1. !profileStatusChecked - hasAthleteProfile/hasProducerProfile
+  //    default to false at store creation, same value a genuine no-profile
+  //    user has. Between isReady flipping true (fast, local-only) and
+  //    _layout.tsx's fire-and-forget bootstrap() actually resolving
+  //    (a real network round trip), those flags are indistinguishable
+  //    from "checked, and you truly have no profile" - without this,
+  //    every athlete with a real profile sees this screen's "Set up a
+  //    profile to get started" hero flash before their real one loads.
+  // 2. hasAthleteProfile && profileLoading - hasAthleteProfile flips true
+  //    at session bootstrap, slightly before useMyProfile's own fetch
+  //    resolves - without this, that gap briefly renders the "no profile
+  //    yet" hero for an athlete who very much has one.
+  if (!profileStatusChecked || (hasAthleteProfile && profileLoading)) {
     return <SafeAreaView style={styles.screen} edges={['bottom']} />;
   }
 

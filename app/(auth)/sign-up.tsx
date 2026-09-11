@@ -22,7 +22,7 @@ import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { validateClassificationForEnd, type Position } from '@/src/lib/matching';
 import { friendlySupabaseError } from '@/src/lib/errors';
-import { verifyClassificationCard } from '@/src/lib/verification';
+import { verifyClassificationCard, reportMembershipConflict } from '@/src/lib/verification';
 
 type PhotoTarget = 'avatar' | 'screenshot' | null;
 
@@ -214,6 +214,18 @@ export default function SignUp() {
       // this ID) would have shown a raw, confusing Postgres error
       // instead of a clear, actionable message.
       showToast(friendlySupabaseError(error));
+      // NEW, added 2026-08-18 - fire the actual conflict report/notify
+      // flow (migration 0056) the moment this is that specific error,
+      // not just a friendlier toast about it. Fire-and-forget - never
+      // blocks the toast above.
+      if (error.code === '23505') {
+        void reportMembershipConflict({
+          membershipId: globalMembershipId.trim(),
+          claimedName: fullName.trim(),
+          position,
+          screenshotPath,
+        });
+      }
       return;
     }
 

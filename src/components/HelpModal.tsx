@@ -1,9 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Button } from '@/src/components/ui/Button';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { HELP_CONTENT, HELP_TOPIC_ORDER } from '@/src/lib/help-content';
+
+const FAQ_URL = 'https://steerme.ropingtools.com/faq';
+
+// On web this page is already part of the same app, so an in-app nav keeps
+// the SPA state instead of a full page reload; on native, nothing ever
+// navigates to app/faq.tsx in-app by design (see its own header comment for
+// why the route file still exists there) - this opens the real device
+// browser to the same page instead.
+function openFaq() {
+  if (Platform.OS === 'web') {
+    router.push('/faq');
+  } else {
+    Linking.openURL(FAQ_URL);
+  }
+}
 
 type HelpModalProps = {
   visible: boolean;
@@ -66,6 +82,7 @@ export function HelpModal({ visible, onClose, topic }: HelpModalProps) {
             onPress={() => setShowingList(true)}
             style={{ marginTop: 14 }}
           />
+          <Button label="Visit full FAQ" variant="ghost" onPress={openFaq} style={{ marginTop: 8 }} />
         </View>
       </View>
     </Modal>

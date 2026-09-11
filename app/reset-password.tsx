@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -39,7 +39,15 @@ export default function ResetPassword() {
           return;
         }
       } else {
-        const initialUrl = await Linking.getInitialURL();
+        // FIXED 2026-09-01, confirmed live against the real deployed page
+        // (not just docs, which don't cover this): Linking.getInitialURL()
+        // does not reliably include the URL's hash fragment on web - a
+        // real access_token#... link still fell through to "missing
+        // required information" here. window.location.href always has the
+        // full URL including the hash, so read that directly on web
+        // instead of trusting Linking for this one case.
+        const initialUrl =
+          Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.href : null) : await Linking.getInitialURL();
         const tokens = parseHashTokens(initialUrl);
         if (!tokens) {
           if (cancelled) return;

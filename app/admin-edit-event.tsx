@@ -61,6 +61,10 @@ export default function AdminEditEvent() {
   // and admin-post-event.tsx's matching comment.
   const [contactInfo, setContactInfo] = useState('');
   const [scanningContact, setScanningContact] = useState(false);
+  // NEW, added 2026-08-18 alongside migration 0057 - see admin-post-event.tsx's
+  // matching comment.
+  const [entryMethod, setEntryMethod] = useState<'text' | 'call' | null>(null);
+  const [entryPhone, setEntryPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
@@ -84,6 +88,8 @@ export default function AdminEditEvent() {
       setContactInfo(event.producer_contact_info ?? '');
       setBookingLink(event.booking_link ?? '');
       setBookingPhone(event.booking_phone ?? '');
+      setEntryMethod(event.entry_method);
+      setEntryPhone(event.entry_phone ?? '');
       setPrefilled(true);
     }
   }, [event, prefilled]);
@@ -160,6 +166,8 @@ export default function AdminEditEvent() {
         producer_contact_info: contactInfo.trim() || null,
         booking_link: bookingLink.trim() || null,
         booking_phone: bookingPhone.trim() || null,
+        entry_method: entryMethod,
+        entry_phone: entryMethod ? entryPhone.trim() || null : null,
       });
       showToast(`"${name.trim()}" updated`);
       router.back();
@@ -280,9 +288,30 @@ export default function AdminEditEvent() {
           )}
         </Pressable>
 
-        <Text style={styles.label}>Producer contact info</Text>
+        <Text style={styles.label}>How ropers enter (optional)</Text>
         <Text style={styles.helper}>
-          How an entrant reaches the producer or enters, since there's no online entry for this event -
+          If the flier says "enter by text" or "enter by call," pick it here - Steer Me will pre-fill the
+          entrant's own name and classification into their phone's message/call so they don't have to retype it.
+          Leave on "Other" if entry is online elsewhere or unclear from the flier.
+        </Text>
+        <View style={styles.pillWrap}>
+          <Pill label="Other / see contact info" selected={entryMethod === null} onPress={() => setEntryMethod(null)} />
+          <Pill label="Text to enter" selected={entryMethod === 'text'} onPress={() => setEntryMethod('text')} />
+          <Pill label="Call to enter" selected={entryMethod === 'call'} onPress={() => setEntryMethod('call')} />
+        </View>
+        {entryMethod ? (
+          <TextField
+            label={entryMethod === 'text' ? 'Number to text' : 'Number to call'}
+            value={entryPhone}
+            onChangeText={setEntryPhone}
+            placeholder="e.g. (432) 349-2572"
+            keyboardType="phone-pad"
+          />
+        ) : null}
+
+        <Text style={[styles.label, { marginTop: entryMethod ? 0 : 16 }]}>Producer contact info</Text>
+        <Text style={styles.helper}>
+          How an entrant reaches the producer, or extra detail beyond the text/call above -
           {scanningContact ? ' scanning the flier…' : ' auto-suggested from the flier. Review and correct before saving.'}
         </Text>
         <View style={styles.contactRow}>

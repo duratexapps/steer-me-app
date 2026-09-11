@@ -59,7 +59,7 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
   },
   'my-entries': {
     title: 'My Entries',
-    body: "Once you tap \"Enter the Draw\" on an event, your team number appears here once the producer runs the draw, and your round-by-round results (time, penalties, or a No Time) appear here as the producer enters them - no need to track anyone down at the event.",
+    body: "Once you tap \"Enter the Draw\" on an event, your team number appears here once the producer runs the draw, and your round-by-round results (time, penalties, or a No Time) appear here as the producer enters them - no need to track anyone down at the event.\n\nThis only works for events the producer runs on Draw Pro. If you entered by phone or in person instead, there's nothing to show here - check with the producer directly for your team number and results.",
   },
   'account-settings': {
     title: 'Account settings',
@@ -75,7 +75,7 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
   },
   events: {
     title: 'Events',
-    body: 'Browse real events posted by producers. Mark yourself attending a division to see other eligible partners going to that same event, and rate an event once it has passed.',
+    body: "Browse real events posted by producers. Mark yourself attending a division to see other eligible partners going to that same event, and rate an event once it has passed.\n\nOnline entry, automatic team numbers, and live round results only show up for events the producer runs on Draw Pro - you'll see a note on the event card when that's not the case. See \"Online entry & live results\" in Browse all topics for more.",
   },
   producer: {
     title: 'Producer dashboard',

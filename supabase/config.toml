@@ -156,14 +156,37 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+# FIXED 2026-09-01 - real bug caught live: this was still the local-dev
+# default, so any auth redirect that fell back to site_url (see the
+# additional_redirect_urls comment below for why that happens) sent real
+# users to a Mac's own localhost instead of anywhere reachable.
+site_url = "https://steerme.ropingtools.com"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 # "steerme://confirm-email" ADDED 2026-08-12, required for enable_confirmations
 # below to actually work in the real app - see app/confirm-email.tsx and
 # RUNBOOK.md's "Turning on email confirmation for new sign-ups" section.
-additional_redirect_urls = ["https://127.0.0.1:3000", "steerme://confirm-email"]
+# "steerme://reset-password" ADDED 2026-09-01 - real bug caught live: this
+# was never added, so forgot-password.tsx's requested redirectTo was
+# rejected as not allow-listed and GoTrue silently fell back to the stale
+# site_url above instead (127.0.0.1:3000, sent straight to a real user's
+# phone). reset-password.tsx itself was already correctly built to handle
+# this link - the redirect was the only missing piece.
+# "https://steerme.ropingtools.com/reset-password" ADDED 2026-09-01, same
+# day - forgot-password.tsx no longer uses the steerme:// scheme above at
+# all (kept in this list only in case anything else still references it -
+# safe to prune later once confirmed unused elsewhere). A password-reset
+# email can be opened on any device, not just the one that requested it,
+# so the redirect target has to be a real web URL that works everywhere,
+# not a native-only deep link that only works if that specific device
+# happens to have the app installed.
+additional_redirect_urls = [
+  "https://127.0.0.1:3000",
+  "steerme://confirm-email",
+  "steerme://reset-password",
+  "https://steerme.ropingtools.com/reset-password",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -463,6 +486,21 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-welcome-email]
+verify_jwt = false
+
+# REAL BUG, found live 2026-08-19 while verifying migration 0058: this
+# function's own header comment has claimed "verify_jwt is off" since it
+# was created (migration 0047), but this config.toml entry declaring that
+# was never actually added - confirmed live, a direct call with a valid
+# x-webhook-secret still got rejected at the gateway with "Missing
+# authorization header" before ever reaching this function's own code.
+# Every caller (send_push_via_edge_function via pg_net, and draw-pro-
+# results-webhook's direct calls) has only ever sent the shared secret
+# header, never a Supabase JWT - meaning every push notification this
+# function was ever supposed to send (including the original partner-
+# cancellation notify, live since 2026-07-27) has likely been silently
+# failing at the gateway this whole time, well before today's changes.
+[functions.send-push-notification]
 verify_jwt = false
 
 # Public by design, not an oversight - see this function's own header

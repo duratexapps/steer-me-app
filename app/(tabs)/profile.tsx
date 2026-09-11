@@ -21,6 +21,7 @@ import { toClassification } from '@/src/hooks/useEligiblePartners';
 // dropping the "Enable notifications" toggle since the Notifications
 // feature it would control isn't in v1 scope.
 export default function Profile() {
+  const profileStatusChecked = useSessionStore((s) => s.profileStatusChecked);
   const hasAthleteProfile = useSessionStore((s) => s.hasAthleteProfile);
   const setHasAthleteProfile = useSessionStore((s) => s.setHasAthleteProfile);
   const { data: profile, isLoading } = useMyProfile();
@@ -69,7 +70,11 @@ export default function Profile() {
     router.replace('/(tabs)');
   }
 
-  if (hasAthleteProfile && isLoading) {
+  // See app/(tabs)/index.tsx's matching guard comment - !profileStatusChecked
+  // covers the same cold-start gap (hasAthleteProfile defaults false,
+  // indistinguishable from a real no-profile user, until _layout.tsx's
+  // fire-and-forget bootstrap() actually resolves).
+  if (!profileStatusChecked || (hasAthleteProfile && isLoading)) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
         <ScreenHeader title="Profile" subtitle="Your Global-issued info" onHelp={() => setHelpOpen(true)} />

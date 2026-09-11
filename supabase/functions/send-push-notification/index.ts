@@ -26,7 +26,13 @@ Deno.serve(async (req) => {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  let payload: { userId?: string; title?: string; body?: string };
+  // NEW, added 2026-08-19 alongside migration 0058 - optional structured
+  // payload so a tap on the notification can act, not just inform (see
+  // app/partner-cancelled.tsx and the notification-response listener in
+  // app/_layout.tsx). Every existing caller omits this and keeps working
+  // unchanged - Expo's push API simply omits `data` from the delivered
+  // payload when it's undefined.
+  let payload: { userId?: string; title?: string; body?: string; data?: Record<string, unknown> | null };
   try {
     payload = await req.json();
   } catch {
@@ -57,7 +63,12 @@ Deno.serve(async (req) => {
   const res = await fetch(EXPO_PUSH_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ to: profile.expo_push_token, title: payload.title, body: payload.body }),
+    body: JSON.stringify({
+      to: profile.expo_push_token,
+      title: payload.title,
+      body: payload.body,
+      ...(payload.data ? { data: payload.data } : {}),
+    }),
   });
 
   if (!res.ok) {

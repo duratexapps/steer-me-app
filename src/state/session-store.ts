@@ -7,11 +7,19 @@ import type { Session } from '@supabase/supabase-js';
 type SessionState = {
   session: Session | null;
   isReady: boolean;
+  // NEW - distinguishes "we haven't checked yet" from "checked, and it's
+  // false". hasAthleteProfile/hasProducerProfile default to false at store
+  // creation, same as a genuine no-profile user - without this flag,
+  // nothing downstream can tell those two situations apart during the
+  // window between isReady flipping true and _layout.tsx's fire-and-forget
+  // bootstrap() actually resolving. See app/(tabs)/index.tsx's guard.
+  profileStatusChecked: boolean;
   hasAthleteProfile: boolean;
   hasProducerProfile: boolean;
   entitlementActive: boolean;
   setSession: (session: Session | null) => void;
   setReady: (ready: boolean) => void;
+  setProfileStatusChecked: (value: boolean) => void;
   setHasAthleteProfile: (value: boolean) => void;
   setHasProducerProfile: (value: boolean) => void;
   setEntitlementActive: (value: boolean) => void;
@@ -21,11 +29,13 @@ type SessionState = {
 export const useSessionStore = create<SessionState>((set) => ({
   session: null,
   isReady: false,
+  profileStatusChecked: false,
   hasAthleteProfile: false,
   hasProducerProfile: false,
   entitlementActive: false,
   setSession: (session) => set({ session }),
   setReady: (isReady) => set({ isReady }),
+  setProfileStatusChecked: (profileStatusChecked) => set({ profileStatusChecked }),
   setHasAthleteProfile: (hasAthleteProfile) => set({ hasAthleteProfile }),
   setHasProducerProfile: (hasProducerProfile) => set({ hasProducerProfile }),
   setEntitlementActive: (entitlementActive) => set({ entitlementActive }),

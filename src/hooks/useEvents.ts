@@ -64,6 +64,12 @@ export type EventRow = {
   // event (self-serve or admin-posted) they're entered directly here.
   booking_link: string | null;
   booking_phone: string | null;
+  // NEW, added 2026-08-18 alongside migration 0057 - how an entrant enters
+  // when there's no draw_pro_entry_url. 'text'/'call' pre-fill/open the
+  // native composer to entry_phone with the entrant's own info - see
+  // EventCard.tsx. Null falls back to the plain producer_contact_info note.
+  entry_method: 'text' | 'call' | null;
+  entry_phone: string | null;
 };
 
 export type EventWithProducer = EventRow & { producer_org_name: string | null };
@@ -162,6 +168,10 @@ export function useCreateEvent() {
       // booking link/phone, see EventRow's own comment for the reasoning.
       booking_link?: string | null;
       booking_phone?: string | null;
+      // NEW, added 2026-08-18 alongside migration 0057 - see EventRow's
+      // own comment.
+      entry_method?: 'text' | 'call' | null;
+      entry_phone?: string | null;
     }) => {
       const { error } = await supabase.from('events').insert(input);
       if (error) throw error;
@@ -202,6 +212,10 @@ export function useCreateAdminEvent() {
       producer_contact_info?: string | null;
       booking_link?: string | null;
       booking_phone?: string | null;
+      // NEW, added 2026-08-18 alongside migration 0057 - see EventRow's
+      // own comment.
+      entry_method?: 'text' | 'call' | null;
+      entry_phone?: string | null;
     }) => {
       const { error } = await supabase.from('events').insert({
         ...input,
@@ -274,6 +288,10 @@ export function useUpdateAdminEvent() {
       producer_contact_info?: string | null;
       booking_link?: string | null;
       booking_phone?: string | null;
+      // NEW, added 2026-08-18 alongside migration 0057 - see EventRow's
+      // own comment.
+      entry_method?: 'text' | 'call' | null;
+      entry_phone?: string | null;
     }) => {
       const { error } = await supabase.from('events').update(input).eq('id', eventId).eq('posted_by_admin', true);
       if (error) throw error;

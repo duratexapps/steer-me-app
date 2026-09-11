@@ -237,45 +237,71 @@ you manually publish an existing event (see below).
 
 ## Reviewing a suspected identity/classification conflict
 
-**NEW, added 2026-07-27.** Two ways this surfaces:
+**NEW, added 2026-07-27. UPDATED 2026-08-18** (migration 0056 +
+`report-membership-conflict`): this used to be entirely reactive - a
+blocked sign-up just saw a "contact support" toast, and unless that
+person actually emailed in, nobody ever reviewed it and the existing
+account holder never found out. It's now proactive: every blocked
+attempt is logged automatically, and both parties get emailed the
+moment it happens. Three ways this surfaces:
 
-**A) A sign-up or classification-update was blocked** by migration 0031's
-unique constraint on `global_membership_id` (the user saw "That Global
-Membership ID is already registered to another Steer Me account..."). This
-means two different Steer Me accounts tried to claim the same real
-membership ID - one of them is either a genuine mistake (rare) or someone
-using another real person's identity.
+**A) A row in `membership_id_conflicts` with `status = 'pending_review'`**
+- this is now the primary queue, populated automatically the instant a
+sign-up or classification-update gets blocked by the unique constraint
+below. Work this queue directly instead of waiting for a support email:
 
-1. Studio -> Table Editor -> `profiles`, filter by the `global_membership_id`
-   in question to find the EXISTING account that already holds it.
-2. Compare `full_name` and `verification_screenshot_path` (Storage ->
-   verification-screenshots) on the existing account against what the
-   blocked person claims about themselves, if they've contacted support.
+1. Studio -> Table Editor -> `membership_id_conflicts`, filter
+   `status = 'pending_review'`, ordered by `created_at`.
+2. `existing_profile_id` is the account that already holds the ID -
+   compare its `full_name` and `verification_screenshot_path` (Storage ->
+   verification-screenshots) against `attempted_name` and
+   `attempted_screenshot_path` on the conflict row itself (the blocked
+   person's own submitted photo, captured even though their profile row
+   was never created).
 3. If the existing account's name/screenshot doesn't match who actually
-   owns that membership ID (i.e., it was the fraudulent one), treat this as
-   a confirmed `Fake profile or classification` violation even without a
-   separate user_report - suspend it the same way a 3rd-strike does
-   (`suspended = true`, set `suspended_reason`), and let the real owner know
-   they can now sign up with their own ID.
-4. If you can't tell from the screenshot alone, this is genuinely a
+   owns that membership ID (i.e., it was the fraudulent one): suspend it
+   the same way a 3rd-strike does (`suspended = true`, set
+   `suspended_reason`, and null the identity columns per
+   `handle_report_confirmed()` in migration 0012 so the ID frees up), then
+   set this row's `status = 'resolved_existing_was_fraud'` and
+   `resolved_at`/`resolved_note`. Let the real owner know (reply to their
+   notification email, or `attempted_by_user_id` -> Authentication -> find
+   their email) that they can now sign up with their own ID.
+4. If the blocked attempt was actually the fraudulent one, set
+   `status = 'resolved_new_was_fraud'` - no account action needed, since
+   they never got a profiles row in the first place.
+5. If you can't tell from the screenshot alone, this is genuinely a
    real-world identity question software can't fully resolve - use
-   judgment, and lean on the fact that people who actually know both
-   individuals (the reporting contestant/producer) are usually a faster,
-   more reliable signal than anything in this table.
+   judgment, lean on people who actually know both individuals (the
+   reporting contestant/producer) being a faster, more reliable signal
+   than anything in this table, and it's fine to leave `status =
+   'pending_review'` until you hear back from either party rather than
+   guessing.
 
-**B) A `user_reports` row with offense `Fake profile or classification`**
-(see the priority note above). Same investigation as above, starting from
+**B) A sign-up or classification-update was blocked** by migration 0031's
+unique constraint on `global_membership_id` (the user saw "That Global
+Membership ID is already registered to another Steer Me account..."), but
+somehow no `membership_id_conflicts` row exists (e.g.
+`report-membership-conflict` failed - check its logs). Fall back to the
+old manual path: Studio -> Table Editor -> `profiles`, filter by the
+`global_membership_id` in question, and investigate the same way as A)
+above using whatever the blocked person told support directly.
+
+**C) A `user_reports` row with offense `Fake profile or classification`**
+(see the priority note above). Same investigation as A), starting from
 `target_user_id` instead of a membership-ID lookup - check their
 `verification_screenshot_path` and whether their claimed name/classification
 plausibly matches it, and weigh the reporter's description.
 
-**What this constraint does NOT solve, so don't over-trust it**: it stops
-two accounts from sharing one ID going forward, but it doesn't verify that
-the FIRST account to claim an ID is actually that person - someone could
-still be the first to register under a stolen identity before the real
-person ever signs up. The constraint mainly guarantees that if the real
-person EVER tries to sign up later, the conflict becomes visible and
-investigable, rather than staying invisible indefinitely.
+**What the underlying constraint does NOT solve, so don't over-trust it**:
+it stops two accounts from sharing one ID going forward, but it doesn't
+verify that the FIRST account to claim an ID is actually that person -
+someone could still be the first to register under a stolen identity
+before the real person ever signs up. The constraint mainly guarantees
+that if the real person EVER tries to sign up later, the conflict becomes
+visible, logged, and both parties notified immediately - rather than
+staying invisible indefinitely or depending on the blocked person to
+think to escalate it themselves.
 
 ## Resetting an account's card verification (demo/test data cleanup)
 
