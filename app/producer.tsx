@@ -19,6 +19,7 @@ import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProducerProfile, useInvalidateProducerProfile } from '@/src/hooks/useProducerProfile';
 import { useMyEvents, useAttendanceCounts } from '@/src/hooks/useEvents';
+import { useProducerIdentityMatches, useMyProducerIdentity, type ProducerIdentityMatch } from '@/src/hooks/useProducerIdentity';
 import { goBackOrHome } from '@/src/lib/navigation';
 
 // Mirrors Screen 12 (#producer) - sign-up form when no producer profile
@@ -60,6 +61,14 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
   const [docUri, setDocUri] = useState<string | null>(null);
   const [docPath, setDocPath] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [claimedMatch, setClaimedMatch] = useState<ProducerIdentityMatch | null>(null);
+  const [dismissedMatches, setDismissedMatches] = useState(false);
+
+  // Only searches once claimedMatch/dismissedMatches aren't already
+  // decided - once a producer has picked "this is me" or "not me" there's
+  // no reason to keep re-querying while they finish the rest of the form.
+  const searchActive = !claimedMatch && !dismissedMatches;
+  const { data: matches } = useProducerIdentityMatches(searchActive ? orgName : '');
 
   async function handlePicked(image: PickedImage) {
     const {
@@ -80,12 +89,13 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
   async function handleSubmit() {
     if (!canSubmit) return;
     setSubmitting(true);
-    const { error } = await supabase.from('producer_profiles').insert({
-      org_name: orgName.trim(),
-      contact_name: contactName.trim() || null,
-      contact_info: contactInfo.trim() || null,
-      affiliation: affiliation.trim() || null,
-      verification_doc_path: docPath,
+    const { error } = await supabase.rpc('create_producer_profile', {
+      p_org_name: orgName.trim(),
+      p_contact_name: contactName.trim() || null,
+      p_contact_info: contactInfo.trim() || null,
+      p_affiliation: affiliation.trim() || null,
+      p_verification_doc_path: docPath,
+      p_claim_identity_id: claimedMatch?.id ?? null,
     });
     setSubmitting(false);
 
@@ -112,7 +122,52 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
           Steer Me takes 4% + $1.50 per paid registration - nothing until you collect a payment.
         </DividerNote>
 
-        <TextField label="Organization name" value={orgName} onChangeText={setOrgName} placeholder="e.g. Mathews Land & Cattle Xtreme Team Roping" />
+        <TextField
+          label="Organization name"
+          value={orgName}
+          onChangeText={(v) => {
+            setOrgName(v);
+            setClaimedMatch(null);
+            setDismissedMatches(false);
+          }}
+          placeholder="e.g. Mathews Land & Cattle Xtreme Team Roping"
+        />
+
+        {claimedMatch ? (
+          <View style={styles.claimCard}>
+            <Text style={styles.claimTitle}>✓ Claiming {claimedMatch.org_name}</Text>
+            <Text style={styles.claimSub}>
+              {claimedMatch.event_count} event{claimedMatch.event_count === 1 ? '' : 's'} already on Steer Me
+              {claimedMatch.rating_count > 0 ? ` · ${claimedMatch.rating_count} rating${claimedMatch.rating_count === 1 ? '' : 's'}` : ''}
+              {' '}will carry over to your account.
+            </Text>
+            <Pressable onPress={() => setClaimedMatch(null)}>
+              <Text style={styles.claimUndo}>Not right - undo</Text>
+            </Pressable>
+          </View>
+        ) : matches && matches.length > 0 && !dismissedMatches ? (
+          <View style={styles.matchWrap}>
+            <Text style={styles.matchHeader}>
+              We found existing Steer Me listings under this name - is one of these you?
+            </Text>
+            {matches.map((m) => (
+              <Pressable key={m.id} style={styles.matchRow} onPress={() => setClaimedMatch(m)}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.matchName}>{m.org_name}</Text>
+                  <Text style={styles.matchMeta}>
+                    {m.event_count} event{m.event_count === 1 ? '' : 's'}
+                    {m.rating_count > 0 ? ` · ★ ${m.avg_stars ?? '—'} (${m.rating_count})` : ''}
+                  </Text>
+                </View>
+                <Text style={styles.matchClaimText}>This is me</Text>
+              </Pressable>
+            ))}
+            <Pressable onPress={() => setDismissedMatches(true)}>
+              <Text style={styles.matchNoneLink}>None of these are me</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <TextField label="Contact name" value={contactName} onChangeText={setContactName} placeholder="e.g. Mathews office contact" />
         <TextField label="Contact phone or email" value={contactInfo} onChangeText={setContactInfo} placeholder="e.g. events@example.com" />
         <TextField label="Affiliation (if any)" value={affiliation} onChangeText={setAffiliation} placeholder="e.g. WSTR-sanctioned, USTRC-sanctioned, independent" />
@@ -150,6 +205,7 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
   const { data: events, isLoading: eventsLoading } = useMyEvents();
   const eventIds = (events ?? []).map((e) => e.id);
   const { data: counts } = useAttendanceCounts(eventIds);
+  const { data: identity } = useMyProducerIdentity();
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -160,6 +216,19 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
             Pending verification - your events are visible only to you until our team verifies your
             producer profile.
           </DividerNote>
+        ) : null}
+        {identity ? (
+          <View style={styles.ratingBanner}>
+            <Text style={styles.ratingNum}>{identity.avg_stars != null ? `★${identity.avg_stars}` : '—'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ratingLabel}>Your reputation on Steer Me</Text>
+              <Text style={styles.ratingSub}>
+                {identity.rating_count > 0
+                  ? `${identity.rating_count} rating${identity.rating_count === 1 ? '' : 's'} across ${identity.event_count} event${identity.event_count === 1 ? '' : 's'}${identity.avg_stars == null ? ' - not enough yet to show a score' : ''}`
+                  : `No ratings yet across ${identity.event_count} event${identity.event_count === 1 ? '' : 's'} - this carries forward as you post more`}
+              </Text>
+            </View>
+          </View>
         ) : null}
         <DividerNote>
           Ropers who find their own partner through this app both show up ready to pay their own entry
@@ -216,4 +285,47 @@ const styles = StyleSheet.create({
   dropzoneText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.espresso, marginTop: 6, textAlign: 'center' },
   dropzoneSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2, textAlign: 'center' },
   dropzoneDone: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.green },
+  matchWrap: { marginTop: -8, marginBottom: 16 },
+  matchHeader: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginBottom: 8, lineHeight: 16 },
+  matchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.tanLight,
+    borderWidth: 1,
+    borderColor: colors.brass,
+    borderRadius: radii.md,
+    padding: 12,
+    marginBottom: 8,
+  },
+  matchName: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: colors.espresso },
+  matchMeta: { fontFamily: fonts.body, fontSize: 11.5, color: colors.saddle, marginTop: 1 },
+  matchClaimText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.brass },
+  matchNoneLink: { fontFamily: fonts.body, fontSize: 11.5, color: colors.saddle, textDecorationLine: 'underline', textAlign: 'center' },
+  claimCard: {
+    backgroundColor: colors.tan,
+    borderWidth: 1,
+    borderColor: colors.brass,
+    borderRadius: radii.md,
+    padding: 12,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  claimTitle: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: colors.espresso },
+  claimSub: { fontFamily: fonts.body, fontSize: 11.5, color: colors.espresso, marginTop: 2, lineHeight: 15 },
+  claimUndo: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.saddle, textDecorationLine: 'underline', marginTop: 6 },
+  ratingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.tan,
+    borderWidth: 1,
+    borderColor: colors.brass,
+    borderRadius: radii.md,
+    padding: 12,
+    marginBottom: 16,
+  },
+  ratingNum: { fontFamily: fonts.mono, fontSize: 20, color: colors.brass },
+  ratingLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.espresso },
+  ratingSub: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 1 },
 });
