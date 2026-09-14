@@ -509,3 +509,12 @@ verify_jwt = false
 # no logged-in Supabase session, so a JWT requirement would break it.
 [functions.get-user-stats]
 verify_jwt = false
+
+# Public by design - the anonymous "show at the gate" reveal side of the
+# Coggins-share flow (migration 0063). Event staff scanning a roper's QR
+# code have no Steer Me account/session at all, so a JWT requirement would
+# break the entire feature. Safe because the token itself is opaque and
+# every one force-expires 30 minutes after creation - see this function's
+# own header comment.
+[functions.get-coggins-share]
+verify_jwt = false
