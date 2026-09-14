@@ -70,9 +70,22 @@ export type EventRow = {
   // EventCard.tsx. Null falls back to the plain producer_contact_info note.
   entry_method: 'text' | 'call' | null;
   entry_phone: string | null;
+  // NEW, added 2026-09-13 alongside migration 0061 - the stable producer
+  // identity this event's reputation rolls up under, independent of
+  // producer_id/external_producer_name. See withProducerNames() below for
+  // where the actual rating gets attached for display.
+  producer_identity_id: string | null;
 };
 
-export type EventWithProducer = EventRow & { producer_org_name: string | null };
+export type EventWithProducer = EventRow & {
+  producer_org_name: string | null;
+  // Null avg_stars below the same RATING_MIN_TO_SHOW=3 threshold
+  // event_rating_summary already uses - "not enough ratings yet" rather
+  // than a misleadingly precise score off 1-2 reviews. rating_count is
+  // always the real count regardless, same convention as RatingSummary.
+  producer_avg_stars: number | null;
+  producer_rating_count: number;
+};
 
 // NEW, added 2026-07-30 alongside migration 0041 - shared by
 // create-event.tsx, admin-post-event.tsx, and admin-edit-event.tsx.
@@ -107,13 +120,37 @@ async function withProducerNames(events: EventRow[]): Promise<EventWithProducer[
     if (error) throw error;
     for (const p of data as PublicProducerProfile[]) byId.set(p.id, p.org_name);
   }
+
+  // NEW, added 2026-09-13 alongside migration 0061/0062 - a producer's
+  // rating rolls up on producer_identity_id, independent of and surviving
+  // past any single event's own 30-day soft-delete. Same "fetch and merge
+  // client-side" reasoning as public_producer_profiles above - a view
+  // can't be embedded via PostgREST's FK-following select syntax.
+  const identityIds = [...new Set(events.map((e) => e.producer_identity_id).filter((id): id is string => id !== null))];
+  const ratingById = new Map<string, { avg_stars: number | null; rating_count: number }>();
+  if (identityIds.length > 0) {
+    const { data, error } = await supabase
+      .from('producer_rating_summary')
+      .select('producer_identity_id, avg_stars, rating_count')
+      .in('producer_identity_id', identityIds);
+    if (error) throw error;
+    for (const r of data as { producer_identity_id: string; avg_stars: number | null; rating_count: number }[]) {
+      ratingById.set(r.producer_identity_id, { avg_stars: r.avg_stars, rating_count: r.rating_count });
+    }
+  }
+
   // Draw-Pro-synced events have no real producer_profiles row to join
   // against - external_producer_name (set by the sync call) covers that
   // case instead, so the UI still has something sensible to show.
-  return events.map((e) => ({
-    ...e,
-    producer_org_name: (e.producer_id ? byId.get(e.producer_id) : undefined) ?? e.external_producer_name ?? null,
-  }));
+  return events.map((e) => {
+    const rating = e.producer_identity_id ? ratingById.get(e.producer_identity_id) : undefined;
+    return {
+      ...e,
+      producer_org_name: (e.producer_id ? byId.get(e.producer_id) : undefined) ?? e.external_producer_name ?? null,
+      producer_avg_stars: rating?.avg_stars ?? null,
+      producer_rating_count: rating?.rating_count ?? 0,
+    };
+  });
 }
 
 export function usePublishedEvents() {

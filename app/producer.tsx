@@ -244,7 +244,18 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
         ) : !events || events.length === 0 ? (
           <DividerNote>No events posted yet. Create your first one above.</DividerNote>
         ) : (
-          events.map((e) => <EventCard key={e.id} event={{ ...e, producer_org_name: producer.org_name }} counts={counts} producerView />)
+          events.map((e) => (
+            <EventCard
+              key={e.id}
+              // producer_avg_stars/rating_count suppressed here (null/0) -
+              // the dashboard already shows this producer's own rating
+              // once, in the banner above; repeating it on every one of
+              // their own event cards would be redundant.
+              event={{ ...e, producer_org_name: producer.org_name, producer_avg_stars: null, producer_rating_count: 0 }}
+              counts={counts}
+              producerView
+            />
+          ))
         )}
       </ScrollView>
           <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="producer" />

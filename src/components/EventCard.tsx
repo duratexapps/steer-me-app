@@ -198,6 +198,22 @@ export function EventCard({
       <Text style={styles.producerLine}>
         {event.producer_org_name ?? 'Posted via Draw Pro'} · {formatDateRangeDisplay(event.event_date, event.event_end_date)}
       </Text>
+      {/* NEW, added 2026-09-13 alongside migration 0061/0062 - the whole
+          point of a producer's rating surviving past any one event's
+          30-day soft-delete (see producer_identities) is that ropers
+          browsing a NEW event from that same producer can actually see
+          it. Below RATING_MIN_TO_SHOW, producer_rating_count is still >0
+          but producer_avg_stars is null (server-side threshold, same as
+          the event's own rating below) - shown as an honest low-confidence
+          note rather than hidden outright, since "1 rating so far" is
+          still more informative than nothing for a brand-new producer. */}
+      {event.producer_rating_count > 0 ? (
+        <Text style={styles.producerRatingLine}>
+          {event.producer_avg_stars != null
+            ? `Producer rating: ★ ${event.producer_avg_stars.toFixed(1)} (${event.producer_rating_count})`
+            : `Producer rating: ${event.producer_rating_count} rating${event.producer_rating_count === 1 ? '' : 's'} so far`}
+        </Text>
+      ) : null}
       {/* NEW, added 2026-07-29 - TEMPORARY cold-start bootstrap feature
           (migration 0038) - per direct instruction: "should show the
           producer name & info but clarify that it is an admin post."
@@ -376,6 +392,7 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.espresso },
   producerLine: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.brass, marginTop: 1 },
+  producerRatingLine: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 1 },
   adminPostedRow: {
     flexDirection: 'row',
     alignItems: 'center',
