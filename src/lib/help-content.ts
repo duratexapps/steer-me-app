@@ -73,6 +73,10 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
     title: 'Favorites',
     body: "Ropers you've starred for quick access - handy for partners you like teaming up with again, and for choosing who sees a posted need. Favoriting someone is private; they're never notified. Remove anyone from here at any time.",
   },
+  'my-horses': {
+    title: 'My Horses & Coggins',
+    body: "Keep a negative Coggins (EIA test) on file for each horse you haul - one per horse, since a Coggins is tied to the animal, not to you. \"Show at the gate\" makes a short-lived link with a QR code staff can scan to view it - no Steer Me account needed on their end. It expires in 30 minutes, and tapping the button again always makes a brand-new one rather than reusing the old link.",
+  },
   events: {
     title: 'Events',
     body: "Browse real events posted by producers. Mark yourself attending a division to see other eligible partners going to that same event, and rate an event once it has passed.\n\nOnline entry, automatic team numbers, and live round results only show up for events the producer runs on Draw Pro - you'll see a note on the event card when that's not the case. See \"Online entry & live results\" in Browse all topics for more.",
@@ -98,6 +102,7 @@ export const HELP_TOPIC_ORDER = [
   'create-need-post',
   'my-requests',
   'my-favorites',
+  'my-horses',
   'events',
   'profile',
   'edit-profile',

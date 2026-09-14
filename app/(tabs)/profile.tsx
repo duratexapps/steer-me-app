@@ -167,6 +167,12 @@ export default function Profile() {
           style={styles.spacedBtn}
         />
         <Button
+          label="My horses & Coggins"
+          variant="outline"
+          onPress={() => router.push('/my-horses')}
+          style={styles.spacedBtn}
+        />
+        <Button
           label="Manage blocked users"
           variant="outline"
           onPress={() => router.push('/blocked-users')}

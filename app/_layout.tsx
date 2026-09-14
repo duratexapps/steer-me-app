@@ -283,7 +283,13 @@ export default function RootLayout() {
     '/create-account',
     '/forgot-password',
   ]);
-  const isPublicRoute = PUBLIC_ROUTES.has(pathname);
+  // /coggins/[token] (NEW, added 2026-09-13) is the one other genuinely
+  // public, no-session route beyond the fixed list above - reachable cold
+  // via a QR code/shared link by event staff with no Steer Me account at
+  // all, same "must render immediately, not sit behind the fonts/session
+  // gate" reasoning as every route in PUBLIC_ROUTES. Dynamic segment means
+  // it can't just be added to that fixed Set.
+  const isPublicRoute = PUBLIC_ROUTES.has(pathname) || pathname.startsWith('/coggins/');
 
   if (!isPublicRoute && (!fontsLoaded || !isReady)) {
     return <View style={{ flex: 1, backgroundColor: colors.bone }} />;
