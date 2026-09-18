@@ -17,11 +17,10 @@
 // gets written, so it's the natural place to extend.
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 
-// [ ] - confirm this matches the actual entitlement identifier once the
-// real RevenueCat project exists (see RUNBOOK.md's setup section) -
-// there's no live project yet, so this is a reasonable placeholder name,
-// not a confirmed value.
-const RC_ENTITLEMENT_ID = 'premium';
+// Confirmed 2026-09-17 against the live RevenueCat project (Durates I&E
+// Applications, proj6099e9fe) - the real entitlement identifier is "Steer
+// Me", not the earlier placeholder "premium".
+const RC_ENTITLEMENT_ID = 'Steer Me';
 const REFERRAL_REWARD_DURATION = 'monthly'; // one free month, for both people, per successful referral
 const REVENUECAT_API_BASE = 'https://api.revenuecat.com/v1';
 
