@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -9,10 +9,9 @@ import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
 import { PartnerCard } from '@/src/components/PartnerCard';
 import { ReportModal } from '@/src/components/ReportModal';
-import { colors, fonts, radii } from '@/src/theme/theme';
+import { colors, fonts } from '@/src/theme/theme';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useEligiblePartners, type PublicProfile } from '@/src/hooks/useEligiblePartners';
-import { useEventPartners } from '@/src/hooks/useEvents';
 import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests';
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useFavorites, useToggleFavorite } from '@/src/hooks/useFavorites';
@@ -26,20 +25,16 @@ import { showToast } from '@/src/state/toast-store';
 // Mirrors Screen 4 (#browse). The "my groups only" toggle from the
 // prototype is omitted - Groups is a deferred feature. Location uses real
 // expo-location + reverse geocoding instead of the prototype's fake timer.
-// When pushed from Events' "Partners" button (eventId/division params),
-// this switches to event-scoped matching instead of the raw cap filter.
+// Event-scoped partner viewing (Events' "Partners" button) used to be
+// handled here via eventId/division params, pushed into this tab root -
+// moved out to event-partners.tsx (2026-09-18) because a tab root doesn't
+// get real back-stack history, which broke the phone back button. This
+// screen is cap-based browsing only now.
 // Goat Roping discovery no longer lives here - it moved to the Post tab's
 // need_posts listings, which carry the event details (date/producer/flier)
 // that a plain cap-based browse never had.
 export default function Browse() {
-  const { cap: capParam, eventId, division: divisionParam, eventName } = useLocalSearchParams<{
-    cap?: string;
-    eventId?: string;
-    division?: string;
-    eventName?: string;
-  }>();
-  const eventDivision = divisionParam ? parseFloat(divisionParam) : null;
-  const inEventContext = !!eventId && eventDivision !== null;
+  const { cap: capParam } = useLocalSearchParams<{ cap?: string }>();
 
   const { data: me } = useMyProfile();
   const requireSubscription = useRequireSubscription();
@@ -53,9 +48,7 @@ export default function Browse() {
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  const capResult = useEligiblePartners(cap, useLocationOn ? currentCity : null);
-  const eventResult = useEventPartners(eventId ?? '', eventDivision ?? 0, me?.position ?? 'Header');
-  const { data: partners, isLoading } = inEventContext ? eventResult : capResult;
+  const { data: partners, isLoading } = useEligiblePartners(cap, useLocationOn ? currentCity : null);
 
   const { data: sentRequests } = useSentRequests();
   const sendRequest = useSendRequest();
@@ -88,11 +81,7 @@ export default function Browse() {
   async function handleRequest(partner: PublicProfile) {
     if (!requireSubscription()) return;
     try {
-      await sendRequest.mutateAsync({
-        recipientId: partner.id,
-        division: inEventContext ? eventDivision! : cap,
-        eventId: inEventContext ? eventId : undefined,
-      });
+      await sendRequest.mutateAsync({ recipientId: partner.id, division: cap });
       showToast(
         partner.is_minor ? `Request routed to ${partner.full_name}'s guardian for approval` : `Request sent to ${partner.full_name}`
       );
@@ -164,38 +153,23 @@ export default function Browse() {
                 </Text>
               </DividerNote>
             ) : null}
-            {inEventContext ? (
-              <View style={styles.eventBanner}>
-                <Text style={styles.eventBannerText}>
-                  Showing partners attending{' '}
-                  <Text style={{ fontFamily: fonts.bodyBold }}>{eventName}</Text> ({formatDivision(eventDivision)} division) who
-                  are also marked attending.
-                </Text>
-                <Pressable onPress={() => router.replace('/(tabs)/browse')}>
-                  <Text style={styles.clearLink}>Clear and browse everyone eligible</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <>
-                <Text style={styles.eyebrow}>Choose your event cap</Text>
-                <View style={styles.pillWrap}>
-                  {DIVISION_OPTIONS.map((c) => (
-                    <Pill key={c} label={c === OPEN_CAP ? 'Open' : `#${c}`} selected={cap === c} onPress={() => setCap(c)} />
-                  ))}
-                </View>
-                <ToggleRow
-                  title="Use my current location"
-                  description="Traveling? Find partners near where you are, not just home"
-                  value={useLocationOn}
-                  onToggle={toggleLocation}
-                />
-                <Text style={styles.sub}>
-                  {locationLoading
-                    ? 'Requesting location access...'
-                    : `Eligible partners for a ${formatDivision(cap)} roping, ${areaLabel}`}
-                </Text>
-              </>
-            )}
+            <Text style={styles.eyebrow}>Choose your event cap</Text>
+            <View style={styles.pillWrap}>
+              {DIVISION_OPTIONS.map((c) => (
+                <Pill key={c} label={c === OPEN_CAP ? 'Open' : `#${c}`} selected={cap === c} onPress={() => setCap(c)} />
+              ))}
+            </View>
+            <ToggleRow
+              title="Use my current location"
+              description="Traveling? Find partners near where you are, not just home"
+              value={useLocationOn}
+              onToggle={toggleLocation}
+            />
+            <Text style={styles.sub}>
+              {locationLoading
+                ? 'Requesting location access...'
+                : `Eligible partners for a ${formatDivision(cap)} roping, ${areaLabel}`}
+            </Text>
           </>
         }
         renderItem={({ item }) => (
@@ -216,11 +190,7 @@ export default function Browse() {
           isLoading ? (
             <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
           ) : (
-            <DividerNote>
-              {inEventContext
-                ? 'No one else has marked attending for this division yet. Check back closer to the event.'
-                : 'No eligible partners posted right now. Try turning off a filter or widening your event.'}
-            </DividerNote>
+            <DividerNote>No eligible partners posted right now. Try turning off a filter or widening your event.</DividerNote>
           )
         }
       />
@@ -263,13 +233,6 @@ const styles = StyleSheet.create({
   },
   pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   sub: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginBottom: 14 },
-  eventBanner: {
-    backgroundColor: colors.espresso,
-    borderRadius: radii.lg,
-    padding: 12,
-    marginBottom: 16,
-  },
-  eventBannerText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.bone, lineHeight: 17 },
   clearLink: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,

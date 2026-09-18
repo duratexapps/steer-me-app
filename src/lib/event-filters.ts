@@ -85,6 +85,44 @@ export const DEFAULT_EVENT_FILTERS: EventFilters = {
   maxMiles: null,
 };
 
+// Real gap reported by the user (2026-09-18): tapping "Partners" on an
+// event, then hitting back, used to remount events.tsx from scratch -
+// wiping whatever filters were applied and losing the whole point of
+// filtering in the first place ("users are more likely to just close the
+// app/website when experiencing this kind of friction"). Reflecting
+// filters into the URL's query params means the browser/router's own back
+// navigation restores them for free - no separate state-persistence layer
+// needed, since going back returns to the exact prior URL.
+//
+// Every key is always included, even for default values (as '') - this
+// goes through router.setParams(), which merges into the existing params
+// rather than replacing them wholesale, so omitting a key when a filter
+// returns to its default would leave the OLD value stuck in the URL
+// instead of clearing it.
+export function filtersToParams(filters: EventFilters): Record<string, string> {
+  return {
+    showPast: filters.showPast ? '1' : '',
+    state: filters.state ?? '',
+    dateWindow: filters.dateWindow !== 'all' ? filters.dateWindow : '',
+    maxMiles: filters.maxMiles != null ? String(filters.maxMiles) : '',
+  };
+}
+
+export function filtersFromParams(params: {
+  showPast?: string;
+  state?: string;
+  dateWindow?: string;
+  maxMiles?: string;
+}): EventFilters {
+  const dateWindow = params.dateWindow;
+  return {
+    showPast: params.showPast === '1',
+    state: params.state || null,
+    dateWindow: dateWindow === 'week' || dateWindow === 'month' ? dateWindow : 'all',
+    maxMiles: params.maxMiles ? Number(params.maxMiles) : null,
+  };
+}
+
 export function applyEventFilters(
   events: EventWithProducer[],
   filters: EventFilters,
