@@ -57,6 +57,28 @@ import { goBackOrHome } from '@/src/lib/navigation';
 // that don't reliably exist in the live app to screenshot on demand, so
 // this follows the original browse/events/enter-draw mockup convention
 // instead.
+//
+// UPDATED 2026-09-22 - a full feature audit against the actual app found
+// four real, built features with ZERO tour presence: Coggins "Show at
+// the Gate" (app/my-horses.tsx, app/show-coggins.tsx), event ratings +
+// persistent producer reputation (app/events.tsx, src/hooks/useRatings.ts),
+// the self-service producer signup/dashboard/create-event flow
+// (app/producer.tsx, app/create-event.tsx - a whole user role, not an
+// admin tool), and Refer a Friend (app/referral.tsx, reachable from the
+// gift icon in the header on nearly every screen). Added as 4 new
+// slides rather than folding into existing ones - each is a distinct,
+// explainable value prop on its own. New images (coggins.png,
+// ratings.png, producer-dashboard.png, referral.png) are hand-built HTML
+// mockups following the exact same convention as every other slide image
+// (ropingtools-site's docs/mockups/steer-me/steerme-{coggins,ratings,
+// producer-dashboard,referral}-mockup.html) - colors/fonts copied from
+// src/theme/theme.ts verbatim, rendered via headless Chrome and autocropped
+// to content height. Slide order was re-sequenced to follow the athlete's
+// actual journey (find partner -> browse events -> enter draw -> have
+// Coggins ready -> track results -> rate the event -> extra-run pay/decline
+// -> cancel -> post a need), then closes on the two features that reach
+// beyond a single roping (producer tools, referral) rather than bolting
+// them onto the end arbitrarily.
 const SLIDES = [
   {
     icon: 'people-outline' as const,
@@ -89,6 +111,17 @@ const SLIDES = [
     ],
   },
   {
+    icon: 'qr-code-outline' as const,
+    image: require('@/assets/tour/coggins.png'),
+    title: 'Keep Your Coggins Ready to Go',
+    body: "Add a negative Coggins for each horse once, then show it at the gate with a QR code - no trip back to the trailer to dig for paperwork.",
+    hints: [
+      'One horse, one document - a Coggins belongs to the animal, not to you.',
+      "Each code is fresh and expires in 30 minutes, so it can't be screenshotted and reused later.",
+      "Event staff scan it and see everything they need - no Steer Me account required on their end.",
+    ],
+  },
+  {
     icon: 'ribbon-outline' as const,
     image: require('@/assets/tour/my-entries.png'),
     title: 'Track Your Runs and Results',
@@ -97,6 +130,16 @@ const SLIDES = [
       'No more texting the producer to ask your team number.',
       'Turn on notifications in Account Settings to get pinged the moment results post.',
       'Broken barriers, one-leg catches, and No Time eliminations all show up with the math behind them.',
+    ],
+  },
+  {
+    icon: 'star-outline' as const,
+    image: require('@/assets/tour/ratings.png'),
+    title: 'Rate the Event, Build the Record',
+    body: "After you've attended, rate the event and leave a review - it rolls up into that producer's reputation, visible on every event they post.",
+    hints: [
+      'One rating per athlete, per event - enforced automatically, not an honor system.',
+      "Wrong cattle, no-show payout, unsafe conditions? Report it separately - a report never changes the star rating.",
     ],
   },
   {
@@ -127,6 +170,25 @@ const SLIDES = [
     hints: [
       'Ties your post to the real event, so others can judge the schedule.',
       '"Listed event" means it’s a real Draw Pro/Steer Me event, not just a claim.',
+    ],
+  },
+  {
+    icon: 'business-outline' as const,
+    image: require('@/assets/tour/producer-dashboard.png'),
+    title: 'Are You a Producer? List for Free',
+    body: "Run ropings yourself? Create a free producer profile and post your events - nothing to pay until in-app entry-fee payment is live, and even then it's only a small cut per paid registration.",
+    hints: [
+      'Already have events posted under your name? Claim them - ratings and history carry right over.',
+      'New events stay visible only to you until your producer profile is verified.',
+    ],
+  },
+  {
+    icon: 'gift-outline' as const,
+    image: require('@/assets/tour/referral.png'),
+    title: 'Send a Roping Partner Our Way',
+    body: "Share your code with a friend. Once they sign up and subscribe, you both get a free month - automatically, no need to contact us.",
+    hints: [
+      'Your code and share button are one tap away from the gift icon on nearly every screen.',
     ],
   },
 ];
