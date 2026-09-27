@@ -37,7 +37,12 @@
       "output": "static"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "origin": "https://steerme.ropingtools.com"
+        }
+      ],
       "expo-status-bar",
       "expo-font",
       "expo-splash-screen",
@@ -67,6 +72,12 @@
         "projectId": "5ff51a37-0d3c-4579-8da6-670f6683ec11"
       }
     },
-    "owner": "duratex-applications"
+    "owner": "duratex-applications",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5ff51a37-0d3c-4579-8da6-670f6683ec11"
+    }
   }
 }
