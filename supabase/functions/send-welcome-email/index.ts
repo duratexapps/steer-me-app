@@ -37,9 +37,11 @@ const EMAIL_ASSETS_BASE = 'https://ryjjwtsoeqyaiveslrat.supabase.co/storage/v1/o
 // Real, live Play Store listing (confirmed 2026-08-16 - searchable, not
 // just the closed-tester group this was originally built for) - see
 // AndroidTesterBanner.tsx's own comment for the same update on the web
-// side. No iOS listing exists yet, so that side stays a plain mention,
-// never a link.
+// side.
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.duratexapplications.steerme';
+// iOS build 1.3.5 (9) went live on the App Store 2026-09-29 - was a plain
+// "coming soon" mention with no link until now.
+const APP_STORE_URL = 'https://apps.apple.com/app/id6805227345';
 
 Deno.serve(async (req) => {
   // FIXED live 2026-08-17, security review finding: `secret &&` meant a
@@ -197,7 +199,8 @@ ${referralBlock}
               <p style="margin:0 0 16px;">
                 The real app is live on
                 <a href="${PLAY_STORE_URL}" style="color:#8A5A2B;font-weight:700;">Google Play</a>
-                — an iPhone version is coming soon.
+                and the
+                <a href="${APP_STORE_URL}" style="color:#8A5A2B;font-weight:700;">App Store</a>.
               </p>
 
               <p style="margin:0 0 4px;">See you at the arena,</p>

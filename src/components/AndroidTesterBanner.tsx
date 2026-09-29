@@ -4,18 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.duratexapplications.steerme';
+const APP_STORE_URL = 'https://apps.apple.com/app/id6805227345';
 
-// UPDATED 2026-08-16 - real ask, directly from the user: the Android app
-// (originally pushed to Google Play's Internal Testing track, not meant to
-// be public yet) turned out to already be a real, searchable Play Store
-// listing reachable by anyone with the link - not the closed 100-tester
-// group this banner originally assumed. Rather than keep asking people to
-// email in for tester access, link straight to the real listing. iOS has
-// no equivalent yet (no App Store submission has happened) - shown as a
-// plain "coming soon" line, not a link, so it doesn't imply a listing that
-// doesn't exist. Web-only - a native app user has no need to be told how
-// to get the native app, they're already using it. Dismissible, not
-// persisted across reloads, same as before.
+// UPDATED 2026-09-29 - iOS build 1.3.5 (9) went live on the App Store, so
+// the iPhone row is no longer a placeholder: it links out the same way the
+// Android row always has. Web-only - a native app user has no need to be
+// told how to get the native app, they're already using it. Dismissible,
+// not persisted across reloads, same as before.
 export function AndroidTesterBanner() {
   const [dismissed, setDismissed] = useState(false);
   if (Platform.OS !== 'web' || dismissed) return null;
@@ -29,10 +24,12 @@ export function AndroidTesterBanner() {
             The real Steer Me app is on Google Play - <Text style={styles.linkText}>download it now</Text>.
           </Text>
         </Pressable>
-        <View style={styles.row}>
+        <Pressable style={styles.row} onPress={() => Linking.openURL(APP_STORE_URL)}>
           <Ionicons name="logo-apple" size={20} color={colors.saddle} style={styles.icon} />
-          <Text style={styles.text}>iPhone app - coming soon.</Text>
-        </View>
+          <Text style={styles.text}>
+            Now available on the App Store - <Text style={styles.linkText}>download it now</Text>.
+          </Text>
+        </Pressable>
       </View>
       <Pressable onPress={() => setDismissed(true)} hitSlop={10} style={styles.closeBtn}>
         <Ionicons name="close" size={18} color={colors.saddle} />
