@@ -117,10 +117,19 @@ Deno.serve(async (req) => {
   // Emailing both parties is a best-effort layer on top of the row above,
   // which is the part that actually matters for review - same "don't let
   // our own infrastructure block/fail the important part" principle used
-  // throughout this project's Edge Functions.
+  // throughout this project's Edge Functions. Every outcome below gets
+  // written back onto the row (existing_holder_notified/
+  // blocked_attempt_notified/notification_error, migration 0065) rather
+  // than only returned to the fire-and-forget client call, which nobody
+  // was ever checking - a reviewer working pending_review now sees
+  // exactly what actually happened, not just that a row exists.
   const apiKey = Deno.env.get('RESEND_API_KEY');
   if (!apiKey) {
     console.log('RESEND_API_KEY not set yet - conflict logged without notification emails', conflictRow.id);
+    await supabaseAdmin
+      .from('membership_id_conflicts')
+      .update({ existing_holder_notified: null, blocked_attempt_notified: null, notification_error: 'RESEND_API_KEY not configured' })
+      .eq('id', conflictRow.id);
     return Response.json({ logged: true, notified: false });
   }
 
@@ -128,17 +137,43 @@ Deno.serve(async (req) => {
   const existingEmail = existingUser?.user?.email ?? null;
   const attemptedEmail = callerData.user.email ?? null;
 
-  const results = await Promise.allSettled([
+  const [existingResult, blockedResult] = await Promise.allSettled([
     existingEmail
       ? sendEmail(apiKey, existingEmail, 'Someone just tried to use your Global Membership ID', existingHolderEmailHtml(existingProfile.full_name))
-      : Promise.resolve(),
+      : Promise.resolve(null),
     attemptedEmail
       ? sendEmail(apiKey, attemptedEmail, "We couldn't verify your Global Membership ID", blockedAttemptEmailHtml(body.claimedName))
-      : Promise.resolve(),
+      : Promise.resolve(null),
   ]);
-  const notified = results.every((r) => r.status === 'fulfilled');
-  if (!notified) {
-    console.error('membership conflict notification emails partially failed', results);
+
+  // null (not `existingEmail`/`attemptedEmail` missing vs. attempted-and-
+  // failed) specifically means "never attempted" - no address to send to
+  // at all - matching migration 0065's three-state column meaning exactly.
+  const existingNotified = !existingEmail ? null : existingResult.status === 'fulfilled';
+  const blockedNotified = !attemptedEmail ? null : blockedResult.status === 'fulfilled';
+  const errors = [
+    existingResult.status === 'rejected' ? `existing holder: ${existingResult.reason}` : null,
+    blockedResult.status === 'rejected' ? `blocked attempt: ${blockedResult.reason}` : null,
+  ].filter((e): e is string => e !== null);
+
+  const { error: statusUpdateError } = await supabaseAdmin
+    .from('membership_id_conflicts')
+    .update({
+      existing_holder_notified: existingNotified,
+      blocked_attempt_notified: blockedNotified,
+      notification_error: errors.length > 0 ? errors.join('; ') : null,
+    })
+    .eq('id', conflictRow.id);
+  if (statusUpdateError) {
+    // The conflict row and both send attempts already happened by this
+    // point - failing to record the outcome shouldn't look like the whole
+    // request failed, just log it for now.
+    console.error('failed to persist notification status onto conflict row', statusUpdateError);
+  }
+
+  const notified = existingNotified !== false && blockedNotified !== false;
+  if (errors.length > 0) {
+    console.error('membership conflict notification emails partially failed', errors);
   }
 
   return Response.json({ logged: true, notified });
