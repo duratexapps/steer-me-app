@@ -21,10 +21,25 @@ function labelFor(entry: PlaceResult) {
 // happens to be sitting in the input - so partner search/filtering
 // elsewhere in the app has something consistent to match on. Typing "Hou"
 // suggests Houston, TX; typing a name that exists in multiple states
-// (Sheridan, WY vs. Sheridan, TX) surfaces both as separate choices. There
-// is no bypass: text that was never confirmed by tapping a suggestion is
-// discarded on blur, and `value` (what the parent screen actually stores)
-// only ever changes via handleSelect.
+// (Sheridan, WY vs. Sheridan, TX) surfaces both as separate choices.
+//
+// FIXED 2026-09-29 - real bug hit by a live tester during sign-up: typing
+// a town then immediately tapping the (enabled-looking, since disabled
+// state wasn't obviously different) submit button silently wiped the
+// field on every attempt, with no way to proceed. Root cause was blur
+// unconditionally discarding any text not confirmed via a dropdown tap -
+// intentional by original design ("no bypass"), but it fires long before
+// a real user reasonably finishes typing-then-tapping-elsewhere, since
+// the live `results` list lags behind a keystroke by the 200ms debounce
+// PLUS a network round trip to search-places, which together routinely
+// exceed the time between someone's last keystroke and their next tap.
+// A user who typed a real, matching, unambiguous town could never win
+// that race - the fix actively resolves the query at blur time instead
+// of trusting whatever `results` happened to hold at that instant: if
+// exactly one place matches, that's an unambiguous choice and commits
+// the same way tapping it would have; only a genuinely no-match or
+// ambiguous (multiple towns, per the Sheridan example above) query
+// still requires an explicit tap, since guessing there would be wrong.
 //
 // PERF, 2026-08-16: the ~32,000-place search used to run client-side over
 // an array bundled directly into the app (React Native has no client/
@@ -38,7 +53,19 @@ export function AutocompleteField({ label, value, onChange, placeholder, require
   const [query, setQuery] = useState(value);
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [unresolved, setUnresolved] = useState(false);
   const selectingRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
+  async function search(q: string): Promise<PlaceResult[]> {
+    try {
+      const { data, error } = await supabase.functions.invoke('search-places', { body: { query: q } });
+      return !error && Array.isArray(data?.results) ? data.results : [];
+    } catch {
+      return [];
+    }
+  }
 
   useEffect(() => {
     const q = query.trim();
@@ -48,12 +75,8 @@ export function AutocompleteField({ label, value, onChange, placeholder, require
     }
     let cancelled = false;
     const timer = setTimeout(async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('search-places', { body: { query: q } });
-        if (!cancelled) setResults(!error && Array.isArray(data?.results) ? data.results : []);
-      } catch {
-        if (!cancelled) setResults([]);
-      }
+      const found = await search(q);
+      if (!cancelled) setResults(found);
     }, 200);
     return () => {
       cancelled = true;
@@ -64,6 +87,7 @@ export function AutocompleteField({ label, value, onChange, placeholder, require
   function handleChangeText(text: string) {
     setQuery(text);
     setOpen(true);
+    setUnresolved(false);
     if (value) onChange(''); // editing after a confirmed pick invalidates it until reselected
   }
 
@@ -72,22 +96,42 @@ export function AutocompleteField({ label, value, onChange, placeholder, require
     const picked = labelFor(entry);
     setQuery(picked);
     onChange(picked);
+    setUnresolved(false);
     setOpen(false);
   }
 
-  function handleBlur() {
+  async function handleBlur() {
     // A suggestion tap blurs the input right before its onPress fires -
-    // give that a beat to land before wiping unconfirmed text.
-    setTimeout(() => {
-      if (!selectingRef.current && query !== value) {
-        setQuery(value);
-      }
+    // give that a beat to land before resolving unconfirmed text.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    if (selectingRef.current) {
       selectingRef.current = false;
       setOpen(false);
-    }, 150);
+      return;
+    }
+    const q = query.trim();
+    if (q && q !== value) {
+      // Don't trust the debounced `results` state here - it lags behind
+      // typing by design and is very often still stale/empty at exactly
+      // this moment (see the comment above). Resolve fresh, synchronously
+      // with this decision, so a real matching town never loses the race.
+      const found = await search(q);
+      if (!mountedRef.current) return;
+      if (found.length === 1) {
+        const picked = labelFor(found[0]);
+        setQuery(picked);
+        onChange(picked);
+        setUnresolved(false);
+        setOpen(false);
+        return;
+      }
+      setQuery(value);
+      setUnresolved(true);
+    }
+    setOpen(false);
   }
 
-  const showHint = open === false && query.trim().length > 0 && !value;
+  const showHint = !open && unresolved && !value;
 
   return (
     <View style={styles.wrap}>

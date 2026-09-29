@@ -250,7 +250,15 @@ export default function SignUp() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Steer Me" subtitle="Find your own partner. Skip the ~$40 draw-in fee." big logo onHelp={() => setHelpOpen(true)} />
-      <ScrollView contentContainerStyle={styles.content}>
+      {/* keyboardShouldPersistTaps="handled" - real bug: without it, tapping
+          a Home Area dropdown suggestion (an AutocompleteField.tsx
+          Pressable) while the field above it is still focused gets
+          swallowed as a "dismiss keyboard" tap instead of reaching the
+          Pressable's onPress - the suggestion never actually registers as
+          selected, keyboard just closes. "handled" lets a tap that lands
+          on a real interactive element (like that Pressable) fire
+          normally instead of being intercepted. */}
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.eyebrow}>Step 1 of 1</Text>
         <Text style={styles.h2}>Set up your roper profile</Text>
         <Text style={styles.helper}>This is what other athletes see when they're looking for a partner.</Text>

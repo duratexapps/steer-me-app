@@ -204,7 +204,12 @@ export default function AdminEditEvent() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Edit Event (Admin)" subtitle="Fix a typo, swap the flier, or update details" onBack={() => goBackOrHome()} />
-      <ScrollView contentContainerStyle={styles.content}>
+      {/* keyboardShouldPersistTaps="handled" - real bug shared with
+          sign-up.tsx/edit-profile.tsx/create-event.tsx: without it, tapping
+          a Location dropdown suggestion (AutocompleteField.tsx) while that
+          field is still focused gets swallowed as a keyboard-dismiss tap
+          instead of reaching the Pressable's onPress. */}
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.adminNotice}>
           Editing this event updates the live listing immediately - it's still shown as posted by the real producer,
           with a note that RopingTools posted it on their behalf.

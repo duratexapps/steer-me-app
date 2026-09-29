@@ -125,7 +125,12 @@ export default function CreateEvent() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Create Event" subtitle="Listed under your verified producer profile" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
-      <ScrollView contentContainerStyle={styles.content}>
+      {/* keyboardShouldPersistTaps="handled" - real bug shared with
+          sign-up.tsx/edit-profile.tsx: without it, tapping a Location
+          dropdown suggestion (AutocompleteField.tsx) while that field is
+          still focused gets swallowed as a keyboard-dismiss tap instead of
+          reaching the Pressable's onPress. */}
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <TextField label="Event name" value={name} onChangeText={setName} placeholder="e.g. Fall Qualifier" />
         <DateField label={endDate ? 'Start date' : 'Date'} value={date} onChange={setDate} minimumDate={new Date()} />
 

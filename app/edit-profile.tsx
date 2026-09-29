@@ -101,7 +101,11 @@ export default function EditProfile() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Edit Profile" subtitle="Update your info any time" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
-      <ScrollView contentContainerStyle={styles.content}>
+      {/* keyboardShouldPersistTaps="handled" - same real bug as sign-up.tsx:
+          without it, tapping a Home Area dropdown suggestion while that
+          field is still focused gets swallowed as a keyboard-dismiss tap
+          instead of reaching the Pressable's onPress. */}
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Profile photo</Text>
         <Pressable style={styles.avatarRow} onPress={() => setPhotoOpen(true)}>
           <View style={styles.avatarCircle}>

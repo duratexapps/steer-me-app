@@ -183,7 +183,12 @@ export default function AdminPostEvent() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Post an Event (Admin)" subtitle="On a producer's behalf - temporary bootstrap tool" onBack={() => goBackOrHome()} />
-      <ScrollView contentContainerStyle={styles.content}>
+      {/* keyboardShouldPersistTaps="handled" - real bug shared with
+          sign-up.tsx/edit-profile.tsx/create-event.tsx: without it, tapping
+          a Location dropdown suggestion (AutocompleteField.tsx) while that
+          field is still focused gets swallowed as a keyboard-dismiss tap
+          instead of reaching the Pressable's onPress. */}
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.adminNotice}>
           This event will show as posted by the real producer, with a small note that RopingTools posted it on their
           behalf. Use this only until enough producers are onboarded directly.
