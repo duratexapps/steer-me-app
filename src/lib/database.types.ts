@@ -1015,6 +1015,9 @@ export type Database = {
           guidelines_accepted_at: string
           header_classification: number | null
           heeler_classification: number | null
+          finale_buy_in_year: number | null
+          finale_qualified_classes: number[] | null
+          finale_qualified_year: number | null
           hidden_from_matching: boolean
           home_area: string
           id: string
@@ -1048,6 +1051,9 @@ export type Database = {
           guidelines_accepted_at?: string
           header_classification?: number | null
           heeler_classification?: number | null
+          finale_buy_in_year?: number | null
+          finale_qualified_classes?: number[] | null
+          finale_qualified_year?: number | null
           hidden_from_matching?: boolean
           home_area: string
           id?: string
@@ -1081,6 +1087,9 @@ export type Database = {
           guidelines_accepted_at?: string
           header_classification?: number | null
           heeler_classification?: number | null
+          finale_buy_in_year?: number | null
+          finale_qualified_classes?: number[] | null
+          finale_qualified_year?: number | null
           hidden_from_matching?: boolean
           home_area?: string
           id?: string
@@ -1285,6 +1294,9 @@ export type Database = {
       public_profiles: {
         Row: {
           avatar_url: string | null
+          finale_buy_in_year: number | null
+          finale_qualified_classes: number[] | null
+          finale_qualified_year: number | null
           full_name: string | null
           global_classification: number | null
           header_classification: number | null
@@ -1297,6 +1309,9 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          finale_buy_in_year?: number | null
+          finale_qualified_classes?: number[] | null
+          finale_qualified_year?: number | null
           full_name?: string | null
           global_classification?: number | null
           header_classification?: number | null
@@ -1309,6 +1324,9 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          finale_buy_in_year?: number | null
+          finale_qualified_classes?: number[] | null
+          finale_qualified_year?: number | null
           full_name?: string | null
           global_classification?: number | null
           header_classification?: number | null

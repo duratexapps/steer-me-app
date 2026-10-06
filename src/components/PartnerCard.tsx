@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tag } from '@/src/components/ui/Tag';
 import { colors, fonts, radii } from '@/src/theme/theme';
-import { formatPosition, formatClassificationTag, isMembershipCurrent } from '@/src/lib/matching';
+import { formatPosition, formatClassificationTag, formatDivision, isMembershipCurrent } from '@/src/lib/matching';
 import { toClassification, type PublicProfile } from '@/src/hooks/useEligiblePartners';
 
 type PartnerCardProps = {
@@ -54,6 +54,16 @@ export function PartnerCard({
           <Text style={styles.posBadge}>{formatPosition(partner.position)}</Text>
           {partner.is_minor ? <Text style={[styles.posBadge, styles.brassBadge]}>Guardian approval</Text> : null}
           {nearby ? <Text style={[styles.posBadge, styles.greenBadge]}>Nearby now</Text> : null}
+          {/* WSTR Finale partner board (migration 0066) - self-reported, so
+              worded as what they say, not as a verified fact. */}
+          {partner.finale_qualified_year != null && partner.finale_qualified_classes?.length ? (
+            <Text style={[styles.posBadge, styles.brassBadge]}>
+              Finale {[...partner.finale_qualified_classes].sort((a, b) => a - b).map((c) => formatDivision(c)).join(', ')} · needs partner
+            </Text>
+          ) : null}
+          {partner.finale_buy_in_year != null ? (
+            <Text style={[styles.posBadge, styles.brassBadge]}>Will buy in for Finale</Text>
+          ) : null}
           {/* NEW, added 2026-07-27 - policy decision: an expired card
               doesn't block someone from using the app, but other users
               deciding whether to match should be able to see it and

@@ -18,6 +18,11 @@ export type PublicProfile = {
   // into a "not current" badge. null means never successfully read, NOT
   // the same as expired.
   membership_expiration_date: string | null;
+  // WSTR Finale partner board (migration 0066). The view blanks these once
+  // their Finale year has passed, so non-null always means current.
+  finale_qualified_year?: number | null;
+  finale_qualified_classes?: number[] | null;
+  finale_buy_in_year?: number | null;
 };
 
 // Structural type instead of PublicProfile specifically, so MyProfile

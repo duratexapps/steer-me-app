@@ -155,6 +155,14 @@ export default function Profile() {
 
 
         <Button
+          label="WSTR Finale partner board"
+          variant="outline"
+          onPress={() => router.push('/finale-board')}
+          style={styles.spacedBtn}
+        />
+        <Text style={styles.retentionNote}>Qualified and need a partner, or willing to buy in for one.</Text>
+
+        <Button
           label="View subscription plan"
           variant="outline"
           onPress={() => router.push('/subscription')}
