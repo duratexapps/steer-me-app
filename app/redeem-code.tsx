@@ -19,6 +19,7 @@ const DURATION_TEXT: Record<string, string> = {
   three_month: '3 months',
   six_month: '6 months',
   yearly: '1 year',
+  lifetime: 'lifetime',
 };
 
 // Redeem a single-use promo code for free subscription time (migration 0072,
@@ -64,7 +65,9 @@ export default function RedeemCode() {
         {done ? (
           <DividerNote>
             <Text style={{ fontFamily: fonts.bodyBold }}>You're set. </Text>
-            {done} of free membership has been added to your account. Thanks for your patience.
+            {done === 'lifetime'
+              ? 'Lifetime free membership has been added to your account. Thank you for everything you do for Steer Me.'
+              : `${done} of free membership has been added to your account. Thanks for your patience.`}
           </DividerNote>
         ) : (
           <>
