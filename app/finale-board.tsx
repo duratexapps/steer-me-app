@@ -10,12 +10,12 @@ import { Button } from '@/src/components/ui/Button';
 import { PartnerCard } from '@/src/components/PartnerCard';
 import { ReportModal } from '@/src/components/ReportModal';
 import { colors, fonts } from '@/src/theme/theme';
-import { supabase } from '@/src/lib/supabase';
 import { goBackOrHome } from '@/src/lib/navigation';
 import { formatDivision } from '@/src/lib/matching';
-import { currentFinaleYear, FINALE_CLASSES } from '@/src/lib/finale';
+import { activeFinaleYears, FINALE_CLASSES } from '@/src/lib/finale';
 import { showToast } from '@/src/state/toast-store';
-import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
+import { useMyProfile } from '@/src/hooks/useMyProfile';
+import { useMyFinaleFlags, useSaveFinaleFlags, type FinaleFlag } from '@/src/hooks/useFinaleFlags';
 import { useEligiblePartners, type PublicProfile } from '@/src/hooks/useEligiblePartners';
 import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests';
 import { useBlockUser } from '@/src/hooks/useBlocking';
@@ -28,13 +28,17 @@ import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
 // injury, family emergency, travel costs) has to find someone else in the
 // same class. Both flags are self-reported and permanent - ropers can flip
 // them on and off any time of year as they qualify or change their mind.
+// Flags are kept per Finale year (migration 0070) and two years are always
+// open: next year's qualifiers start before this year's Finale has run.
 // Eligibility reuses the same canPair() math as Browse, via
 // useEligiblePartners(cap).
 export default function FinaleBoard() {
   const { data: me } = useMyProfile();
-  const invalidateMe = useInvalidateMyProfile();
+  const { data: myFlags } = useMyFinaleFlags();
+  const saveFlag = useSaveFinaleFlags();
   const requireSubscription = useRequireSubscription();
-  const year = currentFinaleYear();
+  const years = activeFinaleYears();
+  const [year, setYear] = useState<number>(years[0]);
 
   const [cap, setCap] = useState<number>(FINALE_CLASSES[3]);
   const [saving, setSaving] = useState(false);
@@ -55,10 +59,8 @@ export default function FinaleBoard() {
   const requestedIds = useMemo(() => new Set((sentRequests ?? []).map((r) => r.recipient_id)), [sentRequests]);
   const favoriteIds = useMemo(() => new Set((favorites ?? []).map((f) => f.id)), [favorites]);
 
-  const qualified = (partners ?? []).filter(
-    (p) => p.finale_qualified_year === year && !!p.finale_qualified_classes?.includes(cap)
-  );
-  const buyIn = (partners ?? []).filter((p) => p.finale_buy_in_year === year && !qualified.includes(p));
+  const qualified = (partners ?? []).filter((p) => !!p.finale_flags?.[year]?.classes?.includes(cap));
+  const buyIn = (partners ?? []).filter((p) => !!p.finale_flags?.[year]?.buyIn && !qualified.includes(p));
   const rows: { section: string; p: PublicProfile }[] = [
     ...qualified.map((p) => ({ section: 'q', p })),
     ...buyIn.map((p) => ({ section: 'b', p })),
@@ -66,16 +68,13 @@ export default function FinaleBoard() {
 
   if (!me) return null;
 
-  const myClasses = me.finale_qualified_year === year ? [...(me.finale_qualified_classes ?? [])].sort((a, b) => a - b) : [];
+  const myFlag: FinaleFlag = myFlags?.[year] ?? { classes: null, buyIn: false };
+  const myClasses = [...(myFlag.classes ?? [])].sort((a, b) => a - b);
   const iAmQualified = myClasses.length > 0;
-  const iWillBuyIn = me.finale_buy_in_year === year;
+  const iWillBuyIn = myFlag.buyIn;
 
   async function saveClasses(classes: number[]) {
-    await saveFlags(
-      classes.length
-        ? { finale_qualified_year: year, finale_qualified_classes: classes }
-        : { finale_qualified_year: null, finale_qualified_classes: null }
-    );
+    await saveFlags({ ...myFlag, classes: classes.length ? classes : null });
   }
 
   function pickClass(c: number) {
@@ -83,15 +82,14 @@ export default function FinaleBoard() {
     setPendingClass(iAmQualified && !myClasses.includes(c) ? c : null);
   }
 
-  async function saveFlags(fields: Record<string, number | number[] | null>) {
+  async function saveFlags(flag: FinaleFlag) {
     setSaving(true);
-    const { error } = await supabase.from('profiles').update(fields).eq('id', me!.id);
-    setSaving(false);
-    if (error) {
-      showToast(error.message);
-      return;
+    try {
+      await saveFlag.mutateAsync({ year, flag });
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not save');
     }
-    invalidateMe();
+    setSaving(false);
   }
 
   async function handleRequest(partner: PublicProfile) {
@@ -130,6 +128,24 @@ export default function FinaleBoard() {
               not checked by Steer Me.
             </DividerNote>
 
+            <Text style={styles.eyebrow}>Finale year</Text>
+            <View style={styles.pillWrap}>
+              {years.map((y) => (
+                <Pill
+                  key={y}
+                  label={`${y} Finale`}
+                  selected={year === y}
+                  onPress={() => {
+                    setYear(y);
+                    setPendingClass(null);
+                  }}
+                />
+              ))}
+            </View>
+            <Text style={styles.sub}>
+              Next year's qualifiers start before this year's Finale, so you can flag both.
+            </Text>
+
             <Text style={styles.eyebrow}>Your status</Text>
             <ToggleRow
               title={`I'm qualified for the ${year} Finale and need a partner`}
@@ -148,9 +164,9 @@ export default function FinaleBoard() {
               value={iWillBuyIn}
               onToggle={() => {
                 if (saving) return;
-                if (iWillBuyIn) saveFlags({ finale_buy_in_year: null });
+                if (iWillBuyIn) saveFlags({ ...myFlag, buyIn: false });
                 else if (noClassification) showToast('Verify your classification first');
-                else saveFlags({ finale_buy_in_year: year });
+                else saveFlags({ ...myFlag, buyIn: true });
               }}
             />
 

@@ -43,10 +43,6 @@ export type MyProfile = {
   // 0047_draw_pro_entry_cancellation.sql - see account-settings.tsx's own
   // comment on the toggle that sets this.
   auto_cancel_team_entry_on_partner_cancel: boolean;
-  // WSTR Finale partner board (migration 0066) - self-reported, permanent.
-  finale_qualified_year: number | null;
-  finale_qualified_classes: number[] | null;
-  finale_buy_in_year: number | null;
   // Admin-written note shown as a banner (migration 0068); cleared by Update my classification.
   fix_note: string | null;
   fix_note_at: string | null;

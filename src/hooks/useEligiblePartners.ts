@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { canPair, type Classification, type Position } from '@/src/lib/matching';
+import { fetchPublicFinaleFlags, type FinaleFlagsByYear } from '@/src/hooks/useFinaleFlags';
 
 export type PublicProfile = {
   id: string;
@@ -18,8 +19,11 @@ export type PublicProfile = {
   // into a "not current" badge. null means never successfully read, NOT
   // the same as expired.
   membership_expiration_date: string | null;
-  // WSTR Finale partner board (migration 0066). The view blanks these once
-  // their Finale year has passed, so non-null always means current.
+  // WSTR Finale partner board (migration 0070). finale_flags is every
+  // current year's flags for this roper; the three fields below are the
+  // soonest year's, kept so a card can show one badge without caring which
+  // years exist. Merged in client-side from public_finale_flags.
+  finale_flags?: FinaleFlagsByYear;
   finale_qualified_year?: number | null;
   finale_qualified_classes?: number[] | null;
   finale_buy_in_year?: number | null;
@@ -88,7 +92,21 @@ export function useEligiblePartners(cap: number, nearCity: string | null) {
 
       const { data, error } = await query;
       if (error) throw error;
-      const candidates = (data ?? []) as PublicProfile[];
+      const flagsByUser = await fetchPublicFinaleFlags();
+      const candidates = ((data ?? []) as PublicProfile[]).map((c) => {
+        const flags = flagsByUser[c.id];
+        if (!flags) return c;
+        const years = Object.keys(flags).map(Number).sort((a, b) => a - b);
+        const qYear = years.find((y) => flags[y].classes?.length);
+        const bYear = years.find((y) => flags[y].buyIn);
+        return {
+          ...c,
+          finale_flags: flags,
+          finale_qualified_year: qYear ?? null,
+          finale_qualified_classes: qYear != null ? flags[qYear].classes : null,
+          finale_buy_in_year: bYear ?? null,
+        };
+      });
 
       const partners = candidates
         .filter((c) => canPair(meClassification, toClassification(c), cap))

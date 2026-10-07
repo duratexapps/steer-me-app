@@ -58,11 +58,11 @@ export function PartnerCard({
               worded as what they say, not as a verified fact. */}
           {partner.finale_qualified_year != null && partner.finale_qualified_classes?.length ? (
             <Text style={[styles.posBadge, styles.brassBadge]}>
-              Finale {[...partner.finale_qualified_classes].sort((a, b) => a - b).map((c) => formatDivision(c)).join(', ')} · needs partner
+              Finale '{String(partner.finale_qualified_year).slice(2)} {[...partner.finale_qualified_classes].sort((a, b) => a - b).map((c) => formatDivision(c)).join(', ')} · needs partner
             </Text>
           ) : null}
           {partner.finale_buy_in_year != null ? (
-            <Text style={[styles.posBadge, styles.brassBadge]}>Will buy in for Finale</Text>
+            <Text style={[styles.posBadge, styles.brassBadge]}>Will buy in for Finale '{String(partner.finale_buy_in_year).slice(2)}</Text>
           ) : null}
           {/* NEW, added 2026-07-27 - policy decision: an expired card
               doesn't block someone from using the app, but other users
