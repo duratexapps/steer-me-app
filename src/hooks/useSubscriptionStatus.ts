@@ -46,26 +46,45 @@ export function useInvalidateSubscriptionStatus() {
   return () => queryClient.invalidateQueries({ queryKey: ['subscription-status', userId] });
 }
 
-// TESTING MODE - has_active_subscription() (the real enforcement point,
-// checked by RLS on partner_requests/event_attendance/need_posts/
-// goat_roping_interest - see migration 0028_testing_phase_disable_subscription_gate.sql)
-// currently always returns true, matching the agreed testing-phase plan:
-// free access for everyone until a deliberate paywall cutover later. This
-// client-side flag exists only so the UI doesn't show a misleading
-// "subscription required" prompt while that's true - it has no effect on
-// actual enforcement, which lives entirely in that migration. Flip both
-// together when ready to launch subscriptions for real.
-const SUBSCRIPTION_REQUIRED = false;
+// Free-tier rule (migration 0069): a user may act while they hold an active
+// subscription OR have fewer than N accepted matches (N = 3), but only once
+// the server-side `paywall_enabled` switch is on - until then everyone is
+// allowed, exactly as during testing. The database (has_active_subscription,
+// checked by RLS) is the real enforcement; this hook only reads the same
+// answer so the UI can prompt instead of surfacing a raw Postgres error, and
+// so the subscription screen can show "2 of 3 free matches used".
+export type FreeTierStatus = {
+  paywall_enabled: boolean;
+  free_matches: number;
+  matches_used: number;
+  subscribed: boolean;
+  allowed: boolean;
+};
+
+export function useFreeTierStatus() {
+  const userId = useSessionStore((s) => s.session?.user.id);
+  return useQuery({
+    queryKey: ['free-tier-status', userId],
+    enabled: !!userId,
+    staleTime: 30_000,
+    queryFn: async (): Promise<FreeTierStatus> => {
+      const { data, error } = await supabase.rpc('get_free_tier_status');
+      if (error) throw error;
+      return data as FreeTierStatus;
+    },
+  });
+}
 
 // Proactive gate for paid actions (send a request, mark attending) so the
 // user sees a clear "subscribe first" prompt instead of a raw Postgres RLS
 // error - the RLS policy itself is still the real enforcement either way.
+// If the status hasn't loaded (or the call failed) this lets the action
+// through and leaves the decision to RLS.
 export function useRequireSubscription() {
-  const { data: status } = useSubscriptionStatus();
+  const { data: status } = useFreeTierStatus();
   return () => {
-    if (!SUBSCRIPTION_REQUIRED) return true;
-    if (status?.entitlement_active) return true;
-    showToast('An active subscription is needed for this');
+    if (!status || status.allowed) return true;
+    showToast(`You've used your ${status.free_matches} free matches - subscribe to keep going`);
     router.push('/subscription');
     return false;
   };

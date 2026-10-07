@@ -11,7 +11,7 @@ import { Button } from '@/src/components/ui/Button';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { fetchOfferings } from '@/src/lib/purchases';
-import { useSubscriptionStatus, useInvalidateSubscriptionStatus } from '@/src/hooks/useSubscriptionStatus';
+import { useSubscriptionStatus, useInvalidateSubscriptionStatus, useFreeTierStatus } from '@/src/hooks/useSubscriptionStatus';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
 
@@ -40,6 +40,7 @@ export default function Subscription() {
   const [purchasing, setPurchasing] = useState(false);
   const { data: status } = useSubscriptionStatus(true); // poll briefly - this is the purchase screen
   const invalidateStatus = useInvalidateSubscriptionStatus();
+  const { data: freeTier } = useFreeTierStatus();
 
   useEffect(() => {
     fetchOfferings().then(setOffering);
@@ -108,6 +109,17 @@ export default function Subscription() {
           <DividerNote>
             <Text style={{ fontFamily: fonts.bodyBold }}>You're subscribed. </Text>
             {status.expires_at ? `Renews/expires ${new Date(status.expires_at).toLocaleDateString()}.` : ''}
+          </DividerNote>
+        ) : null}
+
+        {freeTier?.paywall_enabled && !status?.entitlement_active ? (
+          <DividerNote>
+            <Text style={{ fontFamily: fonts.bodyBold }}>
+              {freeTier.matches_used} of {freeTier.free_matches} free matches used.{' '}
+            </Text>
+            {freeTier.allowed
+              ? 'Subscribe any time to keep going after your free matches.'
+              : 'Subscribe to keep finding partners.'}
           </DividerNote>
         ) : null}
 
