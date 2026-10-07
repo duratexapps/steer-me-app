@@ -122,12 +122,6 @@ export default function FinaleBoard() {
         keyExtractor={(item) => `${item.section}-${item.p.id}`}
         ListHeaderComponent={
           <>
-            <DividerNote>
-              There's no blind draw at the Finale. If you qualified but your partner can't go, or your drawn
-              partner was already in, find someone in your class here. Both options below are self-reported and
-              not checked by Steer Me.
-            </DividerNote>
-
             <Text style={styles.eyebrow}>Finale year</Text>
             <View style={styles.pillWrap}>
               {years.map((y) => (
