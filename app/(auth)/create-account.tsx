@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
+import { CheckEmailNotice } from '@/src/components/CheckEmailNotice';
 import * as Linking from 'expo-linking';
 import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
@@ -27,6 +28,10 @@ export default function CreateAccount() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  // Set once signUp succeeds but no session came back (email confirmation
+  // pending) - swaps the form for the standard check-your-email notice
+  // instead of a toast that disappears in a second.
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
 
   async function handleCreate() {
     if (!email.trim() || password.length < 8) {
@@ -47,8 +52,7 @@ export default function CreateAccount() {
     }
 
     if (!data.session) {
-      showToast('Check your email to confirm your account, then sign in');
-      router.replace('/(auth)/sign-in');
+      setAwaitingConfirm(true);
       return;
     }
 
@@ -63,7 +67,14 @@ export default function CreateAccount() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Create Account" subtitle="Sets up your login - your profile comes next" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.helper}>This is what you'll use to sign back in to Steer Me.</Text>
+        {awaitingConfirm ? (
+          <>
+            <CheckEmailNotice email={email.trim()} />
+            <Button label="I've confirmed - sign in" onPress={() => router.replace('/(auth)/sign-in')} />
+          </>
+        ) : null}
+        {awaitingConfirm ? null : <Text style={styles.helper}>This is what you'll use to sign back in to Steer Me. To finish your profile you'll need your Global Handicap card - a screenshot is fine, and it takes about two minutes.</Text>}
+        {awaitingConfirm ? null : <>
         <TextField
           label="Email"
           value={email}
@@ -82,6 +93,7 @@ export default function CreateAccount() {
           placeholder="At least 8 characters"
         />
         <Button label="Create account" onPress={handleCreate} loading={loading} style={styles.submit} />
+        </>}
       </ScrollView>
           <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="create-account" />
     </SafeAreaView>

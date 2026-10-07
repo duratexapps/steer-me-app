@@ -7,6 +7,7 @@ import { ActionTile } from '@/src/components/ui/ActionTile';
 import { Tag } from '@/src/components/ui/Tag';
 import { HelpModal } from '@/src/components/HelpModal';
 import { AndroidTesterBanner } from '@/src/components/AndroidTesterBanner';
+import { FixNoteBanner } from '@/src/components/FixNoteBanner';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
@@ -107,6 +108,8 @@ export default function Home() {
           </View>
         )}
 
+        {hasAthleteProfile ? <FixNoteBanner padded /> : null}
+
         <View style={styles.tiles}>
           {/* NEW, added 2026-07-31 - moved here from a Profile button per
               direct instruction: first tile, same treatment as every
@@ -152,6 +155,14 @@ export default function Home() {
                   title="Post that you need a partner"
                   description="Share your event details and see who else is eligible"
                   onPress={() => router.push('/(tabs)/post')}
+                />
+              </View>
+              <View style={{ width: tileWidth }}>
+                <ActionTile
+                  icon="people-outline"
+                  title="Invite your regular partner"
+                  description="Text them a link. Most ropers rope with the same few people"
+                  onPress={() => router.push('/referral')}
                 />
               </View>
               <View style={{ width: tileWidth }}>

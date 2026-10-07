@@ -7,6 +7,7 @@ import { BackToRopingToolsLink } from '@/src/components/ui/BackToRopingToolsLink
 import { HelpModal } from '@/src/components/HelpModal';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
+import { CheckEmailNotice } from '@/src/components/CheckEmailNotice';
 import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
@@ -18,6 +19,9 @@ export default function SignIn() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  // Supabase rejects an unconfirmed login with code email_not_confirmed -
+  // show the standard notice (with a resend button) rather than a bare error.
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
   async function handleSignIn() {
     if (!email.trim() || !password) {
@@ -29,6 +33,11 @@ export default function SignIn() {
     setLoading(false);
 
     if (error) {
+      if (error.code === 'email_not_confirmed' || /not confirmed/i.test(error.message)) {
+        setUnconfirmed(true);
+        return;
+      }
+      setUnconfirmed(false);
       showToast(error.message);
       return;
     }
@@ -40,6 +49,7 @@ export default function SignIn() {
       <BackToRopingToolsLink />
       <ScreenHeader title="Sign In" subtitle="Welcome back" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
+        {unconfirmed ? <CheckEmailNotice email={email.trim()} title="Confirm your email first" /> : null}
         <TextField
           label="Email"
           value={email}

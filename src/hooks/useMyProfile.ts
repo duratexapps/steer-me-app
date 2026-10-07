@@ -47,6 +47,9 @@ export type MyProfile = {
   finale_qualified_year: number | null;
   finale_qualified_classes: number[] | null;
   finale_buy_in_year: number | null;
+  // Admin-written note shown as a banner (migration 0068); cleared by Update my classification.
+  fix_note: string | null;
+  fix_note_at: string | null;
 };
 
 export function useMyProfile() {

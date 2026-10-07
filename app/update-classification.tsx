@@ -121,6 +121,7 @@ export default function UpdateClassification() {
         heeler_classification: isSwitch ? heelerClassificationNumber : null,
         verification_screenshot_path: screenshotPath,
         needs_manual_review: !!verifyResult.skipped,
+        fix_note: null, // an admin's "please fix this" note is resolved by completing this screen
         // NEW, added 2026-07-27 - see sign-up.tsx's matching comment and
         // migration 0033 - an expired card doesn't block this update, but
         // gets recorded and shown to other users.

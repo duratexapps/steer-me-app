@@ -337,6 +337,10 @@ export default function SignUp() {
             </>
           )}
         </Pressable>
+        <Text style={styles.retentionNote}>
+          We keep this screenshot only to confirm your classification. It's deleted the moment you update
+          your classification or delete your profile.
+        </Text>
 
         <TextField
           label="Global membership ID"
@@ -391,10 +395,6 @@ export default function SignUp() {
             required
           />
         )}
-        <Text style={styles.retentionNote}>
-          We keep this screenshot only to confirm your classification. It's deleted the moment you update
-          your classification or delete your profile.
-        </Text>
 
         <AutocompleteField label="Home area" value={homeArea} onChange={setHomeArea} placeholder="e.g. Payson" required />
 

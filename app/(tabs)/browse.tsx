@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { HelpModal } from '@/src/components/HelpModal';
+import { FixNoteBanner } from '@/src/components/FixNoteBanner';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
@@ -106,6 +107,7 @@ export default function Browse() {
         columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
         ListHeaderComponent={
           <>
+            <FixNoteBanner />
             {/* Real UX gap found alongside the dual-classification fix
                 (migration 0030): a Switch Ender whose numbers got cleared
                 by that migration would otherwise just see an empty list

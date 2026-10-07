@@ -21,9 +21,10 @@ export default function Referral() {
 
   async function handleShare() {
     if (!profile?.referral_code) return;
+    // Link first: a code with no download link is a dead end for the friend.
     const message =
-      `Join me on Steer Me - find your own team roping partner and skip the draw-in fee. ` +
-      `Use my code ${profile.referral_code} when you sign up and we both get a free month once you subscribe!`;
+      `I'm using Steer Me to find team roping partners by real classification numbers and skip the draw-in fee. ` +
+      `Free to download: https://steerme.ropingtools.com/get - use my code ${profile.referral_code} when you sign up and we both get a free month once you subscribe!`;
     try {
       // Web has no native Share sheet - Share.share() throws there, so
       // fall back to copying the message instead of leaving the button
