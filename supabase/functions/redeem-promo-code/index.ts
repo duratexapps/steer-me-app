@@ -8,11 +8,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
+import { serveWithCors } from '../_shared/cors.ts';
 
 const RC_ENTITLEMENT_ID = 'Steer Me';
 const REVENUECAT_API_BASE = 'https://api.revenuecat.com/v1';
 
-Deno.serve(async (req) => {
+serveWithCors(async (req) => {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return Response.json({ error: 'Missing Authorization header' }, { status: 401 });
   const callerClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {

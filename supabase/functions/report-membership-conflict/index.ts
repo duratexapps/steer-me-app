@@ -26,6 +26,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
+import { serveWithCors } from '../_shared/cors.ts';
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
 // Same dedicated send-only domain as send-welcome-email (real inbox mail
@@ -41,7 +42,7 @@ type ConflictRequest = {
   screenshotPath: string | null;
 };
 
-Deno.serve(async (req) => {
+serveWithCors(async (req) => {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return Response.json({ error: 'Missing Authorization header' }, { status: 401 });

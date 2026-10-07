@@ -518,3 +518,21 @@ verify_jwt = false
 # own header comment.
 [functions.get-coggins-share]
 verify_jwt = false
+
+
+# Called from the web version too. The browser's CORS preflight carries no auth
+# header, so the gateway JWT check has to be off for the preflight to pass; each
+# of these validates the caller itself (auth.getUser) and uses serveWithCors()
+# from _shared/cors.ts. Found 2026-10-07: web sign-ups could not reach card
+# verification at all, so they silently fell through to manual review.
+[functions.verify-classification-card]
+verify_jwt = false
+
+[functions.extract-flier-contact-info]
+verify_jwt = false
+
+[functions.report-membership-conflict]
+verify_jwt = false
+
+[functions.redeem-promo-code]
+verify_jwt = false

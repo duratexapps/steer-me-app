@@ -29,6 +29,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
 import { buildExtractionSystemPrompt } from '../_shared/ai-safety-prompt.ts';
+import { serveWithCors } from '../_shared/cors.ts';
 
 // NEW, added 2026-08-18 - see _shared/ai-safety-prompt.ts's own header
 // comment for the full reasoning (standing, permanent policy - resist
@@ -62,7 +63,7 @@ type ExtractedCard = {
   expirationDate: string | null; // ISO yyyy-mm-dd if the model could parse it
 };
 
-Deno.serve(async (req) => {
+serveWithCors(async (req) => {
   // Verify this is a real signed-in Steer Me user, not an anonymous
   // caller - this endpoint calls a paid external API per request.
   const authHeader = req.headers.get('Authorization');
