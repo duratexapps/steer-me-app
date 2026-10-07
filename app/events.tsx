@@ -25,9 +25,11 @@ import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
 import { useResponsiveColumns } from '@/src/hooks/useResponsiveColumns';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useTownDistances } from '@/src/hooks/useTownDistances';
+import { useHotspots } from '@/src/hooks/useHotspots';
 import {
   applyEventFilters,
   distinctStates,
+  distinctTypes,
   filtersFromParams,
   filtersToParams,
   type EventFilters,
@@ -44,6 +46,7 @@ export default function Events() {
   const userId = useSessionStore((s) => s.session?.user.id);
   const { data: profile } = useMyProfile();
   const { data: events, isLoading: eventsLoading } = usePublishedEvents();
+  const { data: hotspots } = useHotspots();
 
   // Filters and the "which card to scroll back to" marker both live in the
   // URL's query params, not just local state - real gap reported by the
@@ -59,6 +62,8 @@ export default function Events() {
     state?: string;
     dateWindow?: string;
     maxMiles?: string;
+    type?: string;
+    hotspot?: string;
     focusEventId?: string;
   }>();
   const focusEventId = params.focusEventId;
@@ -93,10 +98,11 @@ export default function Events() {
   // submitting a rating) doesn't re-run a full-array pass every time,
   // only when the events/filters/distances actually changed.
   const filteredEvents = useMemo(
-    () => applyEventFilters(events ?? [], filters, distances),
-    [events, filters, distances]
+    () => applyEventFilters(events ?? [], filters, distances, hotspots ?? []),
+    [events, filters, distances, hotspots]
   );
   const states = useMemo(() => distinctStates(events ?? []), [events]);
+  const types = useMemo(() => distinctTypes(events ?? []), [events]);
 
   const listRef = useRef<FlatList>(null);
   const hasScrolledToFocus = useRef(false);
@@ -169,6 +175,8 @@ export default function Events() {
               filters={filters}
               onChange={setFilters}
               states={states}
+              types={types}
+              hotspots={hotspots ?? []}
               homeArea={profile?.home_area}
               resultCount={filteredEvents.length}
             />

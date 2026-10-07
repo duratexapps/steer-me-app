@@ -1,5 +1,6 @@
 import type { EventWithProducer } from '@/src/hooks/useEvents';
 import type { TownDistanceMap } from '@/src/hooks/useTownDistances';
+import type { Hotspot } from '@/src/hooks/useHotspots';
 import { isEventStillUpcoming } from '@/src/lib/date';
 
 // Real ask, directly from the user: "Users should be able to sort by state
@@ -73,6 +74,8 @@ export type EventFilters = {
   state: string | null; // null = all states
   dateWindow: DateWindow;
   maxMiles: number | null; // null = any distance
+  type: string | null; // event tag: wstr / ustrc / ntr / over40; null = all
+  hotspot: string | null; // hotspots.id; null = everywhere
 };
 
 export const DEFAULT_EVENT_FILTERS: EventFilters = {
@@ -83,6 +86,8 @@ export const DEFAULT_EVENT_FILTERS: EventFilters = {
   state: null,
   dateWindow: 'all',
   maxMiles: null,
+  type: null,
+  hotspot: null,
 };
 
 // Real gap reported by the user (2026-09-18): tapping "Partners" on an
@@ -105,6 +110,8 @@ export function filtersToParams(filters: EventFilters): Record<string, string> {
     state: filters.state ?? '',
     dateWindow: filters.dateWindow !== 'all' ? filters.dateWindow : '',
     maxMiles: filters.maxMiles != null ? String(filters.maxMiles) : '',
+    type: filters.type ?? '',
+    hotspot: filters.hotspot ?? '',
   };
 }
 
@@ -113,6 +120,8 @@ export function filtersFromParams(params: {
   state?: string;
   dateWindow?: string;
   maxMiles?: string;
+  type?: string;
+  hotspot?: string;
 }): EventFilters {
   const dateWindow = params.dateWindow;
   return {
@@ -120,19 +129,52 @@ export function filtersFromParams(params: {
     state: params.state || null,
     dateWindow: dateWindow === 'week' || dateWindow === 'month' ? dateWindow : 'all',
     maxMiles: params.maxMiles ? Number(params.maxMiles) : null,
+    type: params.type || null,
+    hotspot: params.hotspot || null,
   };
+}
+
+// Labels for the Type chips, in display order. Only types that actually
+// appear on a posted event are offered (see distinctTypes).
+export const TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'over40', label: '40+' },
+  { value: 'wstr', label: 'WSTR' },
+  { value: 'ustrc', label: 'USTRC' },
+  { value: 'ntr', label: 'NTR' },
+];
+
+export function distinctTypes(events: EventWithProducer[]): { value: string; label: string }[] {
+  const present = new Set<string>();
+  for (const e of events) for (const t of e.tags ?? []) present.add(t);
+  return TYPE_OPTIONS.filter((o) => present.has(o.value));
+}
+
+// An event is "in" a hotspot when its "City, ST" location names one of the
+// hotspot's towns in that hotspot's state.
+function inHotspot(location: string, hotspot: Hotspot): boolean {
+  if (parseStateFromLocation(location) !== hotspot.state.toUpperCase()) return false;
+  const city = location.split(',')[0].trim().toLowerCase();
+  return hotspot.towns.some((t) => t.trim().toLowerCase() === city);
 }
 
 export function applyEventFilters(
   events: EventWithProducer[],
   filters: EventFilters,
-  distances: TownDistanceMap
+  distances: TownDistanceMap,
+  hotspots: Hotspot[] = []
 ): EventWithProducer[] {
+  const activeHotspot = filters.hotspot ? hotspots.find((h) => h.id === filters.hotspot) ?? null : null;
   return events.filter((event) => {
     if (!filters.showPast && !isEventStillUpcoming(event.event_date, event.event_end_date)) {
       return false;
     }
     if (filters.state && parseStateFromLocation(event.location) !== filters.state) {
+      return false;
+    }
+    if (filters.type && !(event.tags ?? []).includes(filters.type)) {
+      return false;
+    }
+    if (activeHotspot && !inHotspot(event.location, activeHotspot)) {
       return false;
     }
     if (filters.dateWindow !== 'all' && !withinDateWindow(event.event_date, event.event_end_date, filters.dateWindow)) {

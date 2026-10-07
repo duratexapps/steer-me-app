@@ -3,11 +3,14 @@ import { Pill } from '@/src/components/ui/Pill';
 import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { DATE_WINDOW_OPTIONS, MILES_OPTIONS, type EventFilters } from '@/src/lib/event-filters';
+import { isHotspotHot, type Hotspot } from '@/src/hooks/useHotspots';
 
 type EventFiltersBarProps = {
   filters: EventFilters;
   onChange: (filters: EventFilters) => void;
   states: string[];
+  types: { value: string; label: string }[];
+  hotspots: Hotspot[];
   homeArea: string | null | undefined;
   resultCount: number;
 };
@@ -19,7 +22,9 @@ type EventFiltersBarProps = {
 // built as pill/toggle rows (not dropdowns) - every option is visible and
 // tappable in one glance, no extra menu to open, on a screen that's mostly
 // about scanning a list quickly.
-export function EventFiltersBar({ filters, onChange, states, homeArea, resultCount }: EventFiltersBarProps) {
+export function EventFiltersBar({ filters, onChange, states, types, hotspots, homeArea, resultCount }: EventFiltersBarProps) {
+  // Hot hotspots first, highlighted; the rest keep their configured order.
+  const orderedHotspots = [...hotspots].sort((a, b) => Number(isHotspotHot(b)) - Number(isHotspotHot(a)));
   return (
     <View style={styles.wrap}>
       <ToggleRow
@@ -28,6 +33,41 @@ export function EventFiltersBar({ filters, onChange, states, homeArea, resultCou
         value={filters.showPast}
         onToggle={() => onChange({ ...filters, showPast: !filters.showPast })}
       />
+
+      {orderedHotspots.length > 0 ? (
+        <>
+          <Text style={styles.label}>Where the action is</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRowScroll}>
+            <Pill label="Everywhere" selected={filters.hotspot === null} onPress={() => onChange({ ...filters, hotspot: null })} />
+            {orderedHotspots.map((h) => (
+              <Pill
+                key={h.id}
+                label={isHotspotHot(h) ? `${h.name} · hot now` : h.name}
+                hot={isHotspotHot(h)}
+                selected={filters.hotspot === h.id}
+                onPress={() => onChange({ ...filters, hotspot: filters.hotspot === h.id ? null : h.id })}
+              />
+            ))}
+          </ScrollView>
+        </>
+      ) : null}
+
+      {types.length > 0 ? (
+        <>
+          <Text style={styles.label}>Type</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRowScroll}>
+            <Pill label="All" selected={filters.type === null} onPress={() => onChange({ ...filters, type: null })} />
+            {types.map((t) => (
+              <Pill
+                key={t.value}
+                label={t.label}
+                selected={filters.type === t.value}
+                onPress={() => onChange({ ...filters, type: filters.type === t.value ? null : t.value })}
+              />
+            ))}
+          </ScrollView>
+        </>
+      ) : null}
 
       <Text style={styles.label}>When</Text>
       <View style={styles.pillRow}>

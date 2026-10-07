@@ -24,6 +24,8 @@ export type EventRow = {
   // rather than comparing event_date alone against today.
   event_end_date: string | null;
   location: string;
+  // Association that runs/sanctions the event, read from the flier (migration 0071): wstr, ustrc, ntr, over40. Empty = unknown.
+  tags?: string[];
   entry_fee: string | null;
   description: string | null;
   // NEW, added 2026-07-30 alongside migration 0041 - real ask: cost,
