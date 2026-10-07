@@ -95,6 +95,7 @@ export default function Subscription() {
               your subscription will follow your account either way, not the device.
             </DividerNote>
           )}
+          <Button label="Have a code?" variant="ghost" onPress={() => router.push('/redeem-code')} />
         </ScrollView>
         <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="subscription" />
       </SafeAreaView>
@@ -122,6 +123,8 @@ export default function Subscription() {
               : 'Subscribe to keep finding partners.'}
           </DividerNote>
         ) : null}
+
+        <Button label="Have a code?" variant="ghost" onPress={() => router.push('/redeem-code')} style={{ alignSelf: 'flex-start' }} />
 
         <View style={styles.capBanner}>
           <Text style={styles.capNum}>$40</Text>
