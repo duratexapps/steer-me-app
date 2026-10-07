@@ -122,6 +122,8 @@ export default function FinaleBoard() {
         keyExtractor={(item) => `${item.section}-${item.p.id}`}
         ListHeaderComponent={
           <>
+            <Text style={styles.sub}>Both user selected options are self-reported and not checked by Steer Me.</Text>
+
             <Text style={styles.eyebrow}>Finale year</Text>
             <View style={styles.pillWrap}>
               {years.map((y) => (
