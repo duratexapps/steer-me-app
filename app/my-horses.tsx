@@ -117,8 +117,8 @@ export default function MyHorses() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader
-        title="My Horses"
-        subtitle="Keep your Coggins on hand and share it at the gate"
+        title="Horse Papers"
+        subtitle="Coggins on hand, and what to bring when you haul"
         onBack={() => router.back()}
         onHelp={() => setHelpOpen(true)}
       />

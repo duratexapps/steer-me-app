@@ -175,7 +175,7 @@ export default function Profile() {
           style={styles.spacedBtn}
         />
         <Button
-          label="My horses & Coggins"
+          label="Horse papers & travel check"
           variant="outline"
           onPress={() => router.push('/my-horses')}
           style={styles.spacedBtn}
