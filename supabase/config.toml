@@ -536,3 +536,7 @@ verify_jwt = false
 
 [functions.redeem-promo-code]
 verify_jwt = false
+
+# Called by the database (pg_cron -> pg_net) with no user JWT; authenticates with the shared db_webhook_secret header.
+[functions.nightly-sweep]
+verify_jwt = false
