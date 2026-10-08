@@ -282,6 +282,7 @@ export default function RootLayout() {
     '/sign-up',
     '/create-account',
     '/forgot-password',
+    '/travel',
   ]);
   // /coggins/[token] (NEW, added 2026-09-13) is the one other genuinely
   // public, no-session route beyond the fixed list above - reachable cold

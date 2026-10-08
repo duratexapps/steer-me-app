@@ -27,7 +27,16 @@ Deno.serve(async (req) => {
   const secret = Deno.env.get('DB_WEBHOOK_SECRET');
   if (!secret || req.headers.get('x-webhook-secret') !== secret) return new Response('Unauthorized', { status: 401 });
   let dryRun = false;
-  try { dryRun = (await req.json())?.dryRun === true; } catch { /* no body */ }
+  let checkEmailId: string | null = null;
+  let toOverride: string | null = null;
+  try { const b = await req.json(); dryRun = b?.dryRun === true; checkEmailId = b?.checkEmailId ?? null; toOverride = b?.to ?? null; } catch { /* no body */ }
+
+  // Diagnostic: ask Resend what happened to a message we sent (delivered / bounced / ...).
+  if (checkEmailId) {
+    const r = await fetch(`https://api.resend.com/emails/${encodeURIComponent(checkEmailId)}`, { headers: { Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}` } });
+    const j = await r.json().catch(() => ({}));
+    return Response.json({ status: r.status, last_event: j.last_event, to: j.to, subject: j.subject, created_at: j.created_at });
+  }
 
   const admin = createSupabaseAdmin();
   const urgent: string[] = [];
@@ -143,6 +152,20 @@ Deno.serve(async (req) => {
     if (extra.length) urgent.unshift(`URGENT: unexpected admin account(s): ${extra.map((x) => x.full_name).join(', ')}`);
   });
 
+  // Feature usage (information only, never an action item): is the hauling-paperwork checker being used?
+  await check('11. Feature use', async () => {
+    const since = new Date(Date.now() - 7 * 24 * HOUR).toISOString();
+    const ev = await q(admin.from('feature_events').select('event,props,visitor_id,created_at').eq('feature', 'travel_checker').gte('created_at', since).limit(5000));
+    const count = (e: string) => ev.filter((x) => x.event === e).length;
+    const visitors = new Map<string, Set<string>>();
+    for (const x of ev) if (x.visitor_id) (visitors.get(x.visitor_id) ?? visitors.set(x.visitor_id, new Set()).get(x.visitor_id)!).add(String(x.created_at).slice(0, 10));
+    const repeat = [...visitors.values()].filter((d) => d.size >= 2).length;
+    const routes = new Map<string, number>();
+    for (const x of ev.filter((e) => e.event === 'check')) { const k = `${x.props?.from}>${x.props?.to}`; routes.set(k, (routes.get(k) ?? 0) + 1); }
+    const top = [...routes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k.replace('>', ' to ')} (${n})`).join(', ');
+    lines.push(`11. Hauling paperwork checker, last 7 days: ${count('view')} page views, ${count('check')} route checks from ${visitors.size} visitors (${repeat} came back on another day); helpful yes ${count('helpful_yes')} / not really ${count('helpful_no')}; error reports ${count('report_error')}; opened from the app ${count('open_from_app')}; official tool clicks ${count('open_official')}${top ? '; top routes: ' + top : ''}`);
+  });
+
   const when = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' });
   const subject = urgent.length
     ? `${urgent.some((u) => u.startsWith('URGENT')) ? 'URGENT - ' : ''}Steer Me nightly check: ${urgent.length} item(s) need attention`
@@ -158,8 +181,9 @@ Deno.serve(async (req) => {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM, to: [TO], subject, html, text }),
+    body: JSON.stringify({ from: FROM, to: [toOverride ?? TO], subject, html, text }),
   });
   if (!res.ok) { console.error('Resend failed', res.status, await res.text()); return Response.json({ error: 'email failed', status: res.status, subject }, { status: 502 }); }
-  return Response.json({ sent: true, subject, urgent: urgent.length });
+  const sentJson = await res.json().catch(() => ({}));
+  return Response.json({ sent: true, resend_id: sentJson.id, to: toOverride ?? TO, subject, urgent: urgent.length });
 });

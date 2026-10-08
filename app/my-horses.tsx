@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -129,6 +129,16 @@ export default function MyHorses() {
           with no Steer Me account of their own - it expires in 30 minutes and a fresh one is made every
           time you tap it.
         </DividerNote>
+
+        <Button
+          label="Check travel paperwork"
+          variant="outline"
+          onPress={() => {
+            supabase.rpc('log_feature_event', { p_feature: 'travel_checker', p_event: 'open_from_app', p_props: {}, p_visitor: null }).then(() => {}, () => {});
+            Linking.openURL('https://steerme.ropingtools.com/travel');
+          }}
+          style={{ marginBottom: 12 }}
+        />
 
         {horses && horses.length > 0 ? (
           <Button
