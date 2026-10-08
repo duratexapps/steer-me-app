@@ -22,9 +22,9 @@ OFFICES = {
  "TX": ("Texas Animal Health Commission", "https://www.tahc.texas.gov/", "512-719-0777 or 1-800-550-8242 ext. 777", "permits@tahc.texas.gov"),
  "NV": ("Nevada Dept. of Agriculture, Entry Permits", "https://agri.nv.gov/Animals/Animal_Disease/Import_Requirements/", "775-353-3709", "entrypermits@agri.nv.gov"),
  "MO": ("Missouri Dept. of Agriculture, Animal Health", "https://agriculture.mo.gov/animals/rules.php", "573-751-3377", None),
- "NM": ("New Mexico Livestock Board", "https://www.nmlbonline.com/", "505-841-6161", None),
+ "NM": ("New Mexico Livestock Board", "https://www.nmlbonline.com/import", "505-841-6161 (entry permits: 800-432-6889)", None),
  "AZ": ("Arizona Dept. of Agriculture, Animal Services", "https://agriculture.az.gov/", "602-542-4293", None),
- "OK": ("Oklahoma Dept. of Agriculture, Food and Forestry", "https://ag.ok.gov/divisions/animal-industry-state-veterinarian/", None, None),
+ "OK": ("Oklahoma Dept. of Agriculture, Food and Forestry, Animal Industry", "https://ag.ok.gov/divisions/animal-industry-state-veterinarian/", "405-522-6141 (cattle 405-522-6128; equine 405-522-6138)", None),
 }
 S = lambda name, url, conf: dict(source_name=name, source_url=url, confidence=conf)
 USEF = S("US Equestrian: interstate travel for horses", "https://www.usef.org/learn/equine-health/equine-transport/interstate-travel", "secondary")
@@ -37,6 +37,10 @@ NMSU = S("NMSU Extension guide B-708: documents to transport horses in NM (Nov 2
 AZCODE = S("Arizona Administrative Code R3-2-602 / R3-2-615", "https://regulations.justia.com/states/arizona/title-3/chapter-2/article-6/r3-2-615", "secondary")
 GVL_OK = S("GlobalVetLink: Oklahoma equine travel requirements (July 2026)", "https://www.globalvetlink.com/blog/oklahoma-equine-travel-requirements", "secondary")
 TAHC_NWS = S("Texas Animal Health Commission: New World Screwworm", "https://www.tahc.texas.gov/emergency/nws.html", "official")
+OKDOC = S("Oklahoma Dept. of Agriculture: Health Requirements Governing the Admission of Animals (rev. 12/19/2025)", "https://ag.ok.gov/wp-content/uploads/2025/12/Animal-Import-Requirements.pdf", "official")
+NMAC = S("New Mexico Administrative Code 21.32.4 (July 16, 2024)", "https://www.srca.nm.gov/parts/title21/21.032.0004.html", "official")
+NMLB = S("New Mexico Livestock Board: import requirements", "https://www.nmlbonline.com/import", "official")
+AZBEEF = S("Arizona Dept. of Agriculture: beef cattle entry requirements (Dec 2023)", "https://agriculture.az.gov/node/29", "secondary")
 TRJ = S("Team Roping Journal: EHV-1 protocols for Arizona and Vegas (Nov 28, 2025)", "https://teamropingjournal.com/news/ehv-1-protocols-everything-you-need-to-know-before-heading-to-arizona-and-vegas/", "secondary")
 
 R = []
@@ -62,8 +66,8 @@ NWS_COMMON = ("An infested zone is roughly a 12-mile radius around a confirmed c
 for sp in ("horse","cattle"):
     rule("TX",sp,"leaving","conditional","Screwworm movement certificate (only if the animal is in an infested zone)","Inspect within 5 days; certificate valid 5 days; file 48 hours ahead",
          NWS_COMMON + " Texas orders also require the Animal Health Commission's prior authorization before animals leave an infested zone (see the TAHC page).", TAHC_NWS, 5)
-    rule("NM",sp,"leaving","conditional","Screwworm movement certificate (only if the animal is in an infested zone)","Inspect within 5 days; certificate valid 5 days; file 48 hours ahead",
-         NWS_COMMON + " Check New Mexico's current zone and rules with the Livestock Board.", APHIS_NWS, 5)
+    rule("NM",sp,"leaving","conditional","Screwworm pre-movement inspection (only if the animal is in or leaving an infested zone)","Check with the Livestock Board before moving",
+         "The New Mexico Livestock Board says special pre-movement inspections are required for warm-blooded animals moving within or leaving infested zones, and only a New Mexico accredited veterinarian can perform them. " + NWS_COMMON, NMLB, 5)
 # ---- Texas ----
 rule("TX","horse","entering","required","Negative Coggins (EIA) test","Within the past 12 months","Foals under 8 months with a negative dam are exempt. An equine passport allows a 6-month movement window if an EIA test issued in the past 6 months accompanies it.", TAHC, 10)
 rule("TX","horse","entering","required","Health certificate (CVI) or Equine Interstate Passport","Valid 30 days, one movement","Horses from a state with vesicular stomatitis must have a CVI issued within 14 days before entry, with the VS status of the premises or area written on it. No Texas entry permit is required for horses.", TAHC, 20)
@@ -85,19 +89,18 @@ rule("MO","horse","entering","conditional","Screwworm rules (horses from states 
 rule("MO","cattle","entering","required","Health certificate (CVI)","Within 30 days before entry","Shorter windows (5 or 14 days) apply to animals from screwworm states or zones. See the screwworm note under horses.", MDA, 10)
 rule("MO","cattle","entering","required","Missouri entry permit for all rodeo and roping cattle","Valid 15 days","Missouri requires a permit for all rodeo stock. Official ID is also required; Missouri's separate tagging document has the details. The online permit system was being replaced in June 2026, so call 573-751-3377.", MDA, 20)
 # ---- New Mexico ----
-rule("NM","horse","entering","required","Health certificate (CVI)","Normally valid 30 days","A CVI is required when you cross the New Mexico line.", NMSU, 10)
-rule("NM","horse","entering","required","Negative Coggins (EIA) test","Normally 12 months","Required to cross the state line and for entry to some exhibitions, shows and rodeos.", NMSU, 20)
-rule("NM","horse","entering","check","Proof of ownership and brand inspection","Carry bill of sale or papers","Moving a horse between New Mexico brand districts needs a brand inspection form dated within 7 days or a permanent hauling permit (Form 1-H), and the Livestock Board says livestock entering from another state need an inspection. Confirm what applies to your trip: 505-841-6161.", NMSU, 30)
-rule("NM","horse","entering","conditional","Vesicular stomatitis statement on the CVI","Check current status","Livestock entering New Mexico have been required to carry a VS statement on the CVI, and animals from VS counties a Livestock Board permit. This comes from articles of uncertain date, so call the Livestock Board for the current rule.", S("Ebarrelracing summary of NM rules during VS","https://www.ebarrelracing.com/articles/?p=2390","secondary"), 40)
-# ---- Arizona ----
-rule("AZ","horse","entering","required","Official health certificate (CVI) from the state of origin","Check the age limit with Arizona","The CVI must identify the horse (age, sex, breed, color, name, markings) and give the negative EIA test date, the lab name and the accession number. Arizona's 2025 EHV rules asked for a 5-day-old certificate; confirm whether a shorter limit applies now: 602-542-4293.", AZCODE, 10)
-rule("AZ","horse","entering","required","Negative Coggins (EIA) test","Within 12 months before entry","Applies to horses six months or older.", AZCODE, 20)
-rule("AZ","horse","entering","required","Arizona entry permit","None needed for horses","Arizona's code says equines entering the state do not need an entry permit number.", AZCODE, 30)
-rule("AZ","cattle","entering","check","Arizona cattle and rodeo-stock rules","Call before you haul","I could not confirm Arizona's rules for roping cattle from official pages. The federal baseline (ICVI and official ID) applies. Call the Arizona Department of Agriculture at 602-542-4293.", AZCODE, 10)
+rule("NM","horse","entering","required","Official health certificate (CVI)","Normally valid 30 days","Must state the animals show no symptoms of infectious or contagious disease, and carry the horse's identification or description.", NMAC, 10)
+rule("NM","horse","entering","required","Negative Coggins (EIA) test","Within 12 months before entry","AGID (Coggins) or CELISA at a USDA-approved lab. The test date, lab and result must be on the CVI. Nursing foals with a negative dam are exempt. A pending test needs a special permit from the state veterinarian, requested before entry.", NMAC, 20)
+rule("NM","horse","entering","required","New Mexico entry permit","Get it before you leave","The Livestock Board says horses, mules, asses, cattle and bison entering from another state need an entry permit. Create it online (NM Entry Permits) or call 800-432-6889 with your NAN ready. Other questions: 505-841-6161.", NMLB, 30)
+rule("NM","horse","entering","check","Proof of ownership and brand inspection","Carry bill of sale or papers","NMSU's guide says moving a horse between New Mexico brand districts needs a brand inspection form dated within 7 days or a hauling permit, and horses staying in New Mexico over 30 days need an inspection. The Livestock Board's import page doesn't list a brand inspection for entry; confirm what applies to your trip.", NMSU, 40)
+rule("NM","cattle","entering","required","Health certificate and New Mexico entry permit","Before the cattle ship","Every cattle shipment needs a health certificate from the state of origin and a New Mexico entry permit (online or 800-432-6889). Tell a Livestock Board inspector when you arrive, before the cattle mix with others or go to pasture. Steers need no brucellosis test. The federal rule still requires official ID on rodeo and roping cattle.", NMAC, 10)
+# ---- Arizona (cattle, secondary) ----
+rule("AZ","cattle","entering","required","Arizona entry permit number and health certificate (CVI)","Permit number usable 30 days; CVI within 30 days","Get the permit number by calling 602-542-4293 (Mon to Fri, 8 to 5 Arizona time). The CVI comes from an accredited veterinarian, and every official ID number must be on it or attached. Rodeo and exhibition cattle of any age need official ID. Brand inspection requirements remain in effect.", AZBEEF, 10)
+rule("AZ","cattle","entering","conditional","Vesicular stomatitis rule (cattle from an affected state)","CVI valid no more than 14 days","If the origin state has had a VS outbreak in the past 60 days, the CVI is valid for no more than 14 days and must say the animals were inspected and found free of VS signs.", AZBEEF, 20)
 # ---- Oklahoma ----
-rule("OK","horse","entering","required","Health certificate (CVI)","Issued within 30 days of entry","It must carry the horse's ID, the Coggins date, the lab and the accession number. An approved Extended Equine CVI (EECVI) with a valid Coggins also works, for up to 6 months.", GVL_OK, 10)
-rule("OK","horse","entering","required","Negative Coggins (EIA) test","Within the previous 12 months","Carry the original or a photocopy with the horse. Foals under 6 months with a negative dam are exempt.", GVL_OK, 20)
-rule("OK","cattle","entering","check","Oklahoma cattle and rodeo-stock rules","Call before you haul","I could not confirm Oklahoma's roping-cattle rules from official pages. The federal baseline (ICVI and official ID) applies. Check with the Oklahoma Department of Agriculture's state veterinarian.", GVL_OK, 10)
+rule("OK","horse","entering","required","Health certificate (CVI)","Received within 30 days of entry","The CVI shows the negative Coggins result, test date, lab and accession number. One destination state per CVI. An approved current Extended Equine CVI (EECVI) also serves as the CVI.", OKDOC, 10)
+rule("OK","horse","entering","required","Negative Coggins (EIA) test","Within 12 months","The original or a photocopy of the Coggins must travel with the horse. Foals under 6 months with a negative dam are exempt. Racing Quarter Horses, Paints and Appaloosas entering a racetrack also need a negative piroplasmosis test.", OKDOC, 20)
+rule("OK","cattle","entering","required","Oklahoma import permit, CVI and official ID for roping and timed-event cattle","Negative TB test within 365 days before entry","Oklahoma lists roping and timed-event cattle (steers, heifers and bulls used for roping, plus tie-down calves) as event cattle: permit + CVI + individual official USDA ear tag + negative TB test within 365 days. Tie-down calves need only the ear tag. A permit is not needed if you use an electronic CVI that lists all the requirements. Permit and cattle questions: 405-522-6141 or 405-522-6128. (Four Michigan counties have a 60-day TB rule.)", OKDOC, 10)
 
 ALERTS = [
  dict(kind="nws", title="New World screwworm is in Texas and New Mexico", states=["TX","NM"],

@@ -23,7 +23,7 @@ type StateRow = { code: string; name: string; office_name: string | null; office
 
 const OFFICIAL_TOOL = 'https://www.interstatelivestock.com/';
 const REPORT_EMAIL = 'ropingtools@duratex-ie.com';
-const KIND_LABEL: Record<Rule['kind'], string> = { required: 'Required', conditional: 'If it applies', check: 'Confirm' };
+const KIND_LABEL: Record<Rule['kind'], string> = { required: 'Usually required', conditional: 'If it applies', check: 'Confirm' };
 
 let memoryVisitorId: string | null = null;
 function visitorId(): string {
@@ -198,6 +198,12 @@ export default function Travel() {
 
         {ready && data ? (
           <View style={styles.results}>
+            <View style={styles.notice}>
+              <Text style={styles.noticeTitle}>Please read first</Text>
+              <Text style={styles.noticeText}>
+                We gathered this from scattered state and federal sources as a free convenience, and it may be incomplete or out of date. It is a guide, not legal or veterinary advice. Each item shows its source and the date we last checked it, and the state offices to call are listed below. Please confirm with them, the event and your veterinarian before you haul. Steer Me does not verify documents or decide whether an animal can travel.
+              </Text>
+            </View>
             {alerts.length ? (
               <>
                 <Text style={styles.h2}>Active alerts on your route</Text>
@@ -351,6 +357,9 @@ const styles = StyleSheet.create({
   checkBox: { fontSize: 20, color: colors.espresso },
   checkText: { flex: 1, fontFamily: fonts.body, fontSize: 13.5, color: colors.espresso },
   results: { marginTop: 8 },
+  notice: { backgroundColor: colors.espresso, borderRadius: radii.md, padding: 14, marginBottom: 4 },
+  noticeTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.brassLight, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 },
+  noticeText: { fontFamily: fonts.body, fontSize: 13.5, color: colors.bone, lineHeight: 19 },
   rule: { backgroundColor: colors.tanLight, borderWidth: 1, borderColor: colors.saddle, borderRadius: radii.md, padding: 14, marginBottom: 10 },
   ruleHead: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   ruleTitle: { flexShrink: 1, fontFamily: fonts.bodyBold, fontSize: 15, color: colors.espresso },

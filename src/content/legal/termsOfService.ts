@@ -8,7 +8,7 @@
 // there's no automated build step connecting the two.
 export const TERMS_OF_SERVICE = `# Terms of Service
 
-*Effective date: July 28, 2026 · Last updated: July 28, 2026*
+*Effective date: July 28, 2026 · Last updated: October 8, 2026*
 
 ## 1. Acceptance of these Terms
 
@@ -72,9 +72,19 @@ The app is provided "as is." We don't guarantee that any partner match will resu
 
 **Classification accuracy.** Classification numbers on Steer Me are self-reported by each user, supported by a screenshot of their Global Handicap card or membership page as evidence, and — where users have matched as a team — visible to that matched partner for their own review. We do not independently verify a user's claimed classification, name, or identity against Global Handicap's official records, and we do not confirm that the person operating an account is the same person named on the screenshot they provided. Producers accepting entries through or informed by Steer Me remain solely responsible for verifying an entrant's eligibility and classification under their own event's rules. Steer Me is a tool to help make and evaluate a match — it is not a substitute for a producer's or governing body's own eligibility verification.
 
+## 10.5. Hauling paperwork information
+
+The Hauling Paperwork Check (at steerme.ropingtools.com/travel, and linked from the app) is a free convenience that gathers publicly available animal-health travel requirements from many state and federal sources into one place. It is general information only. It is not legal or veterinary advice, and it is not a substitute for the rules and officials of the states you travel from, through and to, the requirements of any event or venue, or the judgment of your accredited veterinarian.
+
+- **No guarantee.** We do not guarantee that it is complete, accurate or current. Requirements change often and can be temporary, differ by animal, origin, destination and event, and may be stricter than what we show. Some states may not be covered at all. Each item shows its source and the date it was last checked, and we link or give contact details for the responsible office where we have them.
+- **What the wording means.** Words such as "required" or "may be required" describe what a source said on the date shown. They are not a promise that the listed items are the only ones you need, or that following a list will satisfy any agency, event, venue or officer.
+- **Your responsibility.** You are solely responsible for confirming the requirements with the responsible state and federal offices, the event, and your accredited veterinarian before you travel, and for the health, identification, documentation and transport of your animals. Steer Me does not verify, issue or review any health certificate, test, permit or other document, and does not decide whether any animal may travel.
+- **Outside links and phone numbers.** Links and contact details for government or third-party sites are provided for your convenience. We do not control those sites or their content.
+- **Liability.** To the maximum extent permitted by law, we are not liable for any loss, fine, delay, denied entry, quarantine, event disqualification, animal illness or injury, or other consequence arising from your reliance on this information. Section 11 applies to this feature.
+
 ## 11. Limitation of liability
 
-To the maximum extent permitted by law, Steer Me and its owners/operators are not liable for indirect, incidental, or consequential damages arising from your use of the app, including but not limited to: a partner's conduct or reliability, an event's cancellation or misrepresentation by a producer, or any dispute between athletes or between an athlete and a producer. Our total liability for any claim is limited to the amount you paid us in the 12 months before the claim arose.
+To the maximum extent permitted by law, Steer Me and its owners/operators are not liable for indirect, incidental, or consequential damages arising from your use of the app, including but not limited to: a partner's conduct or reliability, an event's cancellation or misrepresentation by a producer, your reliance on any travel, health or document-requirement information (see Section 10.5), or any dispute between athletes or between an athlete and a producer. Our total liability for any claim is limited to the amount you paid us in the 12 months before the claim arose.
 
 ## 12. Indemnification
 
