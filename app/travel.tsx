@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import { useQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -94,6 +95,7 @@ function RuleCard({ rule }: { rule: Rule }) {
 }
 
 export default function Travel() {
+  const { src } = useLocalSearchParams<{ src?: string }>();
   const { data, isLoading, error } = useTravelData();
   const [species, setSpecies] = useState<'horse' | 'cattle'>('horse');
   const [from, setFrom] = useState<string | null>(null);
@@ -109,6 +111,7 @@ export default function Travel() {
     if (!viewLogged.current) {
       viewLogged.current = true;
       logEvent('view');
+      if (src === 'app') logEvent('open_from_app');
     }
   }, []);
 

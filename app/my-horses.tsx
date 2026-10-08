@@ -134,8 +134,9 @@ export default function MyHorses() {
           label="Check travel paperwork"
           variant="outline"
           onPress={() => {
-            supabase.rpc('log_feature_event', { p_feature: 'travel_checker', p_event: 'open_from_app', p_props: {}, p_visitor: null }).then(() => {}, () => {});
-            Linking.openURL('https://steerme.ropingtools.com/travel');
+            // No analytics call from the app on purpose: the store privacy labels say the app collects no usage data.
+            // The page itself counts the visit anonymously, using this ?src=app tag.
+            Linking.openURL('https://steerme.ropingtools.com/travel?src=app');
           }}
           style={{ marginBottom: 12 }}
         />

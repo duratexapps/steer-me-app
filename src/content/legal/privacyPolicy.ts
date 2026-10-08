@@ -35,7 +35,7 @@ Steer Me ("we," "us," "the app") is a mobile app that helps team ropers find eli
 
 **Automatically collected:**
 - Basic device and app diagnostic information (e.g., crash reports, app version) used to keep the app running reliably.
-- **Hauling Paperwork Check (no account needed):** when you use it we record anonymous usage, such as the animal type and the states you pick, whether you tap "Was this helpful?", and a random visitor ID kept in your own browser so we can count repeat visits. We use this only to see whether the feature is useful. If you are signed in to Steer Me when you use it, or open it from the app, that usage can be associated with your account for counting purposes. We do not ask for or record your name, phone number or animal documents on that page.
+- **Hauling Paperwork Check (no account needed):** when you use it we record anonymous usage, such as the animal type and the states you pick, whether you tap "Was this helpful?", and a random visitor ID kept in your own browser so we can count repeat visits. We use this only to see whether the feature is useful. We do not link this to your account, and we do not ask for or record your name, phone number or animal documents on that page. Opening the page from the Steer Me app is counted the same anonymous way, using a tag on the link; the app itself does not record it.
 
 ## 3. How we use your information
 
