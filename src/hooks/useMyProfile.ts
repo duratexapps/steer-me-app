@@ -43,6 +43,9 @@ export type MyProfile = {
   // 0047_draw_pro_entry_cancellation.sql - see account-settings.tsx's own
   // comment on the toggle that sets this.
   auto_cancel_team_entry_on_partner_cancel: boolean;
+  // NEW, 2026-10-09 - migration 0082. Opt-in: Draw Pro also emails this
+  // user their team number, as a backup to the push (account-settings.tsx).
+  email_draw_pro_notices: boolean;
   // Admin-written note shown as a banner (migration 0068); cleared by Update my classification.
   fix_note: string | null;
   fix_note_at: string | null;

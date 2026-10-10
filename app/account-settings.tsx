@@ -65,6 +65,29 @@ export default function AccountSettings() {
     invalidateProfile();
   }
 
+  // NEW, 2026-10-09 - Draw Pro emails an entrant's team number only when
+  // they have no push token, the push failed, or they opt in here (the
+  // Draw Pro half is already live; see
+  // DOCS/steer-me-draw-pro-email-backup-toggle-handoff.md). Default off:
+  // the push is the primary channel and this is the "also email me" backup.
+  const [emailBackupSubmitting, setEmailBackupSubmitting] = useState(false);
+  const emailBackupEnabled = !!profile?.email_draw_pro_notices;
+
+  async function handleToggleEmailBackup() {
+    if (!userId) return;
+    setEmailBackupSubmitting(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ email_draw_pro_notices: !emailBackupEnabled })
+      .eq('id', userId);
+    setEmailBackupSubmitting(false);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    invalidateProfile();
+  }
+
   const [newEmail, setNewEmail] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
 
@@ -275,6 +298,14 @@ export default function AccountSettings() {
               onToggle={handleToggleAutoCancel}
             />
             {autoCancelSubmitting ? <Text style={styles.currentValue}>Updating…</Text> : null}
+
+            <ToggleRow
+              title="Also email me my Draw Pro notices"
+              description="Get your team number by email too, as a backup to the notification on your phone. Useful if you sometimes miss notifications."
+              value={emailBackupEnabled}
+              onToggle={handleToggleEmailBackup}
+            />
+            {emailBackupSubmitting ? <Text style={styles.currentValue}>Updating…</Text> : null}
           </>
         ) : null}
       </ScrollView>

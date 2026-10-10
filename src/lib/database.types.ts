@@ -1001,6 +1001,7 @@ export type Database = {
       profiles: {
         Row: {
           auto_cancel_team_entry_on_partner_cancel: boolean
+          email_draw_pro_notices: boolean
           avatar_url: string | null
           contact: string | null
           created_at: string
@@ -1037,6 +1038,7 @@ export type Database = {
         }
         Insert: {
           auto_cancel_team_entry_on_partner_cancel?: boolean
+          email_draw_pro_notices?: boolean
           avatar_url?: string | null
           contact?: string | null
           created_at?: string
@@ -1073,6 +1075,7 @@ export type Database = {
         }
         Update: {
           auto_cancel_team_entry_on_partner_cancel?: boolean
+          email_draw_pro_notices?: boolean
           avatar_url?: string | null
           contact?: string | null
           created_at?: string

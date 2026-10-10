@@ -302,6 +302,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    // NEW, 2026-10-09 - set only when a team-assignment push was actually
+    // attempted. Draw Pro reads `pushed === false` as "this entrant's push
+    // failed, email them instead"; undefined (no teams to push) is ignored.
+    let pushed: boolean | undefined;
+
     const { data: teams, error: teamsError } = await supabaseAdmin
       .from('draw_pro_entry_link_teams')
       .select('team_number, total_teams, partner_name, partner_classification_number')
@@ -319,15 +324,22 @@ Deno.serve(async (req) => {
         const teamLabel = t.total_teams != null ? `Team #${t.team_number} of ${t.total_teams}` : `Team #${t.team_number}`;
         return `${teamLabel} — ${partner}`;
       });
-      sendPushNotification(
-        supabaseAdmin,
-        link.steer_me_user_id,
-        teams.length > 1 ? `Your teams for ${eventName}` : `Your team for ${eventName}`,
-        lines.join('\n')
-      ).catch((err) => console.error('[draw-pro-results-webhook] push send failed', err));
+      // Awaited (was fire-and-forget) so the reply can say whether the push
+      // went out. One Expo call, so the added latency is small.
+      try {
+        pushed = await sendPushNotification(
+          supabaseAdmin,
+          link.steer_me_user_id,
+          teams.length > 1 ? `Your teams for ${eventName}` : `Your team for ${eventName}`,
+          lines.join('\n')
+        );
+      } catch (err) {
+        console.error('[draw-pro-results-webhook] push send failed', err);
+        pushed = false;
+      }
     }
 
-    return Response.json({ found: true, linkId: link.id, teamNumber: body.teamNumber });
+    return Response.json({ found: true, linkId: link.id, teamNumber: body.teamNumber, ...(pushed === undefined ? {} : { pushed }) });
   }
 
   // Round-result call - resolve which of this person's teams it belongs to.
@@ -700,19 +712,23 @@ async function handleConfirmCancellation(supabaseAdmin: ReturnType<typeof create
   return Response.json({ found: true, deleted: true });
 }
 
+// Returns true only when Expo accepted the message for a real push token.
+// False covers no token, a lookup error, an HTTP failure, or an Expo ticket
+// error (e.g. DeviceNotRegistered). Existing fire-and-forget callers ignore
+// the result, so this does not change their behaviour.
 async function sendPushNotification(
   supabaseAdmin: ReturnType<typeof createSupabaseAdmin>,
   steerMeUserId: string,
   title: string,
   body: string
-) {
+): Promise<boolean> {
   const { data: profile, error } = await supabaseAdmin
     .from('profiles')
     .select('expo_push_token')
     .eq('id', steerMeUserId)
     .maybeSingle();
 
-  if (error || !profile?.expo_push_token) return;
+  if (error || !profile?.expo_push_token) return false;
 
   const res = await fetch(EXPO_PUSH_API_URL, {
     method: 'POST',
@@ -721,5 +737,17 @@ async function sendPushNotification(
   });
   if (!res.ok) {
     console.error('[draw-pro-results-webhook] Expo push API responded', res.status, await res.text());
+    return false;
   }
+  try {
+    const json = await res.json();
+    const ticket = Array.isArray(json?.data) ? json.data[0] : json?.data;
+    if (ticket?.status === 'error') {
+      console.error('[draw-pro-results-webhook] Expo push ticket error', ticket);
+      return false;
+    }
+  } catch {
+    // An unreadable but 2xx body: Expo accepted the request, so count it as sent.
+  }
+  return true;
 }
