@@ -7,6 +7,7 @@ import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
 import { ToggleRow } from '@/src/components/ui/ToggleRow';
+import { EmailBackupToggle } from '@/src/components/EmailBackupToggle';
 import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
@@ -58,29 +59,6 @@ export default function AccountSettings() {
       .update({ auto_cancel_team_entry_on_partner_cancel: !autoCancelEnabled })
       .eq('id', userId);
     setAutoCancelSubmitting(false);
-    if (error) {
-      showToast(error.message);
-      return;
-    }
-    invalidateProfile();
-  }
-
-  // NEW, 2026-10-09 - Draw Pro emails an entrant's team number only when
-  // they have no push token, the push failed, or they opt in here (the
-  // Draw Pro half is already live; see
-  // DOCS/steer-me-draw-pro-email-backup-toggle-handoff.md). Default off:
-  // the push is the primary channel and this is the "also email me" backup.
-  const [emailBackupSubmitting, setEmailBackupSubmitting] = useState(false);
-  const emailBackupEnabled = !!profile?.email_draw_pro_notices;
-
-  async function handleToggleEmailBackup() {
-    if (!userId) return;
-    setEmailBackupSubmitting(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ email_draw_pro_notices: !emailBackupEnabled })
-      .eq('id', userId);
-    setEmailBackupSubmitting(false);
     if (error) {
       showToast(error.message);
       return;
@@ -299,13 +277,7 @@ export default function AccountSettings() {
             />
             {autoCancelSubmitting ? <Text style={styles.currentValue}>Updating…</Text> : null}
 
-            <ToggleRow
-              title="Also email me my Draw Pro notices"
-              description="Get your team number by email too, as a backup to the notification on your phone. Useful if you sometimes miss notifications."
-              value={emailBackupEnabled}
-              onToggle={handleToggleEmailBackup}
-            />
-            {emailBackupSubmitting ? <Text style={styles.currentValue}>Updating…</Text> : null}
+            <EmailBackupToggle variant="settings" />
           </>
         ) : null}
       </ScrollView>

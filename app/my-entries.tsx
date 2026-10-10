@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { Button } from '@/src/components/ui/Button';
 import { HelpModal } from '@/src/components/HelpModal';
+import { EmailBackupToggle } from '@/src/components/EmailBackupToggle';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { formatDateDisplay, relativeTime } from '@/src/lib/date';
@@ -85,6 +86,7 @@ export default function MyEntries() {
               Showing results from {relativeTime(dataUpdatedAt)} — tap to retry
             </Text>
           )}
+          {Platform.OS !== 'web' ? <EmailBackupToggle variant="entries" /> : null}
           {!hasEntries ? (
             <Text style={styles.empty}>
               Once you tap "Enter the Draw" on an event, your team number and results will show up here as the
