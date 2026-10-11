@@ -78,6 +78,12 @@ export type DrawProEntry = {
   // (which deletes just this one row), so "requested" is a distinct,
   // visible state rather than the entry just vanishing.
   cancellation_requested_at: string | null;
+  // NEW, 2026-10-11 - migration 0083. Draw Pro's short entry code (read
+  // aloud / typed at the payment window) and the SECRET pay link rendered
+  // as a QR. Null for entries made before Draw Pro started sending them.
+  // pay_url is owner-only via RLS and must never be logged or tracked.
+  entry_code: string | null;
+  pay_url: string | null;
 };
 
 export function useMyDrawProEntries() {
@@ -103,7 +109,7 @@ export function useMyDrawProEntries() {
         supabase
           .from('draw_pro_entry_link_teams')
           .select(
-            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at'
+            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url'
           )
           .in('entry_link_id', linkIds)
           .order('submitted_at', { ascending: false }),
@@ -170,6 +176,8 @@ export function useMyDrawProEntries() {
           results: resultsByEntry.get(e.id) ?? [],
           extraRunCharge: chargeByEntry.get(e.id) ?? null,
           cancellation_requested_at: e.cancellation_requested_at,
+          entry_code: e.entry_code,
+          pay_url: e.pay_url,
         };
       });
     },

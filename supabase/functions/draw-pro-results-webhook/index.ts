@@ -106,6 +106,10 @@ type WebhookPayload = {
   entryType?: 'draw_in' | 'preformed_team';
   requestedRunCount?: number;
   entryId?: string;
+  // NEW, 2026-10-11 - registerSubmission's entry code and secret pay link
+  // (migration 0083). Both optional; older Draw Pro calls omit them.
+  entryCode?: string | null;
+  payUrl?: string | null;
   teamNumber?: number;
   // NEW, added 2026-08-09 for migration 0049_team_number_of_total.sql -
   // real gap flagged directly by the user: "Team #54" alone doesn't say
@@ -169,7 +173,14 @@ Deno.serve(async (req) => {
   }
 
   if (body.action === 'registerSubmission') {
-    return handleRegisterSubmission(supabaseAdmin, body.token ?? '', body.entryType, body.requestedRunCount);
+    return handleRegisterSubmission(
+      supabaseAdmin,
+      body.token ?? '',
+      body.entryType,
+      body.requestedRunCount,
+      body.entryCode,
+      body.payUrl
+    );
   }
 
   if (body.action === 'pushRoundStandings') {
@@ -605,7 +616,9 @@ async function handleRegisterSubmission(
   supabaseAdmin: ReturnType<typeof createSupabaseAdmin>,
   token: string,
   entryType: 'draw_in' | 'preformed_team' | undefined,
-  requestedRunCount: number | undefined
+  requestedRunCount: number | undefined,
+  entryCode?: string | null,
+  payUrl?: string | null
 ) {
   if (!token || !entryType) {
     return new Response('Missing token or entryType', { status: 400 });
@@ -615,6 +628,10 @@ async function handleRegisterSubmission(
     p_token: token,
     p_entry_type: entryType,
     p_requested_run_count: requestedRunCount ?? 1,
+    // The RPC validates both and stores null for anything malformed. pay_url
+    // is a secret, so it is deliberately never logged here.
+    p_entry_code: entryCode ?? null,
+    p_pay_url: payUrl ?? null,
   });
 
   if (error) {

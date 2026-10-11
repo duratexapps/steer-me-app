@@ -90,12 +90,14 @@ export type Database = {
         Row: {
           cancellation_requested_at: string | null
           created_at: string
+          entry_code: string | null
           entry_link_id: string
           entry_type: string
           id: string
           partner_classification_number: number | null
           partner_name: string | null
           partner_role: string | null
+          pay_url: string | null
           requested_run_count: number
           submitted_at: string
           team_number: number | null
@@ -104,12 +106,14 @@ export type Database = {
         Insert: {
           cancellation_requested_at?: string | null
           created_at?: string
+          entry_code?: string | null
           entry_link_id: string
           entry_type?: string
           id?: string
           partner_classification_number?: number | null
           partner_name?: string | null
           partner_role?: string | null
+          pay_url?: string | null
           requested_run_count?: number
           submitted_at?: string
           team_number?: number | null
@@ -118,12 +122,14 @@ export type Database = {
         Update: {
           cancellation_requested_at?: string | null
           created_at?: string
+          entry_code?: string | null
           entry_link_id?: string
           entry_type?: string
           id?: string
           partner_classification_number?: number | null
           partner_name?: string | null
           partner_role?: string | null
+          pay_url?: string | null
           requested_run_count?: number
           submitted_at?: string
           team_number?: number | null

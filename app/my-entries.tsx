@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import QRCode from 'react-native-qrcode-svg';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { Button } from '@/src/components/ui/Button';
 import { HelpModal } from '@/src/components/HelpModal';
@@ -127,6 +128,8 @@ function EntryCard({ entry }: { entry: DrawProEntry }) {
       </View>
       <Text style={styles.submittedAtText}>Entered {formatSubmittedAt(entry.submitted_at)}</Text>
 
+      {entry.entry_code && !entry.cancellation_requested_at ? <EntryCodeBlock entry={entry} /> : null}
+
       {entry.team_number == null ? (
         <CancelEntrySection entry={entry} />
       ) : (
@@ -151,6 +154,34 @@ function EntryCard({ entry }: { entry: DrawProEntry }) {
           ) : null}
         </View>
       )}
+    </View>
+  );
+}
+
+// NEW, 2026-10-11 - see migration 0083_draw_pro_entry_code.sql and
+// DOCS/steer-me-draw-pro-entry-code-handoff.md. At a cash roping an entrant
+// who entered from their phone often pays at the window; Draw Pro gives each
+// submission a short code plus a pay link, and the secretary opens that link
+// from the QR to pull the entry up. The code is large and monospace because
+// it gets read aloud and typed. pay_url is a secret: it only ever goes into
+// the QR, never into text, a share sheet, a log or analytics.
+function EntryCodeBlock({ entry }: { entry: DrawProEntry }) {
+  return (
+    <View style={styles.codeBlock}>
+      <View style={styles.codeRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.codeLabel}>Entry code</Text>
+          <Text style={styles.codeText} selectable>
+            {entry.entry_code}
+          </Text>
+        </View>
+        {entry.pay_url ? (
+          <View style={styles.qrBox}>
+            <QRCode value={entry.pay_url} size={104} backgroundColor={colors.bone} color={colors.espresso} />
+          </View>
+        ) : null}
+      </View>
+      <Text style={styles.codeCaption}>Show this at the window when you pay.</Text>
     </View>
   );
 }
@@ -384,4 +415,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bone,
   },
   cancelRequestedText: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle },
+  codeBlock: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.brass,
+    backgroundColor: colors.bone,
+  },
+  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  codeLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.saddle,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  codeText: { fontFamily: fonts.mono, fontSize: 40, letterSpacing: 4, color: colors.espresso, marginTop: 2 },
+  qrBox: { padding: 6, backgroundColor: colors.bone },
+  codeCaption: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginTop: 8 },
 });
