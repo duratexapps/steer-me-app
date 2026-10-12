@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "692618907939",
+    "project_id": "steer-me",
+    "storage_bucket": "steer-me.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:692618907939:android:c1892c24291e8b63da3c96",
+        "android_client_info": {
+          "package_name": "com.duratexapplications.steerme"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfSLLQR3Ey_de-NPoqhtC9Boxv1MYuFWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
