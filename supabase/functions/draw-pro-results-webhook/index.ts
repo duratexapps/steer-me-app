@@ -87,6 +87,32 @@ function cleanClassName(v: unknown): string | null {
   return t.length > 0 ? t : null;
 }
 
+type PushTeam = {
+  team_number: number | null;
+  total_teams: number | null;
+  partner_name: string | null;
+  partner_classification_number: number | null;
+};
+
+// The "your team(s)" notification. The class goes FIRST in the title (the
+// lock screen cuts long titles at the end, which hid it), and the event name
+// moves to the first line of the message.
+function buildTeamsPush(eventName: string, className: string | null, teams: PushTeam[]) {
+  const lines = teams.map((t) => {
+    const partner =
+      t.partner_name != null
+        ? `${t.partner_name}${t.partner_classification_number != null ? ` (${t.partner_classification_number})` : ''}`
+        : 'partner TBD';
+    const teamLabel = t.total_teams != null ? `Team #${t.team_number} of ${t.total_teams}` : `Team #${t.team_number}`;
+    return `${teamLabel} — ${partner}`;
+  });
+  const noun = teams.length > 1 ? 'Your teams' : 'Your team';
+  return {
+    title: className ? `${noun} (${className})` : noun,
+    body: [eventName, ...lines].join('\n'),
+  };
+}
+
 type WebhookPayload = {
   action?:
     | 'getExtraRunStatuses'
@@ -102,7 +128,10 @@ type WebhookPayload = {
     | 'pushRoundStandings'
     // NEW, 2026-10-11 - Draw Pro reports an entry's status (left out of a
     // paid-only draw, or paid at the window). Best effort on their side.
-    | 'entryStatus';
+    | 'entryStatus'
+    // NEW, 2026-10-11 - one "your teams" push per roper per class, sent after
+    // all of that roper's teams were recorded with deferPush.
+    | 'notifyTeams';
   lookups?: { token: string; teamNumber: number; classId?: string | null }[];
   // NEW, added 2026-08-06 for migration 0047_draw_pro_entry_cancellation.sql
   // - drawProEventId is Draw Pro's OWN event id (a Wix string), not this
@@ -130,6 +159,10 @@ type WebhookPayload = {
   // without classId behaves as before (legacy).
   classId?: string | null;
   className?: string | null;
+  // NEW, 2026-10-11 - a team-assignment call with deferPush records the team
+  // but sends no push; Draw Pro follows with one notifyTeams call per roper
+  // per class so the roper gets a single notification, not one per team.
+  deferPush?: boolean;
   teamNumber?: number;
   // NEW, added 2026-08-09 for migration 0049_team_number_of_total.sql -
   // real gap flagged directly by the user: "Team #54" alone doesn't say
@@ -203,6 +236,10 @@ Deno.serve(async (req) => {
       body.classId,
       body.className
     );
+  }
+
+  if (body.action === 'notifyTeams') {
+    return handleNotifyTeams(supabaseAdmin, body.token ?? '', body.classId, body.className);
   }
 
   if (body.action === 'entryStatus') {
@@ -410,6 +447,12 @@ Deno.serve(async (req) => {
     // failed, email them instead"; undefined (no teams to push) is ignored.
     let pushed: boolean | undefined;
 
+    // deferPush: the team is recorded but no push goes out; Draw Pro follows
+    // with one notifyTeams call per roper per class.
+    if (body.deferPush) {
+      return Response.json({ found: true, linkId: link.id, teamNumber: body.teamNumber, deferred: true });
+    }
+
     // With a classId, list only THIS class's teams (each class is signed off
     // on its own); without one, the old behavior (every team on the link).
     let teamsQuery = supabaseAdmin
@@ -424,23 +467,11 @@ Deno.serve(async (req) => {
     if (teamsError) {
       console.error('[draw-pro-results-webhook] teams list failed', body.token, teamsError);
     } else if (teams && teams.length > 0) {
-      const lines = teams.map((t) => {
-        const partner =
-          t.partner_name != null
-            ? `${t.partner_name}${t.partner_classification_number != null ? ` (${t.partner_classification_number})` : ''}`
-            : 'partner TBD';
-        const teamLabel = t.total_teams != null ? `Team #${t.team_number} of ${t.total_teams}` : `Team #${t.team_number}`;
-        return `${teamLabel} — ${partner}`;
-      });
+      const push = buildTeamsPush(eventName, className, teams);
       // Awaited (was fire-and-forget) so the reply can say whether the push
       // went out. One Expo call, so the added latency is small.
       try {
-        pushed = await sendPushNotification(
-          supabaseAdmin,
-          link.steer_me_user_id,
-          `${teams.length > 1 ? 'Your teams' : 'Your team'} for ${eventName}${className ? ` (${className})` : ''}`,
-          lines.join('\n')
-        );
+        pushed = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, push.title, push.body);
       } catch (err) {
         console.error('[draw-pro-results-webhook] push send failed', err);
         pushed = false;
@@ -768,6 +799,66 @@ async function handleRegisterSubmission(
   }
 
   return Response.json({ found: true, entryId });
+}
+
+// NEW, 2026-10-11 - one "your teams" notification per roper per class. Draw Pro
+// records each team with deferPush, then calls this once. Lists every team the
+// roper holds in that class (all classes if no classId, the legacy shape) and
+// replies with `pushed` exactly like a single team-assignment call, so Draw
+// Pro's fallback email still fires for every record when the push fails.
+async function handleNotifyTeams(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdmin>,
+  token: string,
+  classIdRaw?: string | null,
+  classNameRaw?: string | null
+) {
+  if (!token) {
+    return new Response('Missing token', { status: 400 });
+  }
+  const classId = cleanClassId(classIdRaw);
+
+  const { data: link, error: linkError } = await supabaseAdmin
+    .from('draw_pro_entry_links')
+    .select('id, steer_me_user_id, events(name)')
+    .eq('token', token)
+    .maybeSingle();
+  if (linkError) {
+    console.error('[draw-pro-results-webhook] notifyTeams link lookup failed', linkError);
+    return Response.json({ error: linkError.message }, { status: 500 });
+  }
+  if (!link) {
+    return Response.json({ found: false }, { status: 404 });
+  }
+  const eventRecord = Array.isArray(link.events) ? link.events[0] : link.events;
+  const eventName: string = eventRecord?.name ?? 'your event';
+
+  let q = supabaseAdmin
+    .from('draw_pro_entry_link_teams')
+    .select('team_number, total_teams, partner_name, partner_classification_number, draw_pro_class_name')
+    .eq('entry_link_id', link.id)
+    .not('team_number', 'is', null)
+    .order('team_number', { ascending: true });
+  if (classId) q = q.eq('draw_pro_class_id', classId);
+  const { data: teams, error: teamsError } = await q;
+  if (teamsError) {
+    console.error('[draw-pro-results-webhook] notifyTeams teams lookup failed', teamsError);
+    return Response.json({ error: teamsError.message }, { status: 500 });
+  }
+  if (!teams || teams.length === 0) {
+    // Nothing recorded to announce; the team calls themselves report failures.
+    return Response.json({ found: true, teams: 0 });
+  }
+
+  const className = cleanClassName(classNameRaw) ?? teams[0].draw_pro_class_name ?? null;
+  const push = buildTeamsPush(eventName, className, teams);
+  let pushed: boolean;
+  try {
+    pushed = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, push.title, push.body);
+  } catch (err) {
+    console.error('[draw-pro-results-webhook] notifyTeams push failed', err);
+    pushed = false;
+  }
+  return Response.json({ found: true, teams: teams.length, pushed });
 }
 
 // NEW, 2026-10-11 - migration 0085. Draw Pro reports 'left_out_unpaid' (the
