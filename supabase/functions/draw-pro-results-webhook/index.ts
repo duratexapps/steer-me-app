@@ -131,7 +131,9 @@ type WebhookPayload = {
     | 'entryStatus'
     // NEW, 2026-10-11 - one "your teams" push per roper per class, sent after
     // all of that roper's teams were recorded with deferPush.
-    | 'notifyTeams';
+    | 'notifyTeams'
+    // NEW, 2026-10-12 - live progress for entered riders (migration 0089).
+    | 'liveProgress';
   lookups?: { token: string; teamNumber: number; classId?: string | null }[];
   // NEW, added 2026-08-06 for migration 0047_draw_pro_entry_cancellation.sql
   // - drawProEventId is Draw Pro's OWN event id (a Wix string), not this
@@ -186,6 +188,13 @@ type WebhookPayload = {
   // round fields already above.
   rank?: number;
   totalActiveTeams?: number;
+  // NEW, 2026-10-12 - liveProgress (migration 0089). round/totalActiveTeams are shared with standings.
+  totalRounds?: number | null;
+  roundComplete?: boolean;
+  classStatus?: string;
+  lastRopedTeamNumber?: number | null;
+  remainingOrder?: number[];
+  seq?: number;
 };
 
 Deno.serve(async (req) => {
@@ -236,6 +245,10 @@ Deno.serve(async (req) => {
       body.classId,
       body.className
     );
+  }
+
+  if (body.action === 'liveProgress') {
+    return handleLiveProgress(supabaseAdmin, body);
   }
 
   if (body.action === 'notifyTeams') {
@@ -835,6 +848,80 @@ async function handleRegisterSubmission(
   }
 
   return Response.json({ found: true, entryId });
+}
+
+// NEW, 2026-10-12 - migration 0089. Draw Pro sends the state of a class's run
+// order after every saved time or order change; Steer Me keeps one row per
+// (event, class) and the My Entries ticker reads it. Only a strictly newer seq
+// is applied, so a late or repeated call can never move the ticker backwards.
+// Team numbers only, no names. Replies found:false (404) when the Draw Pro
+// event is not linked to a Steer Me event or no Steer Me rider entered it.
+async function handleLiveProgress(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdmin>,
+  body: WebhookPayload
+) {
+  const classId = cleanClassId(body.classId);
+  const intOrNull = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) ? v : null);
+  const status = body.classStatus;
+  const remaining = Array.isArray(body.remainingOrder) ? body.remainingOrder : [];
+  if (
+    !body.drawProEventId ||
+    !classId ||
+    intOrNull(body.round) == null ||
+    typeof body.seq !== 'number' ||
+    !Number.isFinite(body.seq) ||
+    (status !== 'not_started' && status !== 'running' && status !== 'complete') ||
+    remaining.length > 2000 ||
+    !remaining.every((n) => Number.isInteger(n) && n > 0)
+  ) {
+    return new Response('Invalid liveProgress body', { status: 400 });
+  }
+
+  const { data: event, error: eventError } = await supabaseAdmin
+    .from('events')
+    .select('id')
+    .eq('draw_pro_event_id', body.drawProEventId)
+    .maybeSingle();
+  if (eventError) {
+    console.error('[draw-pro-results-webhook] liveProgress event lookup failed', eventError);
+    return Response.json({ error: eventError.message }, { status: 500 });
+  }
+  if (!event) {
+    return Response.json({ found: false }, { status: 404 });
+  }
+
+  const { count, error: linkError } = await supabaseAdmin
+    .from('draw_pro_entry_links')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', event.id);
+  if (linkError) {
+    console.error('[draw-pro-results-webhook] liveProgress link count failed', linkError);
+    return Response.json({ error: linkError.message }, { status: 500 });
+  }
+  if (!count) {
+    return Response.json({ found: false }, { status: 404 });
+  }
+
+  const { data: applied, error: upsertError } = await supabaseAdmin.rpc('upsert_draw_pro_live_progress', {
+    p_event_id: event.id,
+    p_class_id: classId,
+    p_class_name: cleanClassName(body.className),
+    p_class_status: status,
+    p_round: body.round as number,
+    p_total_rounds: intOrNull(body.totalRounds),
+    p_round_complete: !!body.roundComplete,
+    p_last_roped: intOrNull(body.lastRopedTeamNumber),
+    p_remaining: remaining,
+    p_total_active: intOrNull(body.totalActiveTeams),
+    p_seq: Math.trunc(body.seq),
+  });
+  if (upsertError) {
+    console.error('[draw-pro-results-webhook] liveProgress upsert failed', upsertError);
+    return Response.json({ error: upsertError.message }, { status: 500 });
+  }
+
+  // applied=false means a newer (or equal) seq was already stored; still a success.
+  return Response.json({ found: true, applied: !!applied });
 }
 
 // NEW, 2026-10-11 - one "your teams" notification per roper per class. Draw Pro

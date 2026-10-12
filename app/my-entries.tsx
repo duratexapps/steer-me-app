@@ -12,8 +12,10 @@ import { formatDateDisplay, relativeTime } from '@/src/lib/date';
 import { showToast } from '@/src/state/toast-store';
 import { confirmAsync } from '@/src/lib/confirm';
 import { goBackOrHome } from '@/src/lib/navigation';
+import { computeTicker, type LiveProgressRow } from '@/src/lib/live-progress';
 import {
   useMyDrawProEntries,
+  useLiveProgress,
   useChooseExtraRunPayment,
   useRequestEntryCancellation,
   type DrawProEntry,
@@ -71,6 +73,7 @@ export default function MyEntries() {
   const [helpOpen, setHelpOpen] = useState(false);
 
   const hasEntries = !!entries && entries.length > 0;
+  const { data: liveProgress } = useLiveProgress((entries ?? []).map((e) => e.event_id));
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -101,7 +104,7 @@ export default function MyEntries() {
               producer runs the draw and enters results.
             </Text>
           ) : (
-            entries!.map((entry) => <EntryCard key={entry.id} entry={entry} />)
+            entries!.map((entry) => <EntryCard key={entry.id} entry={entry} live={liveProgress} />)
           )}
         </ScrollView>
       )}
@@ -119,7 +122,7 @@ function describeEntry(entry: DrawProEntry) {
   return entry.requested_run_count === 1 ? '1 draw-in run' : `${entry.requested_run_count} draw-in runs`;
 }
 
-function EntryCard({ entry }: { entry: DrawProEntry }) {
+function EntryCard({ entry, live }: { entry: DrawProEntry; live?: Map<string, LiveProgressRow> }) {
   const partner =
     entry.partner_name != null
       ? `${entry.partner_name}${entry.partner_classification_number != null ? ` (${entry.partner_classification_number})` : ''}`
@@ -152,6 +155,8 @@ function EntryCard({ entry }: { entry: DrawProEntry }) {
             {entry.entry_type === 'draw_in' ? <Text style={styles.partnerText}>{partner}</Text> : null}
           </View>
 
+          <LiveTicker entry={entry} live={live} />
+
           {entry.standing_rank != null ? (
             <View style={styles.standingBox}>
               <Text style={styles.standingLabel}>Standing</Text>
@@ -174,6 +179,29 @@ function EntryCard({ entry }: { entry: DrawProEntry }) {
           ) : null}
         </View>
       )}
+    </View>
+  );
+}
+
+// NEW, 2026-10-12 - "your team is N runs out" from the producer's Draw Pro run
+// order (migration 0089). Shown only for a team that has a number and a class.
+// The caption is required wording: the order comes from the producer's own Draw
+// Pro entries, so the producer, not Steer Me, owns it if it goes off track.
+function LiveTicker({ entry, live }: { entry: DrawProEntry; live?: Map<string, LiveProgressRow> }) {
+  if (!live || !entry.draw_pro_class_id || entry.team_number == null) return null;
+  const row = live.get(`${entry.event_id}|${entry.draw_pro_class_id}`);
+  const ranThisRound = !!row && entry.results.some((r) => r.round === row.round);
+  const ticker = computeTicker(row, entry.team_number, ranThisRound);
+  if (!ticker) return null;
+  return (
+    <View style={styles.tickerBox}>
+      <Text style={styles.tickerLabel}>Live</Text>
+      <Text style={styles.tickerHeadline}>{ticker.headline}</Text>
+      {ticker.detail ? <Text style={styles.tickerDetail}>{ticker.detail}</Text> : null}
+      <Text style={styles.tickerNote}>
+        Live progress comes from the producer's Draw Pro entries and may lag
+        {row ? ` (updated ${relativeTime(new Date(row.updated_at).getTime())})` : ''}.
+      </Text>
     </View>
   );
 }
@@ -424,6 +452,24 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   metaText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle },
   submittedAtText: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2 },
+  tickerBox: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.green,
+    backgroundColor: colors.bone,
+  },
+  tickerLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.green,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  tickerHeadline: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.espresso, marginTop: 2 },
+  tickerDetail: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginTop: 2 },
+  tickerNote: { fontFamily: fonts.body, fontSize: 10.5, color: colors.saddle, marginTop: 6 },
   standingBox: {
     marginTop: 8,
     flexDirection: 'row',

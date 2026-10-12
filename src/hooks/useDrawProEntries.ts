@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
+import type { LiveProgressRow } from '@/src/lib/live-progress';
 
 // Backs app/my-entries.tsx - the "check draw position and results without
 // leaving the app" feature. See migrations 0042_draw_pro_entry_links.sql /
@@ -90,12 +91,40 @@ export type DrawProEntry = {
   // NEW, 2026-10-11 - migration 0086. Which Draw Pro class this entry is in
   // (for example #ZZ-B). Null for entries made before class-aware teams.
   draw_pro_class_name: string | null;
+  // NEW, 2026-10-12 - the class this team is in, to match its live progress row.
+  draw_pro_class_id: string | null;
   // NEW, 2026-10-11 - migration 0087. Latest overall standing Draw Pro reported
   // (1 = first), out of how many active teams, after which round.
   standing_rank: number | null;
   standing_of: number | null;
   standing_round: number | null;
 };
+
+// NEW, 2026-10-12 - migration 0089. Live run order for the events this user
+// entered. Readable only for events the user entered (RLS); polls every 10s
+// while a screen using it is open and does nothing when no one is looking.
+export function useLiveProgress(eventIds: string[]) {
+  const key = [...new Set(eventIds)].sort();
+  return useQuery({
+    queryKey: ['draw-pro-live-progress', key],
+    enabled: key.length > 0,
+    refetchInterval: 10000,
+    queryFn: async (): Promise<Map<string, LiveProgressRow>> => {
+      const { data, error } = await supabase
+        .from('draw_pro_live_progress')
+        .select(
+          'event_id, draw_pro_class_id, class_name, class_status, round, total_rounds, round_complete, last_roped_team, remaining_order, total_active_teams, seq, updated_at'
+        )
+        .in('event_id', key);
+      if (error) throw error;
+      const map = new Map<string, LiveProgressRow>();
+      for (const row of (data ?? []) as LiveProgressRow[]) {
+        map.set(`${row.event_id}|${row.draw_pro_class_id}`, row);
+      }
+      return map;
+    },
+  });
+}
 
 export function useMyDrawProEntries() {
   return useQuery({
@@ -124,7 +153,7 @@ export function useMyDrawProEntries() {
         supabase
           .from('draw_pro_entry_link_teams')
           .select(
-            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url, draw_pro_status, draw_pro_class_name, standing_rank, standing_of, standing_round'
+            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url, draw_pro_status, draw_pro_class_name, draw_pro_class_id, standing_rank, standing_of, standing_round'
           )
           .in('entry_link_id', linkIds)
           .order('submitted_at', { ascending: false }),
@@ -195,6 +224,7 @@ export function useMyDrawProEntries() {
           pay_url: e.pay_url,
           draw_pro_status: e.draw_pro_status as 'left_out_unpaid' | 'paid' | null,
           draw_pro_class_name: e.draw_pro_class_name,
+          draw_pro_class_id: e.draw_pro_class_id,
           standing_rank: e.standing_rank,
           standing_of: e.standing_of,
           standing_round: e.standing_round,
