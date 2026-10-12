@@ -90,11 +90,20 @@ export type DrawProEntry = {
   // NEW, 2026-10-11 - migration 0086. Which Draw Pro class this entry is in
   // (for example #ZZ-B). Null for entries made before class-aware teams.
   draw_pro_class_name: string | null;
+  // NEW, 2026-10-11 - migration 0087. Latest overall standing Draw Pro reported
+  // (1 = first), out of how many active teams, after which round.
+  standing_rank: number | null;
+  standing_of: number | null;
+  standing_round: number | null;
 };
 
 export function useMyDrawProEntries() {
   return useQuery({
     queryKey: ['draw-pro-entries', 'mine'],
+    // NEW, 2026-10-11 - refresh by itself while My Entries is open, so a
+    // standing, a cancellation or a team number shows up without the roper
+    // pulling down. A query with no mounted screen does not poll.
+    refetchInterval: 15000,
     queryFn: async (): Promise<DrawProEntry[]> => {
       const { data: links, error: linksError } = await supabase
         .from('draw_pro_entry_links')
@@ -115,7 +124,7 @@ export function useMyDrawProEntries() {
         supabase
           .from('draw_pro_entry_link_teams')
           .select(
-            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url, draw_pro_status, draw_pro_class_name'
+            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url, draw_pro_status, draw_pro_class_name, standing_rank, standing_of, standing_round'
           )
           .in('entry_link_id', linkIds)
           .order('submitted_at', { ascending: false }),
@@ -186,6 +195,9 @@ export function useMyDrawProEntries() {
           pay_url: e.pay_url,
           draw_pro_status: e.draw_pro_status as 'left_out_unpaid' | 'paid' | null,
           draw_pro_class_name: e.draw_pro_class_name,
+          standing_rank: e.standing_rank,
+          standing_of: e.standing_of,
+          standing_round: e.standing_round,
         };
       });
     },

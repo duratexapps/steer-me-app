@@ -532,11 +532,15 @@ Deno.serve(async (req) => {
         title: `Round ${body.round} result`,
         body: `${body.finalTime != null ? `${body.finalTime}s` : 'Result recorded'}${teamLabel} at ${eventName}`,
       };
-  sendPushNotification(supabaseAdmin, link.steer_me_user_id, notification.title, notification.body).catch((err) =>
-    console.error('[draw-pro-results-webhook] push send failed', err)
-  );
+  // Awaited for the same reason as the standings push above.
+  let resultPushed = false;
+  try {
+    resultPushed = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, notification.title, notification.body);
+  } catch (err) {
+    console.error('[draw-pro-results-webhook] push send failed', err);
+  }
 
-  return Response.json({ found: true, linkId: link.id, round: body.round, teamNumber: body.teamNumber });
+  return Response.json({ found: true, linkId: link.id, round: body.round, teamNumber: body.teamNumber, pushed: resultPushed });
 });
 
 function ordinal(n: number): string {
@@ -580,7 +584,7 @@ async function handlePushRoundStandings(
   const standingsClassId = cleanClassId(body.classId);
   let standingsTeamQuery = supabaseAdmin
     .from('draw_pro_entry_link_teams')
-    .select('team_number, total_teams, draw_pro_class_name')
+    .select('id, team_number, total_teams, draw_pro_class_name, standing_round')
     .eq('entry_link_id', link.id)
     .eq('team_number', body.teamNumber);
   if (standingsClassId) standingsTeamQuery = standingsTeamQuery.eq('draw_pro_class_id', standingsClassId);
@@ -590,16 +594,41 @@ async function handlePushRoundStandings(
     (team?.total_teams != null ? ` — Team #${body.teamNumber} of ${team.total_teams}` : ` — Team #${body.teamNumber}`) +
     (team?.draw_pro_class_name ? ` (${team.draw_pro_class_name})` : '');
 
+  // Save the standing so My Entries can show it (migration 0087), even when the
+  // roper has no push token. An older round never overwrites a newer one.
+  if (team && (team.standing_round == null || team.standing_round <= body.round)) {
+    const { error: standingError } = await supabaseAdmin
+      .from('draw_pro_entry_link_teams')
+      .update({
+        standing_rank: body.rank,
+        standing_of: body.totalActiveTeams ?? null,
+        standing_round: body.round,
+      })
+      .eq('id', team.id);
+    if (standingError) {
+      console.error('[draw-pro-results-webhook] standing save failed', body.token, standingError);
+    }
+  }
+
   const rankText = ordinal(body.rank);
   const fieldText = body.totalActiveTeams != null ? ` of ${body.totalActiveTeams}` : '';
-  sendPushNotification(
-    supabaseAdmin,
-    link.steer_me_user_id,
-    `Round ${body.round} standings — ${rankText} place`,
-    `You're sitting ${rankText}${fieldText} after Round ${body.round} at ${eventName}${teamLabel}.`
-  ).catch((err) => console.error('[draw-pro-results-webhook] pushRoundStandings push failed', err));
+  // AWAITED (2026-10-11, was fire-and-forget): a serverless function can be shut
+  // down once it has responded, which can drop an un-awaited send. The joint
+  // test saw a round-2 standings push never reach the phone. Waiting also lets
+  // the reply say whether Expo accepted it.
+  let pushed = false;
+  try {
+    pushed = await sendPushNotification(
+      supabaseAdmin,
+      link.steer_me_user_id,
+      `Round ${body.round} standings — ${rankText} place`,
+      `You're sitting ${rankText}${fieldText} after Round ${body.round} at ${eventName}${teamLabel}.`
+    );
+  } catch (err) {
+    console.error('[draw-pro-results-webhook] pushRoundStandings push failed', err);
+  }
 
-  return Response.json({ found: true, linkId: link.id, teamNumber: body.teamNumber, rank: body.rank });
+  return Response.json({ found: true, linkId: link.id, teamNumber: body.teamNumber, rank: body.rank, pushed });
 }
 
 // NEW, 2026-08-05 - see this file's header comment. Draw Pro has no

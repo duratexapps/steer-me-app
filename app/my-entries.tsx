@@ -25,6 +25,13 @@ import {
 // meRole/partnerRole convention already used by useEntryHandoff.ts) -
 // distinct from src/lib/matching.ts's Position type ('Header'/'Heeler'/
 // 'Switch'), so a plain capitalize here instead of reusing formatPosition().
+// 1st, 2nd, 3rd, 11th ... for the standing line.
+function ordinal(n: number): string {
+  const v = n % 100;
+  const suffix = ['th', 'st', 'nd', 'rd'];
+  return `${n}${suffix[(v - 20) % 10] ?? suffix[v] ?? suffix[0]}`;
+}
+
 function formatRole(role: 'header' | 'heeler') {
   return role === 'header' ? 'Header' : 'Heeler';
 }
@@ -144,6 +151,17 @@ function EntryCard({ entry }: { entry: DrawProEntry }) {
             </View>
             {entry.entry_type === 'draw_in' ? <Text style={styles.partnerText}>{partner}</Text> : null}
           </View>
+
+          {entry.standing_rank != null ? (
+            <View style={styles.standingBox}>
+              <Text style={styles.standingLabel}>Standing</Text>
+              <Text style={styles.standingText}>
+                {ordinal(entry.standing_rank)}
+                {entry.standing_of != null ? ` of ${entry.standing_of}` : ''}
+                {entry.standing_round != null ? ` after Round ${entry.standing_round}` : ''}
+              </Text>
+            </View>
+          ) : null}
 
           {entry.extraRunCharge ? <ExtraRunCard teamNumber={entry.team_number} charge={entry.extraRunCharge} /> : null}
 
@@ -405,7 +423,27 @@ const styles = StyleSheet.create({
   classLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.brass, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   metaText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle },
-  submittedAtText: { fontFamily: fonts.body, fontSize: 11, color: colors.tan, marginTop: 2 },
+  submittedAtText: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 2 },
+  standingBox: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.brass,
+    backgroundColor: colors.bone,
+  },
+  standingLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.saddle,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  standingText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.espresso },
   teamBlock: { marginTop: 10 },
   teamNumberPill: {
     backgroundColor: colors.brass,

@@ -102,6 +102,9 @@ export type Database = {
           partner_role: string | null
           pay_url: string | null
           requested_run_count: number
+          standing_of: number | null
+          standing_rank: number | null
+          standing_round: number | null
           submitted_at: string
           team_number: number | null
           total_teams: number | null
@@ -121,6 +124,9 @@ export type Database = {
           partner_role?: string | null
           pay_url?: string | null
           requested_run_count?: number
+          standing_of?: number | null
+          standing_rank?: number | null
+          standing_round?: number | null
           submitted_at?: string
           team_number?: number | null
           total_teams?: number | null
@@ -140,6 +146,9 @@ export type Database = {
           partner_role?: string | null
           pay_url?: string | null
           requested_run_count?: number
+          standing_of?: number | null
+          standing_rank?: number | null
+          standing_round?: number | null
           submitted_at?: string
           team_number?: number | null
           total_teams?: number | null
