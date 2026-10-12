@@ -194,6 +194,8 @@ type WebhookPayload = {
   classStatus?: string;
   lastRopedTeamNumber?: number | null;
   remainingOrder?: number[];
+  // Fastest-first short go: final-round teams that can no longer place and will not run.
+  skippedTeamNumbers?: number[];
   seq?: number;
 };
 
@@ -879,6 +881,7 @@ async function handleLiveProgress(
   const intOrNull = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) ? v : null);
   const status = body.classStatus;
   const remaining = Array.isArray(body.remainingOrder) ? body.remainingOrder : [];
+  const skipped = Array.isArray(body.skippedTeamNumbers) ? body.skippedTeamNumbers : [];
   if (
     !body.drawProEventId ||
     !classId ||
@@ -887,7 +890,9 @@ async function handleLiveProgress(
     !Number.isFinite(body.seq) ||
     (status !== 'not_started' && status !== 'running' && status !== 'complete') ||
     remaining.length > 2000 ||
-    !remaining.every((n) => Number.isInteger(n) && n > 0)
+    !remaining.every((n) => Number.isInteger(n) && n > 0) ||
+    skipped.length > 2000 ||
+    !skipped.every((n) => Number.isInteger(n) && n > 0)
   ) {
     return new Response('Invalid liveProgress body', { status: 400 });
   }
@@ -929,6 +934,7 @@ async function handleLiveProgress(
     p_remaining: remaining,
     p_total_active: intOrNull(body.totalActiveTeams),
     p_seq: Math.trunc(body.seq),
+    p_skipped: skipped,
   });
   if (upsertError) {
     console.error('[draw-pro-results-webhook] liveProgress upsert failed', upsertError);

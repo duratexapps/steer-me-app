@@ -113,7 +113,7 @@ export function useLiveProgress(eventIds: string[]) {
       const { data, error } = await supabase
         .from('draw_pro_live_progress')
         .select(
-          'event_id, draw_pro_class_id, class_name, class_status, round, total_rounds, round_complete, last_roped_team, remaining_order, total_active_teams, seq, updated_at'
+          'event_id, draw_pro_class_id, class_name, class_status, round, total_rounds, round_complete, last_roped_team, remaining_order, skipped_teams, total_active_teams, seq, updated_at'
         )
         .in('event_id', key);
       if (error) throw error;

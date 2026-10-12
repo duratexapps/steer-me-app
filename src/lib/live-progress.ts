@@ -12,6 +12,8 @@ export type LiveProgressRow = {
   round_complete: boolean;
   last_roped_team: number | null;
   remaining_order: number[];
+  // Fastest-first short go: final-round teams that can no longer place and will not run.
+  skipped_teams: number[];
   total_active_teams: number | null;
   seq: number;
   updated_at: string;
@@ -43,6 +45,17 @@ export function computeTicker(
   if (row.class_status === 'not_started') return null;
   if (row.class_status === 'complete') {
     return { headline: 'This class is finished', detail: null };
+  }
+
+  // Fastest-first short go: the go ends once the remaining teams cannot beat the
+  // paid places, so a skipped team never gets a final-round time. Say so, rather
+  // than "your team has run".
+  if ((row.skipped_teams ?? []).includes(teamNumber)) {
+    return {
+      headline: "Your team doesn't need to run",
+      detail:
+        'Fastest-first short go: the go ends once the teams still to run cannot beat the paid places, so your team can no longer place.',
+    };
   }
 
   const roundLabel = row.total_rounds ? `Round ${row.round} of ${row.total_rounds}` : `Round ${row.round}`;
