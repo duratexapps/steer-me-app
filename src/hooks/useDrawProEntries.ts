@@ -87,6 +87,9 @@ export type DrawProEntry = {
   // NEW, 2026-10-11 - migration 0085. What Draw Pro last reported for this
   // entry: left out of a paid-only draw because it was unpaid, or paid.
   draw_pro_status: 'left_out_unpaid' | 'paid' | null;
+  // NEW, 2026-10-11 - migration 0086. Which Draw Pro class this entry is in
+  // (for example #ZZ-B). Null for entries made before class-aware teams.
+  draw_pro_class_name: string | null;
 };
 
 export function useMyDrawProEntries() {
@@ -112,7 +115,7 @@ export function useMyDrawProEntries() {
         supabase
           .from('draw_pro_entry_link_teams')
           .select(
-            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url, draw_pro_status'
+            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url, draw_pro_status, draw_pro_class_name'
           )
           .in('entry_link_id', linkIds)
           .order('submitted_at', { ascending: false }),
@@ -182,6 +185,7 @@ export function useMyDrawProEntries() {
           entry_code: e.entry_code,
           pay_url: e.pay_url,
           draw_pro_status: e.draw_pro_status as 'left_out_unpaid' | 'paid' | null,
+          draw_pro_class_name: e.draw_pro_class_name,
         };
       });
     },

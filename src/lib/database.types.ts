@@ -90,6 +90,8 @@ export type Database = {
         Row: {
           cancellation_requested_at: string | null
           created_at: string
+          draw_pro_class_id: string | null
+          draw_pro_class_name: string | null
           draw_pro_status: string | null
           entry_code: string | null
           entry_link_id: string
@@ -107,6 +109,8 @@ export type Database = {
         Insert: {
           cancellation_requested_at?: string | null
           created_at?: string
+          draw_pro_class_id?: string | null
+          draw_pro_class_name?: string | null
           draw_pro_status?: string | null
           entry_code?: string | null
           entry_link_id: string
@@ -124,6 +128,8 @@ export type Database = {
         Update: {
           cancellation_requested_at?: string | null
           created_at?: string
+          draw_pro_class_id?: string | null
+          draw_pro_class_name?: string | null
           draw_pro_status?: string | null
           entry_code?: string | null
           entry_link_id?: string

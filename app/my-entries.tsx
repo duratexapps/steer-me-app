@@ -122,6 +122,7 @@ function EntryCard({ entry }: { entry: DrawProEntry }) {
     <View style={styles.card}>
       <Text style={styles.eventName}>{entry.event_name}</Text>
       {entry.event_date ? <Text style={styles.eventDate}>{formatDateDisplay(entry.event_date)}</Text> : null}
+      {entry.draw_pro_class_name ? <Text style={styles.classLabel}>{entry.draw_pro_class_name}</Text> : null}
       <View style={styles.metaRow}>
         {entry.role ? <Text style={styles.metaText}>{formatRole(entry.role)}</Text> : null}
         <Text style={styles.metaText}>{describeEntry(entry)}</Text>
@@ -401,6 +402,7 @@ const styles = StyleSheet.create({
   },
   eventName: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.espresso },
   eventDate: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginTop: 2 },
+  classLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.brass, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   metaText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle },
   submittedAtText: { fontFamily: fonts.body, fontSize: 11, color: colors.tan, marginTop: 2 },

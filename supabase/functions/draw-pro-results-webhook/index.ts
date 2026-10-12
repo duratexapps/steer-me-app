@@ -76,6 +76,17 @@ import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 
 const EXPO_PUSH_API_URL = 'https://exp.host/--/api/v2/push/send';
 
+// Class identity from Draw Pro (migration 0086). Anything malformed becomes
+// null so a bad value can never block a team from being recorded.
+function cleanClassId(v: unknown): string | null {
+  return typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v) ? v : null;
+}
+function cleanClassName(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const t = v.trim().slice(0, 60);
+  return t.length > 0 ? t : null;
+}
+
 type WebhookPayload = {
   action?:
     | 'getExtraRunStatuses'
@@ -92,7 +103,7 @@ type WebhookPayload = {
     // NEW, 2026-10-11 - Draw Pro reports an entry's status (left out of a
     // paid-only draw, or paid at the window). Best effort on their side.
     | 'entryStatus';
-  lookups?: { token: string; teamNumber: number }[];
+  lookups?: { token: string; teamNumber: number; classId?: string | null }[];
   // NEW, added 2026-08-06 for migration 0047_draw_pro_entry_cancellation.sql
   // - drawProEventId is Draw Pro's OWN event id (a Wix string), not this
   // database's internal events.id - resolved via events.draw_pro_event_id,
@@ -114,6 +125,11 @@ type WebhookPayload = {
   entryCode?: string | null;
   payUrl?: string | null;
   status?: string;
+  // NEW, 2026-10-11 - migration 0086. Draw Pro numbers teams per class, so a
+  // team is identified by (token, classId, teamNumber). Both optional: a call
+  // without classId behaves as before (legacy).
+  classId?: string | null;
+  className?: string | null;
   teamNumber?: number;
   // NEW, added 2026-08-09 for migration 0049_team_number_of_total.sql -
   // real gap flagged directly by the user: "Team #54" alone doesn't say
@@ -183,7 +199,9 @@ Deno.serve(async (req) => {
       body.entryType,
       body.requestedRunCount,
       body.entryCode,
-      body.payUrl
+      body.payUrl,
+      body.classId,
+      body.className
     );
   }
 
@@ -262,39 +280,105 @@ Deno.serve(async (req) => {
     // team_number. No entryId at all (a legacy entrant that never called
     // registerSubmission) falls straight to the same upsert-by-natural-key
     // fallback used for that additional-team case.
-    let existingEntry: { team_number: number | null } | null = null;
-    if (body.entryId) {
-      const { data, error: existingError } = await supabaseAdmin
-        .from('draw_pro_entry_link_teams')
-        .select('team_number')
-        .eq('id', body.entryId)
-        .maybeSingle();
-      if (existingError) {
-        console.error('[draw-pro-results-webhook] entry lookup failed', body.token, existingError);
-        return Response.json({ error: existingError.message }, { status: 500 });
-      }
-      existingEntry = data;
-    }
-
+    const classId = cleanClassId(body.classId);
+    const className = cleanClassName(body.className);
     const teamFields = {
       team_number: body.teamNumber,
       total_teams: body.totalTeams ?? null,
       partner_name: body.partnerName ?? null,
       partner_classification_number: body.partnerClassificationNumber ?? null,
       partner_role: body.partnerRole ?? null,
+      ...(classId ? { draw_pro_class_id: classId, draw_pro_class_name: className } : {}),
     };
-    const teamQuery =
-      body.entryId && existingEntry && existingEntry.team_number == null
-        ? supabaseAdmin.from('draw_pro_entry_link_teams').update(teamFields).eq('id', body.entryId).select('id').single()
-        : supabaseAdmin
+
+    // REWRITTEN 2026-10-11 (migration 0086) - class-aware, and the "first team
+    // claims the pending row" step is now ONE conditional update instead of a
+    // read followed by a write, so two simultaneous calls for the same entry
+    // cannot both claim it. Step 1: claim this entry's pending row (team_number
+    // still null). Step 2, if it was already claimed (an additional team from
+    // the same submission) or there is no entryId (legacy): find the row for
+    // (link, class, team) and update it, else insert it. A concurrent insert
+    // that loses the unique race is retried once as an update.
+    let upsertedTeam: { id: string } | null = null;
+    if (body.entryId) {
+      const { data: claimed, error: claimError } = await supabaseAdmin
+        .from('draw_pro_entry_link_teams')
+        .update(teamFields)
+        .eq('id', body.entryId)
+        .eq('entry_link_id', link.id)
+        .is('team_number', null)
+        .select('id');
+      if (claimError) {
+        console.error('[draw-pro-results-webhook] team claim failed', body.token, claimError);
+        return Response.json({ error: claimError.message }, { status: 500 });
+      }
+      if (claimed && claimed.length > 0) upsertedTeam = claimed[0];
+    }
+
+    if (!upsertedTeam) {
+      const findExisting = async () => {
+        let q = supabaseAdmin
+          .from('draw_pro_entry_link_teams')
+          .select('id')
+          .eq('entry_link_id', link.id)
+          .eq('team_number', body.teamNumber as number);
+        q = classId ? q.eq('draw_pro_class_id', classId) : q.is('draw_pro_class_id', null);
+        return q.limit(1);
+      };
+      const updateExisting = async (id: string) =>
+        supabaseAdmin.from('draw_pro_entry_link_teams').update(teamFields).eq('id', id).select('id').single();
+
+      const { data: found, error: findError } = await findExisting();
+      if (findError) {
+        console.error('[draw-pro-results-webhook] team lookup failed', body.token, findError);
+        return Response.json({ error: findError.message }, { status: 500 });
+      }
+      if (found && found.length > 0) {
+        const { data, error } = await updateExisting(found[0].id);
+        if (error) {
+          console.error('[draw-pro-results-webhook] team update failed', body.token, error);
+          return Response.json({ error: error.message }, { status: 500 });
+        }
+        upsertedTeam = data;
+      } else {
+        // An additional team from the same submission shows the same entry code
+        // and pay link as its parent entry.
+        let inherited: { entry_code: string | null; pay_url: string | null } = { entry_code: null, pay_url: null };
+        if (body.entryId) {
+          const { data: parent } = await supabaseAdmin
             .from('draw_pro_entry_link_teams')
-            .upsert({ entry_link_id: link.id, ...teamFields }, { onConflict: 'entry_link_id,team_number' })
-            .select('id')
-            .single();
-    const { data: upsertedTeam, error: teamError } = await teamQuery;
-    if (teamError) {
-      console.error('[draw-pro-results-webhook] team upsert failed', body.token, teamError);
-      return Response.json({ error: teamError.message }, { status: 500 });
+            .select('entry_code, pay_url')
+            .eq('id', body.entryId)
+            .eq('entry_link_id', link.id)
+            .maybeSingle();
+          if (parent) inherited = parent;
+        }
+        const ins = await supabaseAdmin
+          .from('draw_pro_entry_link_teams')
+          .insert({ entry_link_id: link.id, ...teamFields, ...inherited })
+          .select('id')
+          .single();
+        if (ins.error) {
+          // Lost a race with a concurrent call for the same team: update instead.
+          const { data: again } = await findExisting();
+          if (again && again.length > 0) {
+            const { data, error } = await updateExisting(again[0].id);
+            if (error) {
+              console.error('[draw-pro-results-webhook] team update after race failed', body.token, error);
+              return Response.json({ error: error.message }, { status: 500 });
+            }
+            upsertedTeam = data;
+          } else {
+            console.error('[draw-pro-results-webhook] team insert failed', body.token, ins.error);
+            return Response.json({ error: ins.error.message }, { status: 500 });
+          }
+        } else {
+          upsertedTeam = ins.data;
+        }
+      }
+    }
+    if (!upsertedTeam) {
+      return Response.json({ error: 'team not recorded' }, { status: 500 });
     }
 
     // NEW, 2026-08-05 - see this file's header comment. ignoreDuplicates
@@ -326,11 +410,16 @@ Deno.serve(async (req) => {
     // failed, email them instead"; undefined (no teams to push) is ignored.
     let pushed: boolean | undefined;
 
-    const { data: teams, error: teamsError } = await supabaseAdmin
+    // With a classId, list only THIS class's teams (each class is signed off
+    // on its own); without one, the old behavior (every team on the link).
+    let teamsQuery = supabaseAdmin
       .from('draw_pro_entry_link_teams')
       .select('team_number, total_teams, partner_name, partner_classification_number')
       .eq('entry_link_id', link.id)
+      .not('team_number', 'is', null)
       .order('team_number', { ascending: true });
+    if (classId) teamsQuery = teamsQuery.eq('draw_pro_class_id', classId);
+    const { data: teams, error: teamsError } = await teamsQuery;
 
     if (teamsError) {
       console.error('[draw-pro-results-webhook] teams list failed', body.token, teamsError);
@@ -349,7 +438,7 @@ Deno.serve(async (req) => {
         pushed = await sendPushNotification(
           supabaseAdmin,
           link.steer_me_user_id,
-          teams.length > 1 ? `Your teams for ${eventName}` : `Your team for ${eventName}`,
+          `${teams.length > 1 ? 'Your teams' : 'Your team'} for ${eventName}${className ? ` (${className})` : ''}`,
           lines.join('\n')
         );
       } catch (err) {
@@ -362,12 +451,15 @@ Deno.serve(async (req) => {
   }
 
   // Round-result call - resolve which of this person's teams it belongs to.
-  const { data: team, error: teamLookupError } = await supabaseAdmin
+  const resultClassId = cleanClassId(body.classId);
+  let teamLookup = supabaseAdmin
     .from('draw_pro_entry_link_teams')
-    .select('id, team_number, total_teams')
+    .select('id, team_number, total_teams, draw_pro_class_name')
     .eq('entry_link_id', link.id)
-    .eq('team_number', body.teamNumber)
-    .maybeSingle();
+    .eq('team_number', body.teamNumber);
+  if (resultClassId) teamLookup = teamLookup.eq('draw_pro_class_id', resultClassId);
+  const { data: teamRows, error: teamLookupError } = await teamLookup.limit(1);
+  const team = teamRows && teamRows.length > 0 ? teamRows[0] : null;
   if (teamLookupError) {
     console.error('[draw-pro-results-webhook] team lookup failed', body.token, teamLookupError);
     return Response.json({ error: teamLookupError.message }, { status: 500 });
@@ -400,7 +492,9 @@ Deno.serve(async (req) => {
     return Response.json({ error: resultError.message }, { status: 500 });
   }
 
-  const teamLabel = team.total_teams != null ? ` — Team #${team.team_number} of ${team.total_teams}` : ` — Team #${team.team_number}`;
+  const classSuffix = team.draw_pro_class_name ? ` (${team.draw_pro_class_name})` : '';
+  const teamLabel =
+    (team.total_teams != null ? ` — Team #${team.team_number} of ${team.total_teams}` : ` — Team #${team.team_number}`) + classSuffix;
   const notification = body.noTime
     ? { title: 'Eliminated', body: `You've been eliminated after Round ${body.round}${teamLabel}` }
     : {
@@ -452,15 +546,18 @@ async function handlePushRoundStandings(
   const eventRecord = Array.isArray(link.events) ? link.events[0] : link.events;
   const eventName: string = eventRecord?.name ?? 'your event';
 
-  const { data: team } = await supabaseAdmin
+  const standingsClassId = cleanClassId(body.classId);
+  let standingsTeamQuery = supabaseAdmin
     .from('draw_pro_entry_link_teams')
-    .select('team_number, total_teams')
+    .select('team_number, total_teams, draw_pro_class_name')
     .eq('entry_link_id', link.id)
-    .eq('team_number', body.teamNumber)
-    .maybeSingle();
-  const teamLabel = team?.total_teams != null
-    ? ` — Team #${body.teamNumber} of ${team.total_teams}`
-    : ` — Team #${body.teamNumber}`;
+    .eq('team_number', body.teamNumber);
+  if (standingsClassId) standingsTeamQuery = standingsTeamQuery.eq('draw_pro_class_id', standingsClassId);
+  const { data: standingsTeams } = await standingsTeamQuery.limit(1);
+  const team = standingsTeams && standingsTeams.length > 0 ? standingsTeams[0] : null;
+  const teamLabel =
+    (team?.total_teams != null ? ` — Team #${body.teamNumber} of ${team.total_teams}` : ` — Team #${body.teamNumber}`) +
+    (team?.draw_pro_class_name ? ` (${team.draw_pro_class_name})` : '');
 
   const rankText = ordinal(body.rank);
   const fieldText = body.totalActiveTeams != null ? ` of ${body.totalActiveTeams}` : '';
@@ -485,7 +582,7 @@ async function handlePushRoundStandings(
 // about.
 async function handleGetExtraRunStatuses(
   supabaseAdmin: ReturnType<typeof createSupabaseAdmin>,
-  lookups: { token: string; teamNumber: number }[]
+  lookups: { token: string; teamNumber: number; classId?: string | null }[]
 ) {
   if (lookups.length === 0) {
     return Response.json({ statuses: [] });
@@ -508,13 +605,22 @@ async function handleGetExtraRunStatuses(
 
   const { data: teams, error: teamsError } = await supabaseAdmin
     .from('draw_pro_entry_link_teams')
-    .select('id, entry_link_id, team_number')
+    .select('id, entry_link_id, team_number, draw_pro_class_id')
     .in('entry_link_id', linkIds);
   if (teamsError) {
     console.error('[draw-pro-results-webhook] getExtraRunStatuses teams lookup failed', teamsError);
     return Response.json({ error: teamsError.message }, { status: 500 });
   }
-  const teamIdByLinkAndNumber = new Map((teams ?? []).map((t) => [`${t.entry_link_id}|${t.team_number}`, t.id]));
+  // Exact key (link|class|number) for class-aware lookups; a lookup without a
+  // classId falls back to the first team with that number on the link (legacy).
+  const teamIdByLinkClassNumber = new Map(
+    (teams ?? []).map((t) => [`${t.entry_link_id}|${t.draw_pro_class_id ?? ''}|${t.team_number}`, t.id])
+  );
+  const teamIdByLinkAndNumber = new Map<string, string>();
+  for (const t of teams ?? []) {
+    const k = `${t.entry_link_id}|${t.team_number}`;
+    if (!teamIdByLinkAndNumber.has(k)) teamIdByLinkAndNumber.set(k, t.id);
+  }
   const teamIds = (teams ?? []).map((t) => t.id);
   if (teamIds.length === 0) {
     return Response.json({ statuses: lookups.map((l) => ({ ...l, found: false })) });
@@ -532,14 +638,21 @@ async function handleGetExtraRunStatuses(
 
   const statuses = lookups.map((l) => {
     const linkId = linkIdByToken.get(l.token);
-    const teamId = linkId != null ? teamIdByLinkAndNumber.get(`${linkId}|${l.teamNumber}`) : undefined;
+    const lookupClass = cleanClassId(l.classId);
+    const teamId =
+      linkId == null
+        ? undefined
+        : lookupClass
+          ? teamIdByLinkClassNumber.get(`${linkId}|${lookupClass}|${l.teamNumber}`)
+          : teamIdByLinkAndNumber.get(`${linkId}|${l.teamNumber}`);
     const charge = teamId != null ? chargeByTeamId.get(teamId) : undefined;
     if (!charge) {
-      return { token: l.token, teamNumber: l.teamNumber, found: false };
+      return { token: l.token, teamNumber: l.teamNumber, ...(l.classId ? { classId: l.classId } : {}), found: false };
     }
     return {
       token: l.token,
       teamNumber: l.teamNumber,
+      ...(l.classId ? { classId: l.classId } : {}),
       found: true,
       status: charge.status,
       feeAmount: charge.fee_amount,
@@ -626,7 +739,9 @@ async function handleRegisterSubmission(
   entryType: 'draw_in' | 'preformed_team' | undefined,
   requestedRunCount: number | undefined,
   entryCode?: string | null,
-  payUrl?: string | null
+  payUrl?: string | null,
+  classId?: string | null,
+  className?: string | null
 ) {
   if (!token || !entryType) {
     return new Response('Missing token or entryType', { status: 400 });
@@ -640,6 +755,8 @@ async function handleRegisterSubmission(
     // is a secret, so it is deliberately never logged here.
     p_entry_code: entryCode ?? null,
     p_pay_url: payUrl ?? null,
+    p_class_id: classId ?? null,
+    p_class_name: className ?? null,
   });
 
   if (error) {
