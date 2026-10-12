@@ -39,6 +39,9 @@ export type MyProfile = {
   // enables notifications (account-settings.tsx) and permission is
   // actually granted - see src/lib/push-notifications.ts.
   expo_push_token: string | null;
+  // NEW, 2026-10-12 - migration 0088. True when the user turned notifications
+  // off; the automatic registration respects it.
+  push_opted_out: boolean;
   // NEW, added 2026-08-06 alongside migration
   // 0047_draw_pro_entry_cancellation.sql - see account-settings.tsx's own
   // comment on the toggle that sets this.

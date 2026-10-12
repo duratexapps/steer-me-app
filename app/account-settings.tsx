@@ -176,7 +176,7 @@ export default function AccountSettings() {
         await unregisterPushNotifications(userId);
         showToast('Notifications turned off');
       } else {
-        const result = await registerForPushNotifications(userId);
+        const result = await registerForPushNotifications(userId, { explicit: true });
         if (result === 'granted') {
           showToast('Notifications enabled');
         } else if (result === 'denied') {
@@ -188,6 +188,10 @@ export default function AccountSettings() {
           showToast('Notifications are blocked for Steer Me in your device settings');
         } else if (result === 'unsupported') {
           showToast('Notifications are not available on web yet - use the mobile app');
+        } else if (Platform.OS === 'android') {
+          // Android builds cannot create a push token yet (no Firebase setup in
+          // this build), so retrying will not help. The email fallback covers it.
+          showToast("This phone can't receive Steer Me notifications yet. We'll email you your team number instead.");
         } else {
           showToast('Could not enable notifications - try again');
         }

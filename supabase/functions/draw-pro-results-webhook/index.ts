@@ -378,13 +378,20 @@ Deno.serve(async (req) => {
         }
         upsertedTeam = data;
       } else {
-        // An additional team from the same submission shows the same entry code
-        // and pay link as its parent entry.
-        let inherited: { entry_code: string | null; pay_url: string | null } = { entry_code: null, pay_url: null };
+        // An additional team from the same submission shows the same entry code,
+        // pay link, entry type and run count as its parent entry (2026-10-12: the
+        // run count was left at the default of 1, so a two-run entry read
+        // "2 draw-in runs" on the first team and "1" on the second).
+        let inherited: {
+          entry_code: string | null;
+          pay_url: string | null;
+          entry_type?: string;
+          requested_run_count?: number;
+        } = { entry_code: null, pay_url: null };
         if (body.entryId) {
           const { data: parent } = await supabaseAdmin
             .from('draw_pro_entry_link_teams')
-            .select('entry_code, pay_url')
+            .select('entry_code, pay_url, entry_type, requested_run_count')
             .eq('id', body.entryId)
             .eq('entry_link_id', link.id)
             .maybeSingle();

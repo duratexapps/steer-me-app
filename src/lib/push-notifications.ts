@@ -18,7 +18,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export type PushRegistrationResult = 'granted' | 'denied' | 'unsupported' | 'error';
+export type PushRegistrationResult = 'granted' | 'denied' | 'unsupported' | 'error' | 'opted_out';
 
 // Same "web has no equivalent SDK, skip entirely" boundary as
 // configurePurchases() in src/lib/purchases.ts. Also: push notifications
@@ -38,11 +38,32 @@ let registeredForUserId: string | null = null;
 // the OS Settings app, which account-settings.tsx links out to).
 // _layout.tsx's own fire-and-forget calls (on login/foreground) don't need
 // this return value at all, just the side effect.
-export async function registerForPushNotifications(userId: string): Promise<PushRegistrationResult> {
+//
+// CHANGED 2026-10-12 (migration 0088): the automatic calls (app start, return to
+// foreground) now respect profiles.push_opted_out. Only the explicit "turn on"
+// in Account Settings passes { explicit: true }, which is allowed past an
+// opt-out and clears it once a token is saved. Without this, turning
+// notifications off was undone the next time the app opened.
+export async function registerForPushNotifications(
+  userId: string,
+  options: { explicit?: boolean } = {}
+): Promise<PushRegistrationResult> {
   if (Platform.OS === 'web') return 'unsupported';
-  if (registeredForUserId === userId) return 'granted';
+  if (!options.explicit && registeredForUserId === userId) return 'granted';
 
   try {
+    if (!options.explicit) {
+      const { data: row, error: optOutError } = await supabase
+        .from('profiles')
+        .select('push_opted_out')
+        .eq('id', userId)
+        .maybeSingle();
+      // Offline or unreadable: do nothing rather than guess. It retries on
+      // the next foreground.
+      if (optOutError) return 'error';
+      if (row?.push_opted_out) return 'opted_out';
+    }
+
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Default notifications',
@@ -58,7 +79,10 @@ export async function registerForPushNotifications(userId: string): Promise<Push
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
 
-    const { error } = await supabase.from('profiles').update({ expo_push_token: token }).eq('id', userId);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ expo_push_token: token, push_opted_out: false })
+      .eq('id', userId);
     if (error) throw error;
 
     registeredForUserId = userId;
@@ -80,6 +104,11 @@ export async function registerForPushNotifications(userId: string): Promise<Push
 // as granted.
 export async function unregisterPushNotifications(userId: string) {
   if (registeredForUserId === userId) registeredForUserId = null;
-  const { error } = await supabase.from('profiles').update({ expo_push_token: null }).eq('id', userId);
+  // push_opted_out makes the choice stick: the app's automatic registration
+  // checks it, so the token is not quietly put back on the next launch.
+  const { error } = await supabase
+    .from('profiles')
+    .update({ expo_push_token: null, push_opted_out: true })
+    .eq('id', userId);
   if (error) throw error;
 }
