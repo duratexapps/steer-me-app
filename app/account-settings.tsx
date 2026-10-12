@@ -171,7 +171,7 @@ export default function AccountSettings() {
         onBack={() => goBackOrHome()}
         onHelp={() => setHelpOpen(true)}
       />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.sectionTitle}>Email</Text>
         <Text style={styles.currentValue}>Current: {currentEmail ?? '...'}</Text>
         <TextField

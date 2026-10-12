@@ -48,7 +48,7 @@ export default function SignIn() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <BackToRopingToolsLink />
       <ScreenHeader title="Sign In" subtitle="Welcome back" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {unconfirmed ? <CheckEmailNotice email={email.trim()} title="Confirm your email first" /> : null}
         <TextField
           label="Email"

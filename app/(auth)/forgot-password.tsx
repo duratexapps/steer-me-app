@@ -56,7 +56,7 @@ export default function ForgotPassword() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Reset Password" subtitle="We'll email you a link" onBack={() => goBackOrHome()} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {sent ? (
           <Text style={styles.confirmText}>
             If an account exists for {email.trim()}, a password reset link is on its way. Check your email.

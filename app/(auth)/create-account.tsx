@@ -66,7 +66,7 @@ export default function CreateAccount() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Create Account" subtitle="Sets up your login - your profile comes next" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {awaitingConfirm ? (
           <>
             <CheckEmailNotice email={email.trim()} />

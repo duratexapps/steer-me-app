@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
@@ -30,6 +31,24 @@ export default function Landing() {
   const session = useSessionStore((s) => s.session);
   const isReady = useSessionStore((s) => s.isReady);
 
+  // Web only. The static HTML paints this landing page before any JavaScript
+  // runs, so a signed-in user used to see it flash before being redirected.
+  // The inline script in <Head> below marks <html> with `has-session` when a
+  // saved Supabase login exists in localStorage, and CSS hides the landing
+  // content until the session check finishes. Once it has, a visitor with no
+  // working session (including a crawler, which never has one) sees the page
+  // as before. The timeout is a safety net so the page can never stay hidden.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const reveal = () => document.documentElement.classList.remove('has-session');
+    if (isReady && !session) {
+      reveal();
+      return;
+    }
+    const t = setTimeout(reveal, 5000);
+    return () => clearTimeout(t);
+  }, [isReady, session]);
+
   // Preserves the exact previous behavior for an actual returning,
   // signed-in user - once the session check resolves and confirms a real
   // session, bounce straight into the app, same as before. Until then
@@ -40,8 +59,12 @@ export default function Landing() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['bottom']}>
+    <SafeAreaView style={styles.screen} edges={['bottom']} nativeID="landing-root">
       <Head>
+        <style>{`html.has-session{background:#F4EFE4}html.has-session #landing-root{visibility:hidden}`}</style>
+        <script>
+          {'try{for(var k in localStorage){if(/^sb-.+-auth-token$/.test(k)){document.documentElement.classList.add("has-session");break}}}catch(e){}'}
+        </script>
         {/* Google Search Console ownership verification for the
             https://steerme.ropingtools.com/ property - added 2026-07-30.
             Per Google's own instructions: must stay in place even after

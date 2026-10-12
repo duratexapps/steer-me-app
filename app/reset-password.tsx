@@ -108,7 +108,7 @@ export default function ResetPassword() {
           <Button label="Go to sign in" onPress={() => router.replace('/(auth)/sign-in')} style={styles.button} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.formContent}>
+        <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
           <Text style={styles.errorTitle}>Set a new password</Text>
           <TextField
             label="New password"

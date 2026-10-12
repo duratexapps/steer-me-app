@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii } from '@/src/theme/theme';
 
@@ -32,11 +32,17 @@ export function TextField({ label, required, style, secureTextEntry, ...inputPro
           {...inputProps}
         />
         {isPasswordField ? (
+          // On a phone browser, tapping the eye used to blur the password field: the
+          // keyboard dropped, the page shifted, and the tap never registered, so it
+          // took a second tap to show the password. Cancelling the mousedown that
+          // follows a tap keeps focus (and the keyboard) in the field. Native gets
+          // the same result from keyboardShouldPersistTaps on the screens' ScrollViews.
           <Pressable
             style={styles.toggle}
             onPress={() => setRevealed((v) => !v)}
             hitSlop={10}
             accessibilityLabel={revealed ? 'Hide password' : 'Show password'}
+            {...(Platform.OS === 'web' ? ({ onMouseDown: (e: { preventDefault: () => void }) => e.preventDefault() } as object) : {})}
           >
             <Ionicons name={revealed ? 'eye-off-outline' : 'eye-outline'} size={19} color={colors.saddle} />
           </Pressable>
