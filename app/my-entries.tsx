@@ -5,7 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { Button } from '@/src/components/ui/Button';
 import { HelpModal } from '@/src/components/HelpModal';
-import { EmailBackupToggle } from '@/src/components/EmailBackupToggle';
+import { NoticePreference } from '@/src/components/NoticePreference';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { formatDateDisplay, relativeTime } from '@/src/lib/date';
@@ -97,7 +97,7 @@ export default function MyEntries() {
               Showing results from {relativeTime(dataUpdatedAt)} — tap to retry
             </Text>
           )}
-          {Platform.OS !== 'web' ? <EmailBackupToggle variant="entries" /> : null}
+          <NoticePreference variant="entries" />
           {!hasEntries ? (
             <Text style={styles.empty}>
               Once you tap "Enter the Draw" on an event, your team number and results will show up here as the

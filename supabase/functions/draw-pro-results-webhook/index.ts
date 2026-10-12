@@ -491,7 +491,8 @@ Deno.serve(async (req) => {
       // Awaited (was fire-and-forget) so the reply can say whether the push
       // went out. One Expo call, so the added latency is small.
       try {
-        pushed = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, push.title, push.body);
+        const sent = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, push.title, push.body);
+        pushed = sent === 'skipped' ? undefined : sent;
       } catch (err) {
         console.error('[draw-pro-results-webhook] push send failed', err);
         pushed = false;
@@ -553,14 +554,21 @@ Deno.serve(async (req) => {
         body: `${body.finalTime != null ? `${body.finalTime}s` : 'Result recorded'}${teamLabel} at ${eventName}`,
       };
   // Awaited for the same reason as the standings push above.
-  let resultPushed = false;
+  let resultPushed: boolean | undefined = false;
   try {
-    resultPushed = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, notification.title, notification.body);
+    const sent = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, notification.title, notification.body);
+    resultPushed = sent === 'skipped' ? undefined : sent;
   } catch (err) {
     console.error('[draw-pro-results-webhook] push send failed', err);
   }
 
-  return Response.json({ found: true, linkId: link.id, round: body.round, teamNumber: body.teamNumber, pushed: resultPushed });
+  return Response.json({
+    found: true,
+    linkId: link.id,
+    round: body.round,
+    teamNumber: body.teamNumber,
+    ...(resultPushed === undefined ? {} : { pushed: resultPushed }),
+  });
 });
 
 function ordinal(n: number): string {
@@ -636,19 +644,26 @@ async function handlePushRoundStandings(
   // down once it has responded, which can drop an un-awaited send. The joint
   // test saw a round-2 standings push never reach the phone. Waiting also lets
   // the reply say whether Expo accepted it.
-  let pushed = false;
+  let pushed: boolean | undefined = false;
   try {
-    pushed = await sendPushNotification(
+    const sent = await sendPushNotification(
       supabaseAdmin,
       link.steer_me_user_id,
       `Round ${body.round} standings — ${rankText} place`,
       `You're sitting ${rankText}${fieldText} after Round ${body.round} at ${eventName}${teamLabel}.`
     );
+    pushed = sent === 'skipped' ? undefined : sent;
   } catch (err) {
     console.error('[draw-pro-results-webhook] pushRoundStandings push failed', err);
   }
 
-  return Response.json({ found: true, linkId: link.id, teamNumber: body.teamNumber, rank: body.rank, pushed });
+  return Response.json({
+    found: true,
+    linkId: link.id,
+    teamNumber: body.teamNumber,
+    rank: body.rank,
+    ...(pushed === undefined ? {} : { pushed }),
+  });
 }
 
 // NEW, 2026-08-05 - see this file's header comment. Draw Pro has no
@@ -974,14 +989,16 @@ async function handleNotifyTeams(
 
   const className = cleanClassName(classNameRaw) ?? teams[0].draw_pro_class_name ?? null;
   const push = buildTeamsPush(eventName, className, teams);
-  let pushed: boolean;
+  let pushed: boolean | undefined;
   try {
-    pushed = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, push.title, push.body);
+    const sent = await sendPushNotification(supabaseAdmin, link.steer_me_user_id, push.title, push.body);
+    // 'skipped' = the rider chose email only or neither: not a failure, so no pushed field.
+    pushed = sent === 'skipped' ? undefined : sent;
   } catch (err) {
     console.error('[draw-pro-results-webhook] notifyTeams push failed', err);
     pushed = false;
   }
-  return Response.json({ found: true, teams: teams.length, pushed });
+  return Response.json({ found: true, teams: teams.length, ...(pushed === undefined ? {} : { pushed }) });
 }
 
 // NEW, 2026-10-11 - migration 0085. Draw Pro reports 'left_out_unpaid' (the
@@ -1128,12 +1145,17 @@ async function sendPushNotification(
   steerMeUserId: string,
   title: string,
   body: string
-): Promise<boolean> {
+): Promise<boolean | 'skipped'> {
   const { data: profile, error } = await supabaseAdmin
     .from('profiles')
-    .select('expo_push_token')
+    .select('expo_push_token, draw_pro_notice_pref')
     .eq('id', steerMeUserId)
     .maybeSingle();
+
+  // NEW, 2026-10-12 (migration 0090): a rider who chose email only, or neither,
+  // gets no push even if a stale token is still on file. 'skipped' is not a
+  // failure: Draw Pro must not read it as "push failed, send a backup email".
+  if (profile?.draw_pro_notice_pref === 'email' || profile?.draw_pro_notice_pref === 'none') return 'skipped';
 
   if (error || !profile?.expo_push_token) return false;
 

@@ -7,7 +7,7 @@ import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
 import { ToggleRow } from '@/src/components/ui/ToggleRow';
-import { EmailBackupToggle } from '@/src/components/EmailBackupToggle';
+import { NoticePreference } from '@/src/components/NoticePreference';
 import { HelpModal } from '@/src/components/HelpModal';
 import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
@@ -15,7 +15,6 @@ import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile, useInvalidateMyProfile } from '@/src/hooks/useMyProfile';
-import { registerForPushNotifications, unregisterPushNotifications } from '@/src/lib/push-notifications';
 import { goBackOrHome } from '@/src/lib/navigation';
 
 // NEW, added 2026-07-31 - closes a real gap found while manually changing
@@ -36,9 +35,6 @@ export default function AccountSettings() {
   const userId = useSessionStore((s) => s.session?.user.id);
   const { data: profile } = useMyProfile();
   const invalidateProfile = useInvalidateMyProfile();
-  const [notifSubmitting, setNotifSubmitting] = useState(false);
-  const [permissionBlocked, setPermissionBlocked] = useState(false);
-  const notificationsEnabled = !!profile?.expo_push_token;
 
   // NEW, added 2026-08-06 - see migration 0047_draw_pro_entry_cancellation.sql.
   // A preformed team entry pairs two specific people - if one cancels
@@ -167,41 +163,6 @@ export default function AccountSettings() {
     showToast('Password updated');
   }
 
-  async function handleToggleNotifications() {
-    if (!userId) return;
-    setNotifSubmitting(true);
-    setPermissionBlocked(false);
-    try {
-      if (notificationsEnabled) {
-        await unregisterPushNotifications(userId);
-        showToast('Notifications turned off');
-      } else {
-        const result = await registerForPushNotifications(userId, { explicit: true });
-        if (result === 'granted') {
-          showToast('Notifications enabled');
-        } else if (result === 'denied') {
-          // requestPermissionsAsync() only prompts the FIRST time - once
-          // denied (here or at any earlier point), the only way to
-          // change it is the OS Settings app, which the "Open Settings"
-          // button below links to.
-          setPermissionBlocked(true);
-          showToast('Notifications are blocked for Steer Me in your device settings');
-        } else if (result === 'unsupported') {
-          showToast('Notifications are not available on web yet - use the mobile app');
-        } else if (Platform.OS === 'android') {
-          // Android builds cannot create a push token yet (no Firebase setup in
-          // this build), so retrying will not help. The email fallback covers it.
-          showToast("This phone can't receive Steer Me notifications yet. We'll email you your team number instead.");
-        } else {
-          showToast('Could not enable notifications - try again');
-        }
-      }
-      invalidateProfile();
-    } finally {
-      setNotifSubmitting(false);
-    }
-  }
-
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader
@@ -254,25 +215,15 @@ export default function AccountSettings() {
           style={styles.submit}
         />
 
-        {profile && Platform.OS !== 'web' ? (
+        {profile ? (
           <>
             <Text style={[styles.sectionTitle, styles.secondSection]}>Notifications</Text>
-            <ToggleRow
-              title="Draw Pro notifications"
-              description="Get notified when a producer finalizes your draw or posts your results for an event you entered."
-              value={notificationsEnabled}
-              onToggle={handleToggleNotifications}
-            />
-            {notifSubmitting ? <Text style={styles.currentValue}>Updating…</Text> : null}
-            {permissionBlocked ? (
-              <Button
-                label="Open device settings"
-                variant="outline"
-                onPress={() => RNLinking.openSettings()}
-                style={styles.submit}
-              />
-            ) : null}
+            <NoticePreference variant="settings" />
+          </>
+        ) : null}
 
+        {profile && Platform.OS !== 'web' ? (
+          <>
             <ToggleRow
               title="Auto-cancel my team entry"
               description="If your confirmed partner cancels their entry before the draw runs, automatically cancel yours too (you'll be notified either way). Off means you'll just be notified and can cancel it yourself."
@@ -280,8 +231,6 @@ export default function AccountSettings() {
               onToggle={handleToggleAutoCancel}
             />
             {autoCancelSubmitting ? <Text style={styles.currentValue}>Updating…</Text> : null}
-
-            <EmailBackupToggle variant="settings" />
           </>
         ) : null}
       </ScrollView>
