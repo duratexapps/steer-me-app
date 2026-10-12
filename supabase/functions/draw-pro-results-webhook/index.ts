@@ -88,7 +88,10 @@ type WebhookPayload = {
     // token+teamNumber+round round-result shape below - that shape is
     // structurally tied to writing draw_pro_round_results, and a standing
     // isn't a recorded run, it must never trigger that write.
-    | 'pushRoundStandings';
+    | 'pushRoundStandings'
+    // NEW, 2026-10-11 - Draw Pro reports an entry's status (left out of a
+    // paid-only draw, or paid at the window). Best effort on their side.
+    | 'entryStatus';
   lookups?: { token: string; teamNumber: number }[];
   // NEW, added 2026-08-06 for migration 0047_draw_pro_entry_cancellation.sql
   // - drawProEventId is Draw Pro's OWN event id (a Wix string), not this
@@ -110,6 +113,7 @@ type WebhookPayload = {
   // (migration 0083). Both optional; older Draw Pro calls omit them.
   entryCode?: string | null;
   payUrl?: string | null;
+  status?: string;
   teamNumber?: number;
   // NEW, added 2026-08-09 for migration 0049_team_number_of_total.sql -
   // real gap flagged directly by the user: "Team #54" alone doesn't say
@@ -181,6 +185,10 @@ Deno.serve(async (req) => {
       body.entryCode,
       body.payUrl
     );
+  }
+
+  if (body.action === 'entryStatus') {
+    return handleEntryStatus(supabaseAdmin, body.token ?? '', body.entryId ?? '', body.status ?? '');
   }
 
   if (body.action === 'pushRoundStandings') {
@@ -643,6 +651,57 @@ async function handleRegisterSubmission(
   }
 
   return Response.json({ found: true, entryId });
+}
+
+// NEW, 2026-10-11 - migration 0085. Draw Pro reports 'left_out_unpaid' (the
+// class is paid-only and this entry was unpaid at the draw) or 'paid' (marked
+// paid at the window). The entry must belong to the link the token names, so a
+// mismatched pair changes nothing. No push is sent: this only feeds the
+// My Entries card, and a left-out entrant already gets no team notification.
+async function handleEntryStatus(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdmin>,
+  token: string,
+  entryId: string,
+  status: string
+) {
+  if (!token || !entryId) {
+    return new Response('Missing token or entryId', { status: 400 });
+  }
+  // 'unpaid' is not stored: it clears the status (an entry marked paid by
+  // mistake and then reverted), so the card stops saying Paid.
+  if (status !== 'left_out_unpaid' && status !== 'paid' && status !== 'unpaid') {
+    return new Response('Invalid status', { status: 400 });
+  }
+
+  const { data: link, error: linkError } = await supabaseAdmin
+    .from('draw_pro_entry_links')
+    .select('id')
+    .eq('token', token)
+    .maybeSingle();
+  if (linkError) {
+    console.error('[draw-pro-results-webhook] entryStatus link lookup failed', linkError);
+    return Response.json({ error: linkError.message }, { status: 500 });
+  }
+  if (!link) {
+    return Response.json({ found: false }, { status: 404 });
+  }
+
+  const { data: updated, error: updateError } = await supabaseAdmin
+    .from('draw_pro_entry_link_teams')
+    .update({ draw_pro_status: status === 'unpaid' ? null : status })
+    .eq('id', entryId)
+    .eq('entry_link_id', link.id)
+    .select('id');
+  if (updateError) {
+    console.error('[draw-pro-results-webhook] entryStatus update failed', entryId, updateError);
+    return Response.json({ error: updateError.message }, { status: 500 });
+  }
+  if (!updated || updated.length === 0) {
+    // The entry may already be gone (cancelled), same as confirmCancellation.
+    return Response.json({ found: false }, { status: 404 });
+  }
+
+  return Response.json({ found: true, entryId, status });
 }
 
 // REWRITTEN 2026-08-16 - real gap flagged directly by the producer's own

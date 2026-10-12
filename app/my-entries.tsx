@@ -129,6 +129,7 @@ function EntryCard({ entry }: { entry: DrawProEntry }) {
       <Text style={styles.submittedAtText}>Entered {formatSubmittedAt(entry.submitted_at)}</Text>
 
       {entry.entry_code && !entry.cancellation_requested_at ? <EntryCodeBlock entry={entry} /> : null}
+      <EntryStatusLine entry={entry} />
 
       {entry.team_number == null ? (
         <CancelEntrySection entry={entry} />
@@ -156,6 +157,31 @@ function EntryCard({ entry }: { entry: DrawProEntry }) {
       )}
     </View>
   );
+}
+
+// NEW, 2026-10-11 - migration 0085. What Draw Pro last reported for this
+// entry. A left-out entrant gets no team notification by design, so without
+// this line they would just see nothing and not know why. Only shown before a
+// team exists and while no cancellation is pending; "Paid" shows any time.
+function EntryStatusLine({ entry }: { entry: DrawProEntry }) {
+  if (entry.draw_pro_status === 'left_out_unpaid' && entry.team_number == null && !entry.cancellation_requested_at) {
+    return (
+      <View style={styles.leftOutBox}>
+        <Text style={styles.leftOutTitle}>Not in the draw yet</Text>
+        <Text style={styles.leftOutBody}>
+          Your entry hasn't been marked paid, so it wasn't included in the draw. Check with the producer at the window.
+        </Text>
+      </View>
+    );
+  }
+  if (entry.draw_pro_status === 'paid') {
+    return (
+      <View style={styles.paidPill}>
+        <Text style={styles.paidPillText}>Paid</Text>
+      </View>
+    );
+  }
+  return null;
 }
 
 // NEW, 2026-10-11 - see migration 0083_draw_pro_entry_code.sql and
@@ -415,6 +441,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bone,
   },
   cancelRequestedText: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle },
+  leftOutBox: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.oxblood,
+    backgroundColor: colors.bone,
+  },
+  leftOutTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.oxblood },
+  leftOutBody: { fontFamily: fonts.body, fontSize: 12, color: colors.espresso, marginTop: 3, lineHeight: 17 },
+  paidPill: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    backgroundColor: colors.green,
+    borderRadius: radii.pill,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+  },
+  paidPillText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.bone },
   codeBlock: {
     marginTop: 10,
     padding: 12,

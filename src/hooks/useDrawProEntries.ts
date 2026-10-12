@@ -84,6 +84,9 @@ export type DrawProEntry = {
   // pay_url is owner-only via RLS and must never be logged or tracked.
   entry_code: string | null;
   pay_url: string | null;
+  // NEW, 2026-10-11 - migration 0085. What Draw Pro last reported for this
+  // entry: left out of a paid-only draw because it was unpaid, or paid.
+  draw_pro_status: 'left_out_unpaid' | 'paid' | null;
 };
 
 export function useMyDrawProEntries() {
@@ -109,7 +112,7 @@ export function useMyDrawProEntries() {
         supabase
           .from('draw_pro_entry_link_teams')
           .select(
-            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url'
+            'id, entry_link_id, team_number, total_teams, partner_name, partner_classification_number, partner_role, entry_type, requested_run_count, submitted_at, cancellation_requested_at, entry_code, pay_url, draw_pro_status'
           )
           .in('entry_link_id', linkIds)
           .order('submitted_at', { ascending: false }),
@@ -178,6 +181,7 @@ export function useMyDrawProEntries() {
           cancellation_requested_at: e.cancellation_requested_at,
           entry_code: e.entry_code,
           pay_url: e.pay_url,
+          draw_pro_status: e.draw_pro_status as 'left_out_unpaid' | 'paid' | null,
         };
       });
     },
