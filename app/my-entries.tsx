@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -13,6 +13,7 @@ import { showToast } from '@/src/state/toast-store';
 import { confirmAsync } from '@/src/lib/confirm';
 import { goBackOrHome } from '@/src/lib/navigation';
 import { computeTicker, type LiveProgressRow } from '@/src/lib/live-progress';
+import { buildResultsText, hasSavableResults } from '@/src/lib/results-text';
 import {
   useMyDrawProEntries,
   useLiveProgress,
@@ -177,10 +178,43 @@ function EntryCard({ entry, live }: { entry: DrawProEntry; live?: Map<string, Li
               ))}
             </View>
           ) : null}
+
+          {hasSavableResults(entry) ? <SaveResultsButton entry={entry} /> : null}
         </View>
       )}
     </View>
   );
+}
+
+// NEW, 2026-10-12 - "Save my results". Shares the entry's results as plain text so
+// an athlete can keep them in Notes, Messages, email or any app they like. Text, not
+// an image, on purpose: it needs no new native module, so it ships as a normal update.
+// On phones this opens the share sheet; in a mobile browser it uses the browser's
+// share sheet, and on a desktop browser it copies the text.
+function SaveResultsButton({ entry }: { entry: DrawProEntry }) {
+  async function handleSave() {
+    const text = buildResultsText(entry);
+    try {
+      if (Platform.OS === 'web') {
+        const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }) : null;
+        if (nav?.share) {
+          await nav.share({ text });
+        } else if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(text);
+          showToast('Results copied. Paste them into a note or message.');
+        } else {
+          showToast('Could not save results on this browser');
+        }
+        return;
+      }
+      await Share.share({ message: text });
+    } catch (err) {
+      // A cancelled share sheet throws an AbortError on the web; that is not a failure.
+      if (err instanceof Error && err.name === 'AbortError') return;
+      showToast('Could not save results');
+    }
+  }
+  return <Button label="Save my results" onPress={handleSave} variant="ghost" style={{ marginTop: 10 }} />;
 }
 
 // NEW, 2026-10-12 - "your team is N runs out" from the producer's Draw Pro run
