@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -12,7 +12,8 @@ import { formatDateDisplay, relativeTime } from '@/src/lib/date';
 import { showToast } from '@/src/state/toast-store';
 import { confirmAsync } from '@/src/lib/confirm';
 import { goBackOrHome } from '@/src/lib/navigation';
-import { computeTicker, type LiveProgressRow } from '@/src/lib/live-progress';
+import type { LiveProgressRow } from '@/src/lib/live-progress';
+import { buildRoundRows, type RoundRowKind } from '@/src/lib/round-rows';
 import { buildResultsText, hasSavableResults } from '@/src/lib/results-text';
 import { groupEntries } from '@/src/lib/group-entries';
 import {
@@ -136,9 +137,17 @@ function EntryCard({
   teams: DrawProEntry[];
   live?: Map<string, LiveProgressRow>;
 }) {
+  const drawn = entry.team_number != null;
+  // "14 teams" beside the event name once the draw has been posted.
+  const teamCount = drawn ? teams.reduce((m, t) => Math.max(m, t.total_teams ?? 0), 0) : 0;
+  const liveRow = drawn && entry.draw_pro_class_id ? live?.get(`${entry.event_id}|${entry.draw_pro_class_id}`) : undefined;
+
   return (
     <View style={styles.card}>
-      <Text style={styles.eventName}>{entry.event_name}</Text>
+      <Text style={styles.eventName}>
+        {entry.event_name}
+        {teamCount > 0 ? <Text style={styles.teamCountText}>{` \u00A0·\u00A0${teamCount}\u00A0teams`}</Text> : null}
+      </Text>
       {entry.event_date ? <Text style={styles.eventDate}>{formatDateDisplay(entry.event_date)}</Text> : null}
       {entry.draw_pro_class_name ? <Text style={styles.classLabel}>{entry.draw_pro_class_name}</Text> : null}
       <View style={styles.metaRow}>
@@ -147,20 +156,28 @@ function EntryCard({
       </View>
       <Text style={styles.submittedAtText}>Entered {formatSubmittedAt(entry.submitted_at)}</Text>
 
-      {entry.entry_code && !entry.cancellation_requested_at ? <EntryCodeBlock entry={entry} /> : null}
+      {/* The code and QR are only for paying; once the team is drawn they are not needed. */}
+      {entry.entry_code && !entry.cancellation_requested_at && !drawn ? <EntryCodeBlock entry={entry} /> : null}
       <EntryStatusLine entry={entry} />
 
-      {entry.team_number == null ? (
+      {!drawn ? (
         <CancelEntrySection entry={entry} />
       ) : (
         teams.map((team, i) => <TeamSection key={team.id} entry={team} live={live} separated={i > 0} />)
       )}
+
+      {liveRow && liveRow.class_status !== 'complete' ? (
+        <Text style={styles.tickerNote}>
+          Live progress comes from the producer's Draw Pro entries and may lag (updated{' '}
+          {relativeTime(new Date(liveRow.updated_at).getTime())}).
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-// One drawn team inside an entry card: its number, partner, live ticker, standing,
-// extra-run offer, round results and the Save my results button.
+// One drawn team inside an entry card: a heading with its number and partner, then one
+// row per round that has started ("12 away" until the time is logged, then the time).
 function TeamSection({
   entry,
   live,
@@ -170,6 +187,8 @@ function TeamSection({
   live?: Map<string, LiveProgressRow>;
   separated: boolean;
 }) {
+  const liveRow = entry.draw_pro_class_id ? live?.get(`${entry.event_id}|${entry.draw_pro_class_id}`) : undefined;
+  const rows = buildRoundRows(entry, liveRow);
   const partner =
     entry.partner_name != null
       ? `${entry.partner_name}${entry.partner_classification_number != null ? ` (${entry.partner_classification_number})` : ''}`
@@ -177,41 +196,47 @@ function TeamSection({
 
   return (
     <View style={[styles.teamBlock, separated && styles.teamBlockSeparated]}>
-      <View style={styles.metaRow}>
-        <View style={styles.teamNumberPill}>
-          <Text style={styles.teamNumberText}>
-            Team #{entry.team_number}{entry.total_teams != null ? ` of ${entry.total_teams}` : ''}
-          </Text>
-        </View>
-        {entry.entry_type === 'draw_in' ? <Text style={styles.partnerText}>{partner}</Text> : null}
+      <Text style={styles.teamHeading}>
+        Team #{entry.team_number}
+        {entry.entry_type === 'draw_in' ? <Text style={styles.teamPartner}>{`  ·  ${partner}`}</Text> : null}
+      </Text>
+
+      <View style={styles.roundList}>
+        {rows.map((r) => (
+          <View key={r.round} style={styles.roundRow}>
+            <Text style={styles.roundLabel}>Round {r.round}</Text>
+            <View style={{ alignItems: 'flex-end', flexShrink: 1 }}>
+              <Text style={roundValueStyle(r.kind)}>
+                {r.text}
+                {r.standing ? <Text style={styles.standingInline}>{`  ·  ${r.standing}`}</Text> : null}
+              </Text>
+              {r.note ? <Text style={styles.penaltyText}>{r.note}</Text> : null}
+            </View>
+          </View>
+        ))}
       </View>
-
-      <LiveTicker entry={entry} live={live} />
-
-      {entry.standing_rank != null ? (
-        <View style={styles.standingBox}>
-          <Text style={styles.standingLabel}>Standing</Text>
-          <Text style={styles.standingText}>
-            {ordinal(entry.standing_rank)}
-            {entry.standing_of != null ? ` of ${entry.standing_of}` : ''}
-            {entry.standing_round != null ? ` after Round ${entry.standing_round}` : ''}
-          </Text>
-        </View>
-      ) : null}
 
       {entry.extraRunCharge ? <ExtraRunCard teamNumber={entry.team_number!} charge={entry.extraRunCharge} /> : null}
 
-      {entry.results.length > 0 ? (
-        <View style={styles.resultsBlock}>
-          {entry.results.map((result) => (
-            <RoundRow key={result.id} result={result} />
-          ))}
-        </View>
-      ) : null}
-
-      {hasSavableResults(entry) ? <SaveResultsButton entry={entry} /> : null}
+      {hasSavableResults(entry) ? <SaveResultsLink entry={entry} /> : null}
     </View>
   );
+}
+
+function roundValueStyle(kind: RoundRowKind) {
+  switch (kind) {
+    case 'time':
+      return styles.finalTimeText;
+    case 'no_time':
+      return styles.noTimeText;
+    case 'up_now':
+    case 'on_deck':
+      return styles.upNextText;
+    case 'away':
+      return styles.awayText;
+    default:
+      return styles.mutedRoundText;
+  }
 }
 
 // NEW, 2026-10-12 - "Save my results". Shares the entry's results as plain text so
@@ -219,7 +244,7 @@ function TeamSection({
 // an image, on purpose: it needs no new native module, so it ships as a normal update.
 // On phones this opens the share sheet; in a mobile browser it uses the browser's
 // share sheet, and on a desktop browser it copies the text.
-function SaveResultsButton({ entry }: { entry: DrawProEntry }) {
+function SaveResultsLink({ entry }: { entry: DrawProEntry }) {
   async function handleSave() {
     const text = buildResultsText(entry);
     try {
@@ -242,29 +267,10 @@ function SaveResultsButton({ entry }: { entry: DrawProEntry }) {
       showToast('Could not save results');
     }
   }
-  return <Button label="Save my results" onPress={handleSave} variant="ghost" style={{ marginTop: 10 }} />;
-}
-
-// NEW, 2026-10-12 - "your team is N runs out" from the producer's Draw Pro run
-// order (migration 0089). Shown only for a team that has a number and a class.
-// The caption is required wording: the order comes from the producer's own Draw
-// Pro entries, so the producer, not Steer Me, owns it if it goes off track.
-function LiveTicker({ entry, live }: { entry: DrawProEntry; live?: Map<string, LiveProgressRow> }) {
-  if (!live || !entry.draw_pro_class_id || entry.team_number == null) return null;
-  const row = live.get(`${entry.event_id}|${entry.draw_pro_class_id}`);
-  const ranThisRound = !!row && entry.results.some((r) => r.round === row.round);
-  const ticker = computeTicker(row, entry.team_number, ranThisRound);
-  if (!ticker) return null;
   return (
-    <View style={styles.tickerBox}>
-      <Text style={styles.tickerLabel}>Live</Text>
-      <Text style={styles.tickerHeadline}>{ticker.headline}</Text>
-      {ticker.detail ? <Text style={styles.tickerDetail}>{ticker.detail}</Text> : null}
-      <Text style={styles.tickerNote}>
-        Live progress comes from the producer's Draw Pro entries and may lag
-        {row ? ` (updated ${relativeTime(new Date(row.updated_at).getTime())})` : ''}.
-      </Text>
-    </View>
+    <Pressable onPress={handleSave} hitSlop={8} style={styles.saveLink} accessibilityRole="button">
+      <Text style={styles.saveLinkText}>Save my results</Text>
+    </Pressable>
   );
 }
 
@@ -452,36 +458,17 @@ function ExtraRunCard({ teamNumber, charge }: { teamNumber: number; charge: Draw
   );
 }
 
-function RoundRow({ result }: { result: DrawProRoundResult }) {
-  if (result.no_time) {
-    return (
-      <View style={styles.roundRow}>
-        <Text style={styles.roundLabel}>Round {result.round}</Text>
-        <Text style={styles.noTimeText}>No Time</Text>
-      </View>
-    );
-  }
-
-  const penaltyNotes: string[] = [];
-  if (result.broken_barrier) penaltyNotes.push('broken barrier');
-  if (result.one_leg_catch) penaltyNotes.push('one-leg catch');
-
-  return (
-    <View style={styles.roundRow}>
-      <Text style={styles.roundLabel}>Round {result.round}</Text>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text style={styles.finalTimeText}>{result.final_time != null ? `${result.final_time}s` : '—'}</Text>
-        {penaltyNotes.length > 0 ? (
-          <Text style={styles.penaltyText}>
-            {result.raw_time}s + {result.penalty_seconds}s ({penaltyNotes.join(', ')})
-          </Text>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
+  teamCountText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.saddle },
+  teamHeading: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.espresso },
+  teamPartner: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle },
+  roundList: { marginTop: 6, gap: 6 },
+  upNextText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.oxblood },
+  awayText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.espresso },
+  mutedRoundText: { fontFamily: fonts.body, fontSize: 13, color: colors.saddle },
+  standingInline: { fontFamily: fonts.body, fontSize: 11.5, color: colors.saddle },
+  saveLink: { alignSelf: 'flex-start', marginTop: 8 },
+  saveLinkText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.brass, textDecorationLine: 'underline' },
   teamBlockSeparated: { marginTop: 14, paddingTop: 14, borderTopWidth: 1.5, borderTopColor: colors.saddle, borderStyle: 'dashed' },
   screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, paddingBottom: 36, ...webMaxWidth },
