@@ -14,6 +14,7 @@ import { confirmAsync } from '@/src/lib/confirm';
 import { goBackOrHome } from '@/src/lib/navigation';
 import { computeTicker, type LiveProgressRow } from '@/src/lib/live-progress';
 import { buildResultsText, hasSavableResults } from '@/src/lib/results-text';
+import { groupEntries } from '@/src/lib/group-entries';
 import {
   useMyDrawProEntries,
   useLiveProgress,
@@ -105,7 +106,7 @@ export default function MyEntries() {
               producer runs the draw and enters results.
             </Text>
           ) : (
-            entries!.map((entry) => <EntryCard key={entry.id} entry={entry} live={liveProgress} />)
+            groupEntries(entries!).map((g) => <EntryCard key={g.entry.id} entry={g.entry} teams={g.teams} live={liveProgress} />)
           )}
         </ScrollView>
       )}
@@ -123,12 +124,18 @@ function describeEntry(entry: DrawProEntry) {
   return entry.requested_run_count === 1 ? '1 draw-in run' : `${entry.requested_run_count} draw-in runs`;
 }
 
-function EntryCard({ entry, live }: { entry: DrawProEntry; live?: Map<string, LiveProgressRow> }) {
-  const partner =
-    entry.partner_name != null
-      ? `${entry.partner_name}${entry.partner_classification_number != null ? ` (${entry.partner_classification_number})` : ''}`
-      : 'Partner TBD';
-
+// One card per entry. An entry that produced more than one team (an extra run, or a
+// two-run draw-in) shows its event, class, entry code, QR and paid status once, then one
+// section per drawn team underneath. See src/lib/group-entries.ts.
+function EntryCard({
+  entry,
+  teams,
+  live,
+}: {
+  entry: DrawProEntry;
+  teams: DrawProEntry[];
+  live?: Map<string, LiveProgressRow>;
+}) {
   return (
     <View style={styles.card}>
       <Text style={styles.eventName}>{entry.event_name}</Text>
@@ -146,42 +153,63 @@ function EntryCard({ entry, live }: { entry: DrawProEntry; live?: Map<string, Li
       {entry.team_number == null ? (
         <CancelEntrySection entry={entry} />
       ) : (
-        <View style={styles.teamBlock}>
-          <View style={styles.metaRow}>
-            <View style={styles.teamNumberPill}>
-              <Text style={styles.teamNumberText}>
-                Team #{entry.team_number}{entry.total_teams != null ? ` of ${entry.total_teams}` : ''}
-              </Text>
-            </View>
-            {entry.entry_type === 'draw_in' ? <Text style={styles.partnerText}>{partner}</Text> : null}
-          </View>
-
-          <LiveTicker entry={entry} live={live} />
-
-          {entry.standing_rank != null ? (
-            <View style={styles.standingBox}>
-              <Text style={styles.standingLabel}>Standing</Text>
-              <Text style={styles.standingText}>
-                {ordinal(entry.standing_rank)}
-                {entry.standing_of != null ? ` of ${entry.standing_of}` : ''}
-                {entry.standing_round != null ? ` after Round ${entry.standing_round}` : ''}
-              </Text>
-            </View>
-          ) : null}
-
-          {entry.extraRunCharge ? <ExtraRunCard teamNumber={entry.team_number} charge={entry.extraRunCharge} /> : null}
-
-          {entry.results.length > 0 ? (
-            <View style={styles.resultsBlock}>
-              {entry.results.map((result) => (
-                <RoundRow key={result.id} result={result} />
-              ))}
-            </View>
-          ) : null}
-
-          {hasSavableResults(entry) ? <SaveResultsButton entry={entry} /> : null}
-        </View>
+        teams.map((team, i) => <TeamSection key={team.id} entry={team} live={live} separated={i > 0} />)
       )}
+    </View>
+  );
+}
+
+// One drawn team inside an entry card: its number, partner, live ticker, standing,
+// extra-run offer, round results and the Save my results button.
+function TeamSection({
+  entry,
+  live,
+  separated,
+}: {
+  entry: DrawProEntry;
+  live?: Map<string, LiveProgressRow>;
+  separated: boolean;
+}) {
+  const partner =
+    entry.partner_name != null
+      ? `${entry.partner_name}${entry.partner_classification_number != null ? ` (${entry.partner_classification_number})` : ''}`
+      : 'Partner TBD';
+
+  return (
+    <View style={[styles.teamBlock, separated && styles.teamBlockSeparated]}>
+      <View style={styles.metaRow}>
+        <View style={styles.teamNumberPill}>
+          <Text style={styles.teamNumberText}>
+            Team #{entry.team_number}{entry.total_teams != null ? ` of ${entry.total_teams}` : ''}
+          </Text>
+        </View>
+        {entry.entry_type === 'draw_in' ? <Text style={styles.partnerText}>{partner}</Text> : null}
+      </View>
+
+      <LiveTicker entry={entry} live={live} />
+
+      {entry.standing_rank != null ? (
+        <View style={styles.standingBox}>
+          <Text style={styles.standingLabel}>Standing</Text>
+          <Text style={styles.standingText}>
+            {ordinal(entry.standing_rank)}
+            {entry.standing_of != null ? ` of ${entry.standing_of}` : ''}
+            {entry.standing_round != null ? ` after Round ${entry.standing_round}` : ''}
+          </Text>
+        </View>
+      ) : null}
+
+      {entry.extraRunCharge ? <ExtraRunCard teamNumber={entry.team_number!} charge={entry.extraRunCharge} /> : null}
+
+      {entry.results.length > 0 ? (
+        <View style={styles.resultsBlock}>
+          {entry.results.map((result) => (
+            <RoundRow key={result.id} result={result} />
+          ))}
+        </View>
+      ) : null}
+
+      {hasSavableResults(entry) ? <SaveResultsButton entry={entry} /> : null}
     </View>
   );
 }
@@ -454,6 +482,7 @@ function RoundRow({ result }: { result: DrawProRoundResult }) {
 }
 
 const styles = StyleSheet.create({
+  teamBlockSeparated: { marginTop: 14, paddingTop: 14, borderTopWidth: 1.5, borderTopColor: colors.saddle, borderStyle: 'dashed' },
   screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, paddingBottom: 36, ...webMaxWidth },
   empty: {
