@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '@/src/theme/theme';
 
 type ScreenHeaderProps = {
@@ -21,9 +22,14 @@ type ScreenHeaderProps = {
 // the small "?" button (.help-btn) that opens that screen's HelpModal topic.
 export function ScreenHeader({ title, subtitle, onBack, big, logo, onHelp }: ScreenHeaderProps) {
   const pathname = usePathname();
+  // Reported 2026-10-17 on an iPhone: the title and buttons sat under the clock and signal icons,
+  // and the back arrow could not be tapped. The bar used a fixed 22px of top padding, which is
+  // shorter than the status bar / notch on newer iPhones. Pad by the real top inset instead
+  // (never less than the old 22px, so screens without a notch look the same as before).
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingTop: Math.max(22, insets.top + 10) }]}>
       <View style={styles.row}>
         {onBack ? (
           <Pressable onPress={onBack} hitSlop={10} style={styles.backBtn}>
