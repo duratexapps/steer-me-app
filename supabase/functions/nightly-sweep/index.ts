@@ -171,6 +171,19 @@ Deno.serve(async (req) => {
     lines.push(`11. Hauling paperwork checker, last 7 days: ${count('view')} page views, ${count('check')} route checks from ${visitors.size} visitors (${repeat} came back on another day); helpful yes ${count('helpful_yes')} / not really ${count('helpful_no')}; error reports ${count('report_error')}; opened from the app ${count('open_from_app')}; official tool clicks ${count('open_official')}${top ? '; top routes: ' + top : ''}`);
   });
 
+  // 12 web subscriptions (Stripe). The first real web subscriber is the reminder to look at Stripe Tax: collection is
+  // in monitor-only mode, so Stripe will say whether a registration is needed. Owner (comped) accounts don't count.
+  // Tell Claude once it's been looked at and app_settings.stripe_tax_reviewed is set true, which stops the reminder.
+  await check('12. Web subscriptions', async () => {
+    const subs = await q(admin.from('stripe_subscriptions').select('user_id,active,status').not('stripe_subscription_id', 'is', null));
+    const comped = new Set((await q(admin.from('comped_users').select('user_id'))).map((x) => x.user_id));
+    const real = subs.filter((s) => !comped.has(s.user_id));
+    const reviewed = (await q(admin.from('app_settings').select('value').eq('key', 'stripe_tax_reviewed')))[0]?.value === true;
+    const live = real.filter((s) => s.active).length;
+    lines.push(`12. Web subscriptions (Stripe): ${real.length} real (${live} active)${reviewed ? '; tax already reviewed' : ''}`);
+    if (real.length && !reviewed) urgent.push('First web (Stripe) subscriber(s) now exist: open Stripe > Tax and check whether it flags a registration or any location needing attention, then tell Claude it is reviewed so this reminder stops.');
+  });
+
   const when = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' });
   const subject = urgent.length
     ? `${urgent.some((u) => u.startsWith('URGENT')) ? 'URGENT - ' : ''}Steer Me nightly check: ${urgent.length} item(s) need attention`
