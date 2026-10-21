@@ -105,6 +105,7 @@ function SpotCard({ spot, onAction }: { spot: Spot; onAction: (event: string) =>
         <Text style={styles.spotName}>{spot.name}</Text>
       </View>
       <Text style={styles.where}>{spot.city}, {spot.state}</Text>
+      {spot.address ? <Text style={styles.address}>{spot.address}</Text> : null}
       {housing || spot.housing_detail ? (
         <Text style={styles.detail}><Text style={styles.bold}>Horses: </Text>{[housing, spot.housing_detail].filter(Boolean).join('. ')}</Text>
       ) : null}
@@ -117,10 +118,10 @@ function SpotCard({ spot, onAction }: { spot: Spot; onAction: (event: string) =>
       {spot.season_note ? <Text style={styles.detail}><Text style={styles.bold}>Timing: </Text>{spot.season_note}</Text> : null}
       {spot.notes ? <Text style={styles.detail}>{spot.notes}</Text> : null}
 
-      <Text style={spot.verification === 'confirmed' ? styles.confirmed : styles.unconfirmed}>
+      <Text style={spot.verification === 'confirmed' ? styles.confirmed : styles.callAhead}>
         {spot.verification === 'confirmed' && spot.confirmed_on
           ? `Confirmed with the facility ${fmtDate(spot.confirmed_on)}`
-          : 'Not yet confirmed with the facility. Call before you haul.'}
+          : 'Call ahead to confirm stalls, availability and rates.'}
       </Text>
       <Text style={styles.src}>
         Listing checked {fmtDate(spot.verified_on)} ·{' '}
@@ -138,7 +139,7 @@ function SpotCard({ spot, onAction }: { spot: Spot; onAction: (event: string) =>
             <Text style={styles.actionText}>Website</Text>
           </Pressable>
         ) : null}
-        <Pressable style={styles.action} onPress={() => { onAction('spot_directions'); Linking.openURL(mapsUrl(`${spot.name}, ${spot.city}, ${spot.state}`)); }}>
+        <Pressable style={styles.action} onPress={() => { onAction('spot_directions'); Linking.openURL(mapsUrl(spot.address && /\d/.test(spot.address) ? `${spot.name}, ${spot.address}` : `${spot.name}, ${spot.city}, ${spot.state}`)); }}>
           <Text style={styles.actionText}>Map</Text>
         </Pressable>
         <Pressable
@@ -283,7 +284,7 @@ function Layovers() {
             <View style={styles.notice}>
               <Text style={styles.noticeTitle}>Please read first</Text>
               <Text style={styles.noticeText}>
-                We gathered these from public listings, and none has been confirmed with the facility yet unless it says so. Stalls close, fill up for events and change prices, and outbreaks such as EHV can close them to travelers. Call before you haul and ask about stalls, hay and bedding, whether they need a Coggins or health certificate, and your arrival time. Straight-line distances are not driving distances. Steer Me does not book or guarantee any stop.
+                We pulled these together from public listings so you do not have to search for them one by one. Listings can be out of date: stalls fill up for events, prices change, and outbreaks such as EHV can close them to travelers. Call ahead and ask about stalls, hay and bedding, whether they need a Coggins or health certificate, and your arrival time. Distances are straight-line, not driving. Steer Me does not book or guarantee any stop.
               </Text>
             </View>
 
@@ -397,7 +398,8 @@ const styles = StyleSheet.create({
   where: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.brass, marginTop: 6 },
   detail: { fontFamily: fonts.body, fontSize: 13.5, color: colors.espresso, lineHeight: 19, marginTop: 6 },
   confirmed: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: colors.espresso, marginTop: 10 },
-  unconfirmed: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: colors.oxblood, marginTop: 10 },
+  callAhead: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.saddle, marginTop: 10 },
+  address: { fontFamily: fonts.body, fontSize: 13, color: colors.espresso, marginTop: 2 },
   src: { fontFamily: fonts.body, fontSize: 11.5, color: colors.saddle, marginTop: 4, lineHeight: 16 },
   link: { fontFamily: fonts.bodySemiBold, color: colors.saddle, textDecorationLine: 'underline' },
   bold: { fontFamily: fonts.bodyBold, color: colors.espresso },
