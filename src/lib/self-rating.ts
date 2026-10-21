@@ -88,11 +88,11 @@ export function checkClaim(claimed: number, a: SelfAssessment, position: Positio
       suggested,
       message:
         `Your answers suggest about ${suggested.low} to ${suggested.high}, and you entered ${claimed}. ` +
-        'You can continue, but producers may reclassify you at entry, and partners will see your number is self-reported.',
+        'A number that is too low can get a team reclassified or voided at the gate. You can continue, and partners will see Self-reported.',
     };
   }
   return { status: 'consistent', suggested, message: null };
 }
 
 export const SELF_REPORTED_DISCLAIMER =
-  "Your number is your own claim until a producer confirms it. This is Steer Me's own check, not Global's, and it does not assign a rating. Producers can reclassify you at any time.";
+  "Your number is your own claim until a producer confirms it, and producers can reclassify you at any time. Steer Me's check is its own, not Global's.";

@@ -46,8 +46,8 @@ export function SelfAssessmentForm({ value, onChange }: Props) {
   return (
     <View>
       <Text style={styles.intro}>
-        No Global card? No problem. A few quick questions help partners and producers trust your number. This is
-        Steer Me's own check, not Global's.
+        No card? You're welcome here. Matching runs on your number, so an honest one finds you a partner who fits
+        and can keep your team legal at the gate.
       </Text>
 
       <Text style={styles.q}>Biggest team class you entered in the last 12 months</Text>
