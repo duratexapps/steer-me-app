@@ -85,7 +85,10 @@ serveWithCors(async (req) => {
 
   // First month free: only for someone who has never had a Stripe subscription.
   const trialEligible = !web?.stripe_subscription_id;
-  const trialDays = Number(Deno.env.get('STRIPE_TRIAL_DAYS') ?? '30');
+  // Free-month length is a server setting (app_settings.web_free_trial_days, 0 = no free month), so it can change
+  // without a release. Falls back to the STRIPE_TRIAL_DAYS secret, then 0.
+  const { data: trialSetting } = await admin.from('app_settings').select('value').eq('key', 'web_free_trial_days').maybeSingle();
+  const trialDays = Number(trialSetting?.value ?? Deno.env.get('STRIPE_TRIAL_DAYS') ?? '0') || 0;
   const automaticTax = Deno.env.get('STRIPE_AUTOMATIC_TAX') === 'true';
 
   const session = await stripeRequest(secretKey, 'POST', '/checkout/sessions', {
