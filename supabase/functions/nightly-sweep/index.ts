@@ -171,6 +171,20 @@ Deno.serve(async (req) => {
     lines.push(`11. Hauling paperwork checker, last 7 days: ${count('view')} page views, ${count('check')} route checks from ${visitors.size} visitors (${repeat} came back on another day); helpful yes ${count('helpful_yes')} / not really ${count('helpful_no')}; error reports ${count('report_error')}; opened from the app ${count('open_from_app')}; official tool clicks ${count('open_official')}${top ? '; top routes: ' + top : ''}`);
   });
 
+  // Layover finder use (information only), plus how many signed-out visitors met the sign-in wall on either travel tool.
+  await check('11b. Layover finder', async () => {
+    const since = new Date(Date.now() - 7 * 24 * HOUR).toISOString();
+    const ev = await q(admin.from('feature_events').select('feature,event,props,visitor_id').in('feature', ['layover_finder', 'travel_checker']).gte('created_at', since).limit(5000));
+    const lf = ev.filter((x) => x.feature === 'layover_finder');
+    const count = (e: string, f = lf) => f.filter((x) => x.event === e).length;
+    const gate = ev.filter((x) => x.event === 'gate_shown');
+    const gateVisitors = new Set(gate.map((x) => x.visitor_id).filter(Boolean)).size;
+    const routes = new Map<string, number>();
+    for (const x of lf.filter((e) => e.event === 'search')) { const k = `${x.props?.from}>${x.props?.to}`; routes.set(k, (routes.get(k) ?? 0) + 1); }
+    const top = [...routes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k.replace('>', ' to ')} (${n})`).join(', ');
+    lines.push(`11b. Layover finder, last 7 days: ${count('view')} member views, ${count('search')} searches (RV yes ${lf.filter((x) => x.event === 'search' && x.props?.rv === true).length} / no ${lf.filter((x) => x.event === 'search' && x.props?.rv === false).length}); stop taps: call ${count('spot_call')}, website ${count('spot_website')}, map ${count('spot_directions')}, hotels ${count('spot_hotels')}; helpful yes ${count('helpful_yes')} / not really ${count('helpful_no')}; "tell us" taps ${count('suggest_spot')}${top ? '; top routes: ' + top : ''}. Signed-out visitors who met the sign-in wall (either tool): ${gate.length} visits from ${gateVisitors} visitors`);
+  });
+
   // 12 web subscriptions (Stripe). The first real web subscriber is the reminder to look at Stripe Tax: collection is
   // in monitor-only mode, so Stripe will say whether a registration is needed. Owner (comped) accounts don't count.
   // Tell Claude once it's been looked at and app_settings.stripe_tax_reviewed is set true, which stops the reminder.
