@@ -20,19 +20,46 @@ import { showToast } from '@/src/state/toast-store';
 // Only app/subscription.tsx - the actual purchase screen, where a fresh
 // entitlement really is worth polling briefly for right after a purchase -
 // opts in.
+// Combined status from get_subscription_status() (migration 0098): subscribed through the app stores, through a
+// web (Stripe) subscription, or both. entitlement_active / product_id / expires_at keep the meaning they always
+// had, so the native purchase screen is unaffected.
+export type SubscriptionStatus = {
+  entitlement_active: boolean;
+  source: 'web' | 'store' | 'both' | null;
+  product_id: string | null;
+  expires_at: string | null;
+  web_active: boolean;
+  web_status: string | null;
+  web_cancel_at_period_end: boolean;
+  web_trial_end: string | null;
+  web_has_customer: boolean;
+  web_checkout_enabled: boolean;
+  web_trial_eligible: boolean;
+};
+
+const NO_SUBSCRIPTION: SubscriptionStatus = {
+  entitlement_active: false,
+  source: null,
+  product_id: null,
+  expires_at: null,
+  web_active: false,
+  web_status: null,
+  web_cancel_at_period_end: false,
+  web_trial_end: null,
+  web_has_customer: false,
+  web_checkout_enabled: false,
+  web_trial_eligible: false,
+};
+
 export function useSubscriptionStatus(enablePolling = false) {
   const userId = useSessionStore((s) => s.session?.user.id);
   return useQuery({
     queryKey: ['subscription-status', userId],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('entitlement_active, product_id, expires_at')
-        .eq('id', userId)
-        .maybeSingle();
+    queryFn: async (): Promise<SubscriptionStatus> => {
+      const { data, error } = await supabase.rpc('get_subscription_status');
       if (error) throw error;
-      return data ?? { entitlement_active: false, product_id: null, expires_at: null };
+      return { ...NO_SUBSCRIPTION, ...((data as Partial<SubscriptionStatus> | null) ?? {}) };
     },
     // The webhook can take a few seconds to land after a purchase - poll
     // briefly rather than make the user manually refresh.

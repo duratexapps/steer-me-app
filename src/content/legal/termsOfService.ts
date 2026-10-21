@@ -28,9 +28,10 @@ You're responsible for maintaining the confidentiality of your account credentia
 ## 4. Athlete subscription terms
 
 - **Pricing:** Steer Me offers an annual plan ($39.99/year) and a monthly plan ($6.99/month). Current pricing is also shown in the app's Subscription screen and on the App Store/Google Play listing; those listings control if there's ever a discrepancy with this document.
-- **Billing:** subscriptions are billed and processed through the Apple App Store or Google Play, per platform requirements for digital subscription content. We don't see or store your full payment card details.
+- **Billing:** subscriptions bought in the app are billed and processed through the Apple App Store or Google Play, per platform requirements for digital subscription content. Subscriptions bought on the web are processed by Stripe (see Web subscriptions below). We don't see or store your full payment card details.
 - **Auto-renewal:** your subscription renews automatically at the end of each billing period unless you cancel before the renewal date, consistent with Apple's and Google's standard subscription mechanics.
 - **Cancellation:** you can cancel anytime through your App Store or Google Play account settings. There are no refunds, prorated or otherwise, for subscription cancellations. If you cancel, your access to paid features continues through the end of your current billing period — that is, your access expires on your next scheduled renewal date, and you will not be charged again after that.
+- **Web subscriptions:** if you subscribe on steerme.ropingtools.com, payment is processed by Stripe and we don't see or store your full payment card details. You can cancel any time from Manage subscription on the Subscription screen to stop future renewals, and your access continues through the end of the period you've paid for. If you are charged in error or have a problem with a web subscription, contact us within 14 days of the charge and we will review a refund; otherwise web subscriptions are not refundable. When a free first month is offered on the web, it is available once per account, and your plan renews automatically at the end of it unless you cancel before then.
 - **Suspension:** if your account is suspended for a Community Guidelines violation, your subscription is not refunded for the remaining period.
 
 ## 4.5. Refer a friend

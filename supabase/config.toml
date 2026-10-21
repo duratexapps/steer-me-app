@@ -540,3 +540,14 @@ verify_jwt = false
 # Called by the database (pg_cron -> pg_net) with no user JWT; authenticates with the shared db_webhook_secret header.
 [functions.nightly-sweep]
 verify_jwt = false
+
+# Stripe web subscriptions (migration 0098). The browser calls checkout and portal, so they answer the CORS
+# preflight and check the caller themselves; the webhook is called by Stripe and checks Stripe's signature.
+[functions.stripe-checkout]
+verify_jwt = false
+
+[functions.stripe-portal]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

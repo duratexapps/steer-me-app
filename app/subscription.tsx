@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Purchases, { type PurchasesOffering, type PurchasesPackage } from 'react-native-purchases';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -11,6 +11,7 @@ import { Button } from '@/src/components/ui/Button';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { fetchOfferings } from '@/src/lib/purchases';
+import { startWebCheckout, openBillingPortal } from '@/src/lib/web-checkout';
 import { useSubscriptionStatus, useInvalidateSubscriptionStatus, useFreeTierStatus } from '@/src/hooks/useSubscriptionStatus';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
@@ -41,6 +42,42 @@ export default function Subscription() {
   const { data: status } = useSubscriptionStatus(true); // poll briefly - this is the purchase screen
   const invalidateStatus = useInvalidateSubscriptionStatus();
   const { data: freeTier } = useFreeTierStatus();
+  const [webBusy, setWebBusy] = useState(false);
+  const { checkout } = useLocalSearchParams<{ checkout?: string }>();
+
+  // Coming back from Stripe Checkout: success means the webhook is about to flip the status, so refresh (the
+  // screen already polls), and a cancel just says so.
+  useEffect(() => {
+    if (checkout === 'success') {
+      showToast('Thanks! Setting up your subscription...');
+      invalidateStatus();
+    } else if (checkout === 'cancelled') {
+      showToast('Checkout cancelled - nothing was charged');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkout]);
+
+  async function handleWebSubscribe() {
+    setWebBusy(true);
+    try {
+      const url = await startWebCheckout(plan === 'annual' ? 'yearly' : 'monthly');
+      window.location.assign(url);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "We couldn't start checkout. Please try again.");
+      setWebBusy(false);
+    }
+  }
+
+  async function handleManage() {
+    setWebBusy(true);
+    try {
+      const url = await openBillingPortal();
+      window.location.assign(url);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "We couldn't open your subscription settings. Please try again.");
+      setWebBusy(false);
+    }
+  }
 
   useEffect(() => {
     fetchOfferings().then(setOffering);
@@ -68,26 +105,71 @@ export default function Subscription() {
     }
   }
 
-  // Rewritten 2026-07-22 - the old copy here said "managed through the
-  // mobile app, not here on the web," which is wrong twice over: (1) during
-  // the current testing phase, nothing requires a subscription at all (see
-  // SUBSCRIPTION_REQUIRED in useSubscriptionStatus.ts), and (2) the actual
-  // intended design once testing ends is that web WILL support subscribing
-  // directly too, not just the mobile app - that permanent "mobile only"
-  // framing was never correct and shouldn't ship. Real web checkout (Stripe
-  // or PayPal, since RevenueCat itself has no web SDK at all) is still not
-  // built - that's separate future work - so this deliberately doesn't
-  // claim purchasing works here yet, just stops implying it never will.
+  // Web (steerme.ropingtools.com): subscribe through Stripe (migration 0098). This offer, including the free
+  // month, is shown ONLY here on the web. The iOS and Android apps keep the store purchase flow below and do not
+  // mention or link to it, because the stores restrict steering app users to an outside payment (revisit once the
+  // Apple / Google link-out rules settle).
   if (Platform.OS === 'web') {
+    const fmt = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString() : '');
+    const trialing = status?.web_status === 'trialing' && status?.web_trial_end;
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
         <ScreenHeader title="Subscription" subtitle="One membership, unlimited draw-in fees skipped" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
         <ScrollView contentContainerStyle={styles.content}>
           {status?.entitlement_active ? (
-            <DividerNote>
-              <Text style={{ fontFamily: fonts.bodyBold }}>You're subscribed. </Text>
-              {status.expires_at ? `Renews/expires ${new Date(status.expires_at).toLocaleDateString()}.` : ''}
-            </DividerNote>
+            <>
+              <DividerNote>
+                <Text style={{ fontFamily: fonts.bodyBold }}>You're subscribed. </Text>
+                {status?.web_cancel_at_period_end
+                  ? `Your access continues through ${fmt(status?.expires_at)}. It will not renew.`
+                  : trialing
+                    ? `Your free month ends ${fmt(status?.web_trial_end)}, then your plan renews automatically.`
+                    : status?.expires_at
+                      ? `Renews/expires ${fmt(status.expires_at)}.`
+                      : ''}
+              </DividerNote>
+              {status?.source === 'store' ? (
+                <DividerNote>You subscribed through the App Store or Google Play, so manage or cancel it there.</DividerNote>
+              ) : null}
+              {status?.source === 'both' ? (
+                <DividerNote>
+                  You have a web subscription and an App Store or Google Play one. Cancel the one you don't want, so you only pay once.
+                </DividerNote>
+              ) : null}
+              {status?.web_has_customer && status?.web_active ? (
+                <Button label="Manage subscription" onPress={handleManage} loading={webBusy} />
+              ) : null}
+            </>
+          ) : status?.web_checkout_enabled ? (
+            <>
+              {status?.web_trial_eligible ? (
+                <View style={styles.offerBanner}>
+                  <Text style={styles.offerTitle}>Your first month is free</Text>
+                  <Text style={styles.offerSub}>Subscribe here on the web and the first month is on us.</Text>
+                </View>
+              ) : null}
+              <View style={styles.pillRow}>
+                <Pill label="Annual — $39.99/yr" selected={plan === 'annual'} onPress={() => setPlan('annual')} />
+                <Pill label="Monthly — $6.99/mo" selected={plan === 'monthly'} onPress={() => setPlan('monthly')} />
+              </View>
+              <View style={styles.planCard}>
+                <Text style={styles.planTitle}>{PLAN_COPY[plan].title}</Text>
+                <Text style={styles.planSub}>{PLAN_COPY[plan].sub}</Text>
+                <Text style={styles.planDesc}>
+                  Unlimited partner search, posting, requests, and event browsing.{' '}
+                  {status?.web_trial_eligible
+                    ? 'After your free month your plan renews automatically until you cancel. '
+                    : 'Your plan renews automatically until you cancel. '}
+                  Cancel any time from Manage subscription.
+                </Text>
+              </View>
+              <Button
+                label={status?.web_trial_eligible ? 'Start my free month' : 'Subscribe'}
+                onPress={handleWebSubscribe}
+                loading={webBusy}
+              />
+              <Text style={styles.unavailableNote}>Secure checkout by Stripe. Your subscription follows your account, on any device.</Text>
+            </>
           ) : (
             <DividerNote>
               Steer Me is free to use during testing - no subscription needed right now. Once testing
@@ -95,7 +177,7 @@ export default function Subscription() {
               your subscription will follow your account either way, not the device.
             </DividerNote>
           )}
-          <Button label="Have a code?" variant="ghost" onPress={() => router.push('/redeem-code')} />
+          <Button label="Have a code?" variant="ghost" onPress={() => router.push('/redeem-code')} style={{ marginTop: 8 }} />
         </ScrollView>
         <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="subscription" />
       </SafeAreaView>
@@ -190,6 +272,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   pillRow: { flexDirection: 'row', gap: 8, marginBottom: 16, marginTop: 4 },
+  offerBanner: {
+    backgroundColor: colors.brass,
+    borderRadius: radii.lg,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  offerTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.bone },
+  offerSub: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.bone, marginTop: 2, textAlign: 'center' },
   planCard: {
     backgroundColor: colors.tanLight,
     borderWidth: 1,
