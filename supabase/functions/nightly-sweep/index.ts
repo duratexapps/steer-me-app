@@ -74,11 +74,15 @@ Deno.serve(async (req) => {
       if (data.users.length < 1000) break;
     }
     const have = new Set([...(await q(admin.from('profiles').select('id'))), ...(await q(admin.from('producer_profiles').select('id')))].map((x) => x.id));
-    const nudged = new Map((await q(admin.from('nudged_signups').select('email,nudged_on'))).map((x) => [String(x.email).toLowerCase(), x.nudged_on as string]));
+    const nudgeRows = await q(admin.from('nudged_signups').select('email,nudged_on,nudge_count'));
+    const nudged = new Map(nudgeRows.map((x) => [String(x.email).toLowerCase(), x.nudged_on as string]));
+    // Justin's rule (2026-10-20): the 3rd email is the final one; after that the person is no longer flagged.
+    const nudgeCount = new Map(nudgeRows.map((x) => [String(x.email).toLowerCase(), Number(x.nudge_count ?? 1)]));
     const people = users.filter((u) => !have.has(u.id) && u.email && !INTERNAL.some((d) => u.email.toLowerCase().endsWith(d)) && u.email.toLowerCase() !== ADMIN_EMAIL);
     const young = people.filter((u) => hoursSince(u.created_at) <= 24);
     const stuck = people.filter((u) => hoursSince(u.created_at) > 24);
     const nd = (u: Row) => nudged.get(u.email.toLowerCase());
+    const finalSent = (u: Row) => (nudgeCount.get(u.email.toLowerCase()) ?? 0) >= 3;
     const lastActH = (u: Row) => {
       const hs = [u.confirmation_sent_at, u.email_confirmed_at, u.last_sign_in_at].filter(Boolean).map((t: string) => hoursSince(t));
       return hs.length ? Math.min(...hs) : null;
@@ -86,10 +90,11 @@ Deno.serve(async (req) => {
     const fresh = stuck.filter((u) => !nd(u));
     const active = fresh.filter((u) => lastActH(u) !== null && lastActH(u)! <= 24);
     const need = fresh.filter((u) => !active.includes(u));
-    const lapsed = stuck.filter((u) => nd(u) && (Date.now() - new Date(nd(u)!).getTime()) / HOUR / 24 >= 7);
-    const waiting = stuck.filter((u) => nd(u) && !lapsed.includes(u));
-    const desc = (u: Row) => `${u.email} - ${u.email_confirmed_at ? 'confirmed email' : 'NEVER CONFIRMED EMAIL'}; created ${ago(u.created_at)}; last confirmation email ${ago(u.confirmation_sent_at)}; last sign-in ${ago(u.last_sign_in_at)}` + (nd(u) ? `; you emailed ${nd(u)}` : '');
-    lines.push(`3. Unfinished sign-ups: ${need.length || lapsed.length ? 'ATTENTION' : 'clear'} - ${need.length} need an email now; ${active.length} active in the last 24h (give it time); ${lapsed.length} still stuck 7+ days after your email; ${waiting.length} emailed recently, waiting; ${young.length} under 24h old (in progress)`);
+    const done = stuck.filter((u) => nd(u) && finalSent(u));
+    const lapsed = stuck.filter((u) => nd(u) && !finalSent(u) && (Date.now() - new Date(nd(u)!).getTime()) / HOUR / 24 >= 7);
+    const waiting = stuck.filter((u) => nd(u) && !finalSent(u) && !lapsed.includes(u));
+    const desc = (u: Row) => `${u.email} - ${u.email_confirmed_at ? 'confirmed email' : 'NEVER CONFIRMED EMAIL'}; created ${ago(u.created_at)}; last confirmation email ${ago(u.confirmation_sent_at)}; last sign-in ${ago(u.last_sign_in_at)}` + (nd(u) ? `; you emailed ${nd(u)} (email #${nudgeCount.get(u.email.toLowerCase()) ?? 1})` : '');
+    lines.push(`3. Unfinished sign-ups: ${need.length || lapsed.length ? 'ATTENTION' : 'clear'} - ${need.length} need an email now; ${active.length} active in the last 24h (give it time); ${lapsed.length} still stuck 7+ days after your email; ${waiting.length} emailed recently, waiting; ${young.length} under 24h old (in progress)${done.length ? `; ${done.length} had the final (3rd) email and are no longer flagged` : ''}`);
     for (const [tag, g] of [['NEEDS AN EMAIL', need], ['ACTIVE - give it time', active], ['STILL STUCK 7+ days after your email', lapsed], ['IN PROGRESS (<24h old)', young]] as [string, Row[]][])
       for (const u of g) details.push(`[${tag}] ${desc(u)}`);
     if (need.length) urgent.push(`${need.length} stuck sign-up(s) with no recent activity - email them (listed below)`);
