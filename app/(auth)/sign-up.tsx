@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -23,6 +23,10 @@ import { useSessionStore } from '@/src/state/session-store';
 import { validateClassificationForEnd, type Position } from '@/src/lib/matching';
 import { friendlySupabaseError } from '@/src/lib/errors';
 import { verifyClassificationCard, reportMembershipConflict } from '@/src/lib/verification';
+import { SelfAssessmentForm } from '@/src/components/SelfAssessmentForm';
+import { PhoneVerifyStep } from '@/src/components/PhoneVerifyStep';
+import { logSignupEvent } from '@/src/lib/signup-events';
+import { EMPTY_ASSESSMENT, checkClaim, type SelfAssessment } from '@/src/lib/self-rating';
 
 type PhotoTarget = 'avatar' | 'screenshot' | null;
 
@@ -38,6 +42,26 @@ export default function SignUp() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
+
+  // NEW 2026-10-22: ropers without a Global card can sign up with a self-reported number (migration 0094).
+  // null = not answered yet; the card-specific and no-card blocks below depend on it.
+  const [hasCard, setHasCard] = useState<'yes' | 'no' | 'not_sure' | null>(null);
+  const noCard = hasCard === 'no' || hasCard === 'not_sure';
+  const [assessment, setAssessment] = useState<SelfAssessment>(EMPTY_ASSESSMENT);
+  const [phoneRequired, setPhoneRequired] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+
+  useEffect(() => {
+    void logSignupEvent('reached_profile');
+    void (async () => {
+      const [{ data: req }, { data: userData }] = await Promise.all([
+        supabase.rpc('get_signup_requirements'),
+        supabase.auth.getUser(),
+      ]);
+      setPhoneRequired(!!(req as { phone_required_for_unverified?: boolean } | null)?.phone_required_for_unverified);
+      setPhoneVerified(!!userData.user?.phone_confirmed_at);
+    })();
+  }, []);
 
   const [fullName, setFullName] = useState('');
   const [isMinor, setIsMinor] = useState(false);
@@ -112,12 +136,21 @@ export default function SignUp() {
         !Number.isNaN(classificationNumber) &&
         !validateClassificationForEnd(classificationNumber, position === 'Header' ? 'header' : 'heeler');
 
+  const assessmentComplete =
+    assessment.highestClassEntered != null &&
+    assessment.ropingsPerMonth != null &&
+    assessment.moneyWon != null &&
+    assessment.catchOutOf10 != null &&
+    assessment.winMoreThanSpend != null;
+
   const canSubmit =
+    hasCard !== null &&
     !!avatarPath && // CHANGED 2026-07-27: was optional - see the label change above
     fullName.trim().length > 0 &&
     homeArea.trim().length > 0 &&
-    !!screenshotPath &&
-    globalMembershipId.trim().length > 0 &&
+    (hasCard === 'yes'
+      ? !!screenshotPath && globalMembershipId.trim().length > 0
+      : assessmentComplete && (!phoneRequired || phoneVerified)) &&
     classificationValid &&
     guidelinesAccepted &&
     (isMinor
@@ -146,17 +179,27 @@ export default function SignUp() {
     // decides match/mismatch). A genuine mismatch blocks sign-up
     // entirely; the AI being unavailable does NOT block it - it just
     // gets flagged via needs_manual_review below instead.
-    const verifyResult = await verifyClassificationCard({
-      imagePath: screenshotPath!,
-      claimedName: fullName.trim(),
-      claimedMembershipId: globalMembershipId.trim(),
-      position,
-      claimedGlobalClassification: position === 'Switch' ? null : classificationNumber,
-      claimedHeaderClassification: position === 'Switch' ? headerClassificationNumber : null,
-      claimedHeelerClassification: position === 'Switch' ? heelerClassificationNumber : null,
-    });
+    // No-card path (2026-10-22): nothing to verify against a card. The numbers are the roper's own claim; we
+    // store the answers and whether they look low for them, and the profile shows as Self-reported.
+    const claimFlags =
+      noCard
+        ? position === 'Switch'
+          ? [checkClaim(headerClassificationNumber, assessment, 'Header'), checkClaim(heelerClassificationNumber, assessment, 'Heeler')]
+          : [checkClaim(classificationNumber, assessment, position)]
+        : [];
+    const verifyResult = noCard
+      ? { verified: false, skipped: false, mismatches: [] as string[], expirationDate: null as string | null, isExpired: false }
+      : await verifyClassificationCard({
+          imagePath: screenshotPath!,
+          claimedName: fullName.trim(),
+          claimedMembershipId: globalMembershipId.trim(),
+          position,
+          claimedGlobalClassification: position === 'Switch' ? null : classificationNumber,
+          claimedHeaderClassification: position === 'Switch' ? headerClassificationNumber : null,
+          claimedHeelerClassification: position === 'Switch' ? heelerClassificationNumber : null,
+        });
 
-    if (!verifyResult.verified && !verifyResult.skipped) {
+    if (!noCard && !verifyResult.verified && !verifyResult.skipped) {
       setSubmitting(false);
       showToast(verifyResult.mismatches[0] ?? 'Could not verify your card - check your information and try again');
       return;
@@ -191,12 +234,15 @@ export default function SignUp() {
       home_area: homeArea.trim(),
       contact: isMinor ? null : contact.trim(),
       avatar_url: avatarPath,
-      global_membership_id: globalMembershipId.trim(),
+      global_membership_id: noCard ? null : globalMembershipId.trim(),
+      self_assessment: noCard
+        ? { ...assessment, card_answer: hasCard, claim_flag: claimFlags.some((c) => c.status === 'low') ? 'low' : 'consistent' }
+        : null,
       global_classification: position === 'Switch' ? null : classificationNumber,
       header_classification: position === 'Switch' ? headerClassificationNumber : null,
       heeler_classification: position === 'Switch' ? heelerClassificationNumber : null,
-      verification_screenshot_path: screenshotPath,
-      needs_manual_review: !!verifyResult.skipped,
+      verification_screenshot_path: noCard ? null : screenshotPath,
+      needs_manual_review: noCard ? false : !!verifyResult.skipped,
       // NEW, added 2026-07-27 - policy decision: an expired card doesn't
       // block sign-up (unlike a name/ID/number mismatch above), but it's
       // recorded and shown to other users so THEY can decide whether to
@@ -208,6 +254,11 @@ export default function SignUp() {
     setSubmitting(false);
 
     if (error) {
+      if (error.hint === 'phone_not_verified') {
+        setPhoneVerified(false);
+        showToast('Verify your phone number first, then create your profile.');
+        return;
+      }
       // NEW, added 2026-07-27 alongside migration 0031's unique
       // constraint on global_membership_id - without this, a real
       // membership-ID conflict (someone else already registered under
@@ -262,6 +313,16 @@ export default function SignUp() {
         <Text style={styles.eyebrow}>Step 1 of 1</Text>
         <Text style={styles.h2}>Set up your roper profile</Text>
         <Text style={styles.helper}>This is what other athletes see when they're looking for a partner.</Text>
+
+        <Text style={styles.label}>Do you have a Global Handicap card?</Text>
+        <View style={styles.pillRow}>
+          <Pill label="Yes" selected={hasCard === 'yes'} onPress={() => { setHasCard('yes'); void logSignupEvent('card_question', 'yes'); }} />
+          <Pill label="No" selected={hasCard === 'no'} onPress={() => { setHasCard('no'); void logSignupEvent('card_question', 'no'); }} />
+          <Pill label="Not sure" selected={hasCard === 'not_sure'} onPress={() => { setHasCard('not_sure'); void logSignupEvent('card_question', 'not_sure'); }} />
+        </View>
+        {hasCard === null ? (
+          <Text style={styles.helper}>Answer this first. If you rope local ropings and don't have a card, you can still sign up.</Text>
+        ) : null}
 
         {/* CHANGED 2026-07-27: was optional - now required, per direct
             discussion about classification/identity fraud. A real photo
@@ -320,6 +381,8 @@ export default function SignUp() {
           </View>
         ) : null}
 
+        {hasCard === 'yes' ? (
+          <>
         <Text style={styles.label}>
           Global Handicap screenshot <Text style={styles.required}>*required</Text>
         </Text>
@@ -349,6 +412,9 @@ export default function SignUp() {
           placeholder="e.g. G-204871"
           required
         />
+
+          </>
+        ) : null}
 
         {/* Position moved above classification (was below it before this
             fix) - which classification field(s) to show depends on the
@@ -387,7 +453,7 @@ export default function SignUp() {
           </>
         ) : (
           <TextField
-            label="Global classification number"
+            label={noCard ? 'Your number (your best honest estimate)' : 'Global classification number'}
             value={classification}
             onChangeText={setClassification}
             placeholder="e.g. 4.5"
@@ -395,6 +461,18 @@ export default function SignUp() {
             required
           />
         )}
+
+        {noCard ? (
+          <>
+            <SelfAssessmentForm value={assessment} onChange={setAssessment} />
+            {(() => {
+              const first = position === 'Switch' ? headerClassificationNumber : classificationNumber;
+              const chk = !Number.isNaN(first) && assessmentComplete ? checkClaim(first, assessment, position === 'Switch' ? 'Header' : position) : null;
+              return chk?.message ? <DividerNote>{chk.message}</DividerNote> : null;
+            })()}
+            {phoneRequired ? <PhoneVerifyStep verified={phoneVerified} onVerified={() => setPhoneVerified(true)} /> : null}
+          </>
+        ) : null}
 
         <AutocompleteField label="Home area" value={homeArea} onChange={setHomeArea} placeholder="e.g. Payson" required />
 
@@ -421,7 +499,7 @@ export default function SignUp() {
 
         <DividerNote>
           <Text style={{ fontFamily: fonts.bodyBold }}>Community Guidelines{'\n'}</Text>
-          Verified Global Handicap membership required to hold a profile · Be respectful — no foul
+          A Global Handicap card verifies your number; ropers without one show as Self-reported · Be respectful — no foul
           language · No sexually explicit or suggestive content · No soliciting minors, ever · Confirmed
           violations are enforced on a 3-strike basis: a 3rd confirmed violation results in suspension,
           account deletion, and your data being scrubbed.

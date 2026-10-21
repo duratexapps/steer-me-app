@@ -38,6 +38,10 @@ const SECTIONS: FaqSection[] = [
         a: "It's how we confirm your classification number and position - the thing that makes every match on the app actually eligible. Your card is only ever shown to someone you've actually matched with, never the whole platform.",
       },
       {
+        q: "I don't have a Global card. Can I still use Steer Me?",
+        a: "Yes. Choose No when we ask if you have a card, answer a few quick questions about your roping, and confirm your phone number with a one-time text. Your number will show as Self-reported, so partners know it's your own claim until a producer confirms it. You can raise it any time, but you can only lower it 90 days after your last change.",
+      },
+      {
         q: "What's a Switch Ender?",
         a: "Someone who can rope either Header or Heeler. Switch Enders show up as a potential match for both positions.",
       },

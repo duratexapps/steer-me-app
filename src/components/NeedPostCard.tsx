@@ -51,6 +51,9 @@ export function NeedPostCard({ post, alreadyRequested, onRequest, onReport, onBl
             <Text style={styles.divisionBadge}>{formatDivision(post.division, post.is_goat_roping)}</Text>
             {post.event_id ? <Text style={styles.listedBadge}>✓ Listed event</Text> : null}
             {/* NEW, added 2026-07-27 - same policy/reasoning as PartnerCard.tsx's matching badge */}
+            {post.poster?.number_source === 'self_reported' ? (
+              <Text style={styles.listedBadge}>Self-reported number</Text>
+            ) : null}
             {post.poster && isMembershipCurrent(post.poster.membership_expiration_date) === false ? (
               <Text style={[styles.listedBadge, styles.oxbloodBadge]}>Not current</Text>
             ) : null}

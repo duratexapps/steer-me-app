@@ -15,6 +15,8 @@ export type MyProfile = {
   avatar_url: string | null;
   global_membership_id: string | null;
   global_classification: number | null;
+  // NEW 2026-10-22 (migration 0094): derived label, never written by the app.
+  number_source: 'verified' | 'self_reported';
   // Switch Ender only - see migration 0030. Both null until they've
   // completed dual-number verification; Header/Heeler-only ropers never
   // populate these, they use global_classification instead.

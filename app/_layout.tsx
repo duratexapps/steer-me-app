@@ -29,6 +29,7 @@ import { configurePurchases } from '@/src/lib/purchases';
 import { registerForPushNotifications } from '@/src/lib/push-notifications';
 import { colors } from '@/src/theme/theme';
 import { ToastHost } from '@/src/components/ui/ToastHost';
+import { GlobalCardNeededModal } from '@/src/components/GlobalCardNeededModal';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // no-op - safe to ignore if already hidden
@@ -304,6 +305,7 @@ export default function RootLayout() {
     return (
       <QueryClientProvider client={queryClient}>
         <Slot />
+        <GlobalCardNeededModal />
         <ToastHost />
       </QueryClientProvider>
     );
@@ -334,6 +336,7 @@ export default function RootLayout() {
       }}
     >
       <Slot />
+      <GlobalCardNeededModal />
       <ToastHost />
     </PersistQueryClientProvider>
   );

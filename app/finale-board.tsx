@@ -8,10 +8,11 @@ import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { PartnerCard } from '@/src/components/PartnerCard';
+import { GlobalCardNotice } from '@/src/components/GlobalCardNeededModal';
 import { ReportModal } from '@/src/components/ReportModal';
 import { colors, fonts } from '@/src/theme/theme';
 import { goBackOrHome } from '@/src/lib/navigation';
-import { formatDivision } from '@/src/lib/matching';
+import { formatDivision, isMembershipCurrent } from '@/src/lib/matching';
 import { activeFinaleYears, FINALE_CLASSES } from '@/src/lib/finale';
 import { showToast } from '@/src/state/toast-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
@@ -48,7 +49,8 @@ export default function FinaleBoard() {
   const [pendingClass, setPendingClass] = useState<number | null>(null);
   const [reportTarget, setReportTarget] = useState<PublicProfile | null>(null);
 
-  const { data: partners, isLoading } = useEligiblePartners(cap, null);
+  // The Finale is a Global event: only ropers with a Global card are on this board (migration 0097).
+  const { data: partners, isLoading } = useEligiblePartners(cap, null, false);
   const { data: sentRequests } = useSentRequests();
   const sendRequest = useSendRequest();
   const blockUser = useBlockUser();
@@ -67,6 +69,19 @@ export default function FinaleBoard() {
   ];
 
   if (!me) return null;
+
+  // No Global card (self-reported number) or an expired one: the WSTR Finale is closed to them, so no board.
+  if (me.number_source !== 'verified' || isMembershipCurrent(me.membership_expiration_date) === false) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['bottom']}>
+        <ScreenHeader title="WSTR Finale Partners" subtitle={`Finale ${year}`} onBack={() => goBackOrHome()} />
+        <View style={styles.content}>
+          <GlobalCardNotice problem={me.number_source === 'verified' ? 'expired' : 'missing'} finale />
+          <Button label="Back" variant="ghost" onPress={() => goBackOrHome()} style={{ marginTop: 14 }} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const myFlag: FinaleFlag = myFlags?.[year] ?? { classes: null, buyIn: false };
   const myClasses = [...(myFlag.classes ?? [])].sort((a, b) => a - b);
@@ -150,7 +165,7 @@ export default function FinaleBoard() {
               onToggle={() => {
                 if (saving) return;
                 if (iAmQualified) saveClasses([]);
-                else if (noClassification) showToast('Verify your classification first');
+                else if (noClassification) showToast('Add your number first');
                 else saveClasses([cap]);
               }}
             />
@@ -161,7 +176,7 @@ export default function FinaleBoard() {
               onToggle={() => {
                 if (saving) return;
                 if (iWillBuyIn) saveFlags({ ...myFlag, buyIn: false });
-                else if (noClassification) showToast('Verify your classification first');
+                else if (noClassification) showToast('Add your number first');
                 else saveFlags({ ...myFlag, buyIn: true });
               }}
             />

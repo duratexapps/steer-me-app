@@ -77,7 +77,7 @@ export default function Profile() {
   if (!profileStatusChecked || (hasAthleteProfile && isLoading)) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
-        <ScreenHeader title="Profile" subtitle="Your Global-issued info" onHelp={() => setHelpOpen(true)} />
+        <ScreenHeader title="Profile" subtitle="Your number and info" onHelp={() => setHelpOpen(true)} />
         <ActivityIndicator color={colors.brass} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
@@ -86,11 +86,10 @@ export default function Profile() {
   if (!profile) {
     return (
       <SafeAreaView style={styles.screen} edges={['bottom']}>
-        <ScreenHeader title="Profile" subtitle="Your Global-issued info" onHelp={() => setHelpOpen(true)} />
+        <ScreenHeader title="Profile" subtitle="Your number and info" onHelp={() => setHelpOpen(true)} />
         <View style={styles.content}>
           <Text style={styles.sub}>
-            You haven't set up an athlete profile yet. Set one up to verify your Global classification and
-            find partners.
+            You haven't set up an athlete profile yet. Set one up to add your number and find partners.
           </Text>
           <Button
             label="Set up an athlete profile"
@@ -111,7 +110,7 @@ export default function Profile() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Profile" subtitle="Your Global-issued info" onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title="Profile" subtitle="Your number and info" onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headRow}>
           {avatarUrl ? (

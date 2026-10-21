@@ -8,7 +8,7 @@ Agreement to these guidelines is required before a profile can be created. Steer
 
 ## 1. Who can be here
 
-To create a profile, you must hold a verified Global Handicap membership and classification number. We confirm this during sign-up. This isn't optional — the classification number is what makes every match on this app a fair, eligible one, and it's also how we know who's actually part of this community.
+To create a profile, you either hold a Global Handicap membership and classification number, which we verify at sign-up, or you sign up without a card and report your own number honestly. A number without a card is labeled "Self-reported" until a producer confirms it. Either way, the classification number is what makes every match on this app a fair, eligible one, so giving a number you know is too low to get an easier partner or class is a violation of these Guidelines and can be reported.
 
 ## 2. How we treat each other
 

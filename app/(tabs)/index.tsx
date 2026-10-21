@@ -179,7 +179,7 @@ export default function Home() {
               <ActionTile
                 icon="trophy-outline"
                 title="Set up an athlete profile"
-                description="Verify your Global classification to find and post partner needs"
+                description="Add your number to find and post partner needs"
                 onPress={() => router.push('/(auth)/sign-up')}
               />
             </View>

@@ -26,6 +26,7 @@ import { useSearchPublishedEvents, useNeedPostCountForEvent, type EventWithProdu
 import { useFavorites } from '@/src/hooks/useFavorites';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
+import { useRequireGlobalCardForEvent } from '@/src/lib/global-card';
 
 type Selection = { kind: 'cap'; value: number } | { kind: 'goat' } | null;
 
@@ -49,6 +50,7 @@ const VISIBILITY_OPTIONS: { value: NeedPostVisibility; label: string }[] = [
 // submit" pattern used everywhere else a form gets pre-filled.
 export default function CreateNeedPost() {
   const createNeedPost = useCreateNeedPost();
+  const requireGlobalCard = useRequireGlobalCardForEvent();
   const { data: favorites } = useFavorites();
   const [selection, setSelection] = useState<Selection>(null);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -86,6 +88,8 @@ export default function CreateNeedPost() {
   }
 
   function handleLinkEvent(event: EventWithProducer) {
+    // WSTR / USTRC ropings need a current Global card; no card (or expired) gets the upload / get-a-card prompt.
+    if (!requireGlobalCard(event.tags)) return;
     setLinkedEvent(event);
     setEventSearch('');
     setEventName(event.name);

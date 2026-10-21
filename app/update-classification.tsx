@@ -77,6 +77,36 @@ export default function UpdateClassification() {
 
   const canSubmit = !!screenshotPath && globalMembershipId.trim().length > 0 && classificationValid;
 
+  // NEW 2026-10-22 (migration 0094): a roper with no Global card can change their own number here. Raising is
+  // always allowed; the database refuses to lower it within 90 days of the last change.
+  const selfReported = profile?.number_source === 'self_reported';
+  const [savingNumber, setSavingNumber] = useState(false);
+  async function handleSaveSelfReported() {
+    if (!classificationValid || !profile) return;
+    setSavingNumber(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        global_classification: isSwitch ? null : classificationNumber,
+        header_classification: isSwitch ? headerClassificationNumber : null,
+        heeler_classification: isSwitch ? heelerClassificationNumber : null,
+        fix_note: null,
+      })
+      .eq('id', profile.id);
+    setSavingNumber(false);
+    if (error) {
+      showToast(
+        error.hint === 'lowering_too_soon'
+          ? 'A self-reported number can be raised any time, but lowered only 90 days after your last change.'
+          : friendlySupabaseError(error)
+      );
+      return;
+    }
+    invalidateProfile();
+    showToast('Number updated');
+    router.back();
+  }
+
   async function handleSubmit() {
     if (!canSubmit) return;
     setSubmitting(true);
@@ -177,6 +207,24 @@ export default function UpdateClassification() {
         onHelp={() => setHelpOpen(true)}
       />
       <ScrollView contentContainerStyle={styles.content}>
+        {selfReported ? (
+          <View style={{ marginBottom: 18 }}>
+            <Text style={styles.label}>Your number is self-reported</Text>
+            <Text style={styles.switchNote}>
+              You can raise your number any time. You can lower it only 90 days after your last change. To show as
+              Verified instead, add your Global card below.
+            </Text>
+            {isSwitch ? (
+              <>
+                <TextField label="Header classification number" value={headerClassification} onChangeText={setHeaderClassification} placeholder="e.g. 6.5 (max 9)" keyboardType="decimal-pad" />
+                <TextField label="Heeler classification number" value={heelerClassification} onChangeText={setHeelerClassification} placeholder="e.g. 8 (max 10)" keyboardType="decimal-pad" />
+              </>
+            ) : (
+              <TextField label="Your number" value={classification} onChangeText={setClassification} placeholder="e.g. 4.5" keyboardType="decimal-pad" />
+            )}
+            <Button label="Save my number" onPress={handleSaveSelfReported} loading={savingNumber} disabled={!classificationValid} />
+          </View>
+        ) : null}
         <Text style={styles.label}>
           Global Handicap screenshot <Text style={styles.required}>*required</Text>
         </Text>

@@ -16,7 +16,7 @@ By creating an account on Steer Me ("the app," "we," "us") — operated by Durat
 
 ## 2. Eligibility
 
-- **Athlete accounts** require a verified Global Handicap classification, confirmed at sign-up as described in our Privacy Policy.
+- **Athlete accounts** require either a verified Global Handicap classification, confirmed at sign-up with a screenshot of your card, or, if you do not have a Global card, a number you report yourself and answer honestly about. A self-reported number is shown to other users as "Self-reported" until a producer confirms it, and a producer may reclassify you at any time. If you sign up without a card we verify a mobile phone number with a one-time text message (message and data rates may apply); we use that number only to verify your account. Self-reported numbers can be raised at any time but can only be lowered 90 days after your last change.
 - **Users under 18** may hold an athlete profile only with verified parent/guardian consent obtained at sign-up, as described in our Privacy Policy and Community Guidelines. Guardian-managed accounts carry additional restrictions described there.
 - **Producer accounts** are open to any event organizer and go through a separate verification process described in the Producer Guidelines. A single person may hold both an athlete profile and a producer profile.
 - You must provide accurate information when creating any account and keep it up to date, including promptly updating your classification if it changes.

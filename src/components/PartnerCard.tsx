@@ -70,6 +70,9 @@ export function PartnerCard({
               weigh it themselves. isMembershipCurrent() returns null
               (not flagged) when we've never successfully read a date -
               only an actually-expired one shows this. */}
+          {partner.number_source === 'self_reported' ? (
+            <Text style={[styles.posBadge, styles.brassBadge]}>Self-reported number</Text>
+          ) : null}
           {isMembershipCurrent(partner.membership_expiration_date) === false ? (
             <Text style={[styles.posBadge, styles.oxbloodBadge]}>Not current</Text>
           ) : null}

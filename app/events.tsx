@@ -36,6 +36,7 @@ import {
 } from '@/src/lib/event-filters';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
+import { useRequireGlobalCardForEvent } from '@/src/lib/global-card';
 
 // Mirrors Screen 11 (#events) - athlete-facing browse, attend toggle, and
 // the "Partners" jump into event-partners.tsx, pre-filtered to this
@@ -127,6 +128,7 @@ export default function Events() {
   const submitReport = useSubmitEventReport();
   const submitRating = useSubmitRating();
   const requireSubscription = useRequireSubscription();
+  const requireGlobalCard = useRequireGlobalCardForEvent();
   const numColumns = useResponsiveColumns();
 
   const [reportTarget, setReportTarget] = useState<EventWithProducer | null>(null);
@@ -137,6 +139,8 @@ export default function Events() {
     const key = `${event.id}:${division}`;
     const attending = myAttendance?.has(key) ?? false;
     if (!attending && !requireSubscription()) return;
+    // WSTR / USTRC ropings need a current Global card; no card (or expired) gets the upload / get-a-card prompt.
+    if (!attending && !requireGlobalCard(event.tags)) return;
     try {
       await toggleAttendance.mutateAsync({ eventId: event.id, division, attending });
       showToast(attending ? 'Removed from attending' : `Marked attending - ${division} division`);
@@ -192,6 +196,7 @@ export default function Events() {
               ratingSummary={ratingSummaries?.get(event.id)}
               onToggleAttend={(division) => handleToggle(event, division)}
               onShowPartners={(division) => {
+                if (!requireGlobalCard(event.tags)) return;
                 // Passes this event's id + the CURRENT filters along as
                 // return-trip params, rather than writing them onto this
                 // screen's own history entry before pushing. Real bug hit

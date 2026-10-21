@@ -43,7 +43,7 @@ export default function RoleSelect() {
         <ActionTile
           icon="trophy-outline"
           title="I'm an athlete"
-          description="Verify your Global classification and find partners"
+          description="Add your number and find partners"
           onPress={() => router.push({ pathname: '/(auth)/create-account', params: { role: 'athlete' } })}
         />
         <ActionTile

@@ -19,6 +19,8 @@ export type PublicProfile = {
   // into a "not current" badge. null means never successfully read, NOT
   // the same as expired.
   membership_expiration_date: string | null;
+  // NEW 2026-10-22 (migration 0094): 'verified' = has a Global card on file, 'self_reported' = the roper's own claim.
+  number_source?: 'verified' | 'self_reported';
   // WSTR Finale partner board (migration 0070). finale_flags is every
   // current year's flags for this roper; the three fields below are the
   // soonest year's, kept so a card can show one badge without caring which
@@ -63,11 +65,11 @@ function displayNumber(p: PublicProfile): number {
   return p.global_classification ?? 0;
 }
 
-export function useEligiblePartners(cap: number, nearCity: string | null) {
+export function useEligiblePartners(cap: number, nearCity: string | null, includeUnverified = true) {
   const { data: me } = useMyProfile();
 
   return useQuery({
-    queryKey: ['eligible-partners', me?.id, cap, nearCity],
+    queryKey: ['eligible-partners', me?.id, cap, nearCity, includeUnverified],
     enabled: !!me,
     queryFn: async () => {
       // Real fix 2026-07-25 (see migration 0030 / src/lib/matching.ts):
@@ -109,6 +111,7 @@ export function useEligiblePartners(cap: number, nearCity: string | null) {
       });
 
       const partners = candidates
+        .filter((c) => includeUnverified || c.number_source !== 'self_reported')
         .filter((c) => canPair(meClassification, toClassification(c), cap))
         .sort((a, b) => displayNumber(b) - displayNumber(a));
 

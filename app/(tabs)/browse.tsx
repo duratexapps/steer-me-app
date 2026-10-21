@@ -49,7 +49,11 @@ export default function Browse() {
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  const { data: partners, isLoading } = useEligiblePartners(cap, useLocationOn ? currentCity : null);
+  // NEW 2026-10-22: ropers whose number is self-reported (no Global card) are shown only when asked for.
+  // Verified ropers start with them hidden; self-reported ropers start with everyone shown.
+  const [includeUnverifiedPick, setIncludeUnverifiedPick] = useState<boolean | null>(null);
+  const includeUnverified = includeUnverifiedPick ?? me?.number_source === 'self_reported';
+  const { data: partners, isLoading } = useEligiblePartners(cap, useLocationOn ? currentCity : null, includeUnverified);
 
   const { data: sentRequests } = useSentRequests();
   const sendRequest = useSendRequest();
@@ -133,11 +137,10 @@ export default function Browse() {
                 vanish from every match with no explanation. */}
             {me.position !== 'Switch' && me.global_classification == null ? (
               <DividerNote>
-                <Text style={{ fontFamily: fonts.bodyBold }}>Verify your classification. </Text>
-                You need a verified classification number and Global Handicap card on file before you'll
-                be matched with anyone.{' '}
+                <Text style={{ fontFamily: fonts.bodyBold }}>Add your number. </Text>
+                You need a classification number on file before you'll be matched with anyone.{' '}
                 <Text style={styles.clearLink} onPress={() => router.push('/update-classification')}>
-                  Verify now
+                  Add it now
                 </Text>
               </DividerNote>
             ) : null}
@@ -161,6 +164,12 @@ export default function Browse() {
                 <Pill key={c} label={c === OPEN_CAP ? 'Open' : `#${c}`} selected={cap === c} onPress={() => setCap(c)} />
               ))}
             </View>
+            <ToggleRow
+              title="Include unverified numbers"
+              description="Show ropers who don't have a Global card. Their number is their own claim until a producer confirms it."
+              value={includeUnverified}
+              onToggle={() => setIncludeUnverifiedPick(!includeUnverified)}
+            />
             <ToggleRow
               title="Use my current location"
               description="Traveling? Find partners near where you are, not just home"

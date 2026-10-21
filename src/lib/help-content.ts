@@ -23,7 +23,7 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
   },
   'sign-up': {
     title: 'Athlete verification',
-    body: "Upload a screenshot of your Global Handicap card so we can confirm your classification number - this is what makes every match on the app actually eligible. Pick Header, Heeler, or Switch Ender for your position; Switch Enders are shown as a potential match for both. If you're under 18, a parent or guardian will need to complete a consent step too. Your card is only ever shown to someone you've actually matched with, never the whole platform.",
+    body: "Upload a screenshot of your Global Handicap card so we can confirm your classification number - this is what makes every match on the app actually eligible. No card? Choose No at the first question, answer a few quick questions, and confirm your phone; your number will show as Self-reported. Pick Header, Heeler, or Switch Ender for your position; Switch Enders are shown as a potential match for both. If you're under 18, a parent or guardian will need to complete a consent step too. Your card is only ever shown to someone you've actually matched with, never the whole platform.",
   },
   home: {
     title: 'Home',
