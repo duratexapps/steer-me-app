@@ -75,7 +75,7 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
   },
   'my-horses': {
     title: 'Horse Papers & Travel Check',
-    body: "Keep a negative Coggins (EIA test) on file for each horse you haul - one per horse, since a Coggins is tied to the animal, not to you. \"Show at the gate\" makes a short-lived link with a QR code staff can scan to view it - no Steer Me account needed on their end. It expires in 30 minutes, and tapping the button again always makes a brand-new one rather than reusing the old link. The \"Check travel paperwork\" button opens a free guide to the health papers, permits and outbreak rules that may apply for the states you are hauling from, through and to. It is a guide only: confirm with the state, the event and your vet.",
+    body: "Keep a negative Coggins (EIA test) on file for each horse you haul - one per horse, since a Coggins is tied to the animal, not to you. \"Show at the gate\" makes a short-lived link with a QR code staff can scan to view it - no Steer Me account needed on their end. It expires in 30 minutes, and tapping the button again always makes a brand-new one rather than reusing the old link. The \"Check travel paperwork\" button opens a guide, free for members, to the health papers, permits and outbreak rules that may apply for the states you are hauling from, through and to. \"Find layover spots\" lists places to stop overnight along your route, with stalls or pens and RV hookups if you need them. Both are guides only: confirm with the state, the event, the facility and your vet.",
   },
   events: {
     title: 'Events',

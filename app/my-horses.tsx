@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -133,11 +133,13 @@ export default function MyHorses() {
         <Button
           label="Check travel paperwork"
           variant="outline"
-          onPress={() => {
-            // No analytics call from the app on purpose: the store privacy labels say the app collects no usage data.
-            // The page itself counts the visit anonymously, using this ?src=app tag.
-            Linking.openURL('https://steerme.ropingtools.com/travel?src=app');
-          }}
+          onPress={() => router.push('/travel')}
+          style={{ marginBottom: 12 }}
+        />
+        <Button
+          label="Find layover spots for your horses"
+          variant="outline"
+          onPress={() => router.push('/layovers')}
           style={{ marginBottom: 12 }}
         />
 

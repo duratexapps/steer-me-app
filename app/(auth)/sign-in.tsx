@@ -13,6 +13,7 @@ import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
+import { consumePostAuthRedirect } from '@/src/lib/post-auth-redirect';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -41,7 +42,9 @@ export default function SignIn() {
       showToast(error.message);
       return;
     }
-    router.replace('/(tabs)');
+    // A member who hit the sign-in wall on a travel tool goes back to it; everyone else lands on the app as before.
+    const back = consumePostAuthRedirect();
+    router.replace((back as never) ?? '/(tabs)');
   }
 
   return (

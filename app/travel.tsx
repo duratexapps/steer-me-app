@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import { useQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pill } from '@/src/components/ui/Pill';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { supabase } from '@/src/lib/supabase';
+import { logFeature } from '@/src/lib/feature-log';
+import { MembersGate } from '@/src/components/MembersGate';
 
-// Public hauling-paperwork checker (NEW 2026-10-08). No login: it is meant to be shared in roping groups and
-// opened from My Horses. All rule text lives in the database (travel_rules / travel_alerts / travel_states), so a
-// correction is a data edit, not an app release. Every rule shows its source and the date it was last checked.
-// Rules are a GUIDE: the page says so, links the state office, and links the national official report tool.
-// Usage is logged anonymously (log_feature_event) to tell us whether this earns a bigger build.
+// Hauling-paperwork checker (NEW 2026-10-08; members-only since 2026-10-21, free to any registered Steer Me member).
+// All rule text lives in the database (travel_rules / travel_alerts / travel_states), so a correction is a data
+// edit, not an app release. Every rule shows its source and the date it was last checked. Rules are a GUIDE: the
+// page says so, links the state office, and links the national official report tool. Usage is counted anonymously
+// on the website only (src/lib/feature-log.ts) to tell us whether this earns a bigger build.
 
 type Rule = {
   id: string; state: string; species: 'horse' | 'cattle' | 'both'; applies: 'entering' | 'leaving' | 'transit';
@@ -26,23 +28,8 @@ const OFFICIAL_TOOL = 'https://www.interstatelivestock.com/';
 const REPORT_EMAIL = 'ropingtools@duratex-ie.com';
 const KIND_LABEL: Record<Rule['kind'], string> = { required: 'Usually required', conditional: 'If it applies', check: 'Confirm' };
 
-let memoryVisitorId: string | null = null;
-function visitorId(): string {
-  try {
-    const ls = (globalThis as { localStorage?: Storage }).localStorage;
-    let id = ls?.getItem('travel_visitor');
-    if (!id) {
-      id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      ls?.setItem('travel_visitor', id);
-    }
-    return id;
-  } catch {
-    memoryVisitorId ??= Math.random().toString(36).slice(2) + Date.now().toString(36);
-    return memoryVisitorId;
-  }
-}
 function logEvent(event: string, props: Record<string, unknown> = {}) {
-  supabase.rpc('log_feature_event', { p_feature: 'travel_checker', p_event: event, p_props: props, p_visitor: visitorId() }).then(() => {}, () => {});
+  logFeature('travel_checker', event, props);
 }
 const fmtDate = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -94,13 +81,13 @@ function RuleCard({ rule }: { rule: Rule }) {
   );
 }
 
-export default function Travel() {
-  const { src } = useLocalSearchParams<{ src?: string }>();
+function Travel() {
+  const { src, from: fromParam, to: toParam, through: throughParam } = useLocalSearchParams<{ src?: string; from?: string; to?: string; through?: string }>();
   const { data, isLoading, error } = useTravelData();
   const [species, setSpecies] = useState<'horse' | 'cattle'>('horse');
-  const [from, setFrom] = useState<string | null>(null);
-  const [to, setTo] = useState<string | null>(null);
-  const [through, setThrough] = useState<string[]>([]);
+  const [from, setFrom] = useState<string | null>(fromParam ?? null);
+  const [to, setTo] = useState<string | null>(toParam ?? null);
+  const [through, setThrough] = useState<string[]>(throughParam ? throughParam.split(',').filter(Boolean) : []);
   const [unload, setUnload] = useState(false);
   const [open, setOpen] = useState<'from' | 'to' | 'through' | null>(null);
   const [voted, setVoted] = useState(false);
@@ -156,7 +143,7 @@ export default function Travel() {
         <link rel="canonical" href="https://steerme.ropingtools.com/travel" />
       </Head>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.eyebrow}>STEER ME · FREE · NO ACCOUNT NEEDED</Text>
+        <Text style={styles.eyebrow}>STEER ME · FREE FOR MEMBERS</Text>
         <Text style={styles.h1}>Hauling paperwork check</Text>
         <Text style={styles.sub}>
           Pick where you are leaving from and going to, and see the papers that may be needed for your horses or roping cattle. Screwworm, EHV and vesicular stomatitis rules are changing fast, so each item shows where it came from and when it was last checked.
@@ -266,6 +253,20 @@ export default function Travel() {
               </>
             ) : null}
 
+            <View style={styles.official}>
+              <Text style={styles.bold}>Need a place to stop overnight?</Text>
+              <Text style={styles.detail}>See stalls, pens and RV hookups along this route, with the source and date for each listing.</Text>
+              <Pressable
+                style={styles.btn}
+                onPress={() => {
+                  logEvent('open_layovers', { from, to });
+                  router.push({ pathname: '/layovers', params: { from: from!, to: to!, through: through.join(',') } });
+                }}
+              >
+                <Text style={styles.btnText}>Find layover spots</Text>
+              </Pressable>
+            </View>
+
             <Text style={styles.h2}>Confirm with the state</Text>
             {[from, to, ...(unload ? through : [])].filter((c, i, a) => c && a.indexOf(c) === i).map((c) => {
               const o = officeFor(c);
@@ -341,6 +342,21 @@ export default function Travel() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+export default function TravelScreen() {
+  return (
+    <MembersGate
+      feature="travel_checker"
+      path="/travel"
+      title="Hauling paperwork check"
+      pitch="Pick where you are hauling from and to, and see the health papers, Coggins, permits and outbreak rules that may apply for your horses or roping cattle, with the source and date for each."
+      headTitle="Hauling Paperwork Check for Horses & Roping Cattle | Steer Me"
+      headDescription="Pick where you're hauling from and to. See the health papers, Coggins, permits and screwworm, EHV and vesicular stomatitis rules that may apply, with sources and dates. Free for Steer Me members."
+    >
+      <Travel />
+    </MembersGate>
   );
 }
 
