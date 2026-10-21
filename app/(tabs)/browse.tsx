@@ -165,8 +165,8 @@ export default function Browse() {
               ))}
             </View>
             <ToggleRow
-              title="Include unverified numbers"
-              description="Show ropers who don't have a Global card. Their number is their own claim until a producer confirms it."
+              title="Include self-reported numbers"
+              description="Also show ropers who report their own number instead of a Global card. A producer can confirm or reclassify it."
               value={includeUnverified}
               onToggle={() => setIncludeUnverifiedPick(!includeUnverified)}
             />
