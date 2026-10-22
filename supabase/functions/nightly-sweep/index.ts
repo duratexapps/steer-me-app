@@ -153,9 +153,9 @@ Deno.serve(async (req) => {
   // long paragraph instead of each class's fee and format next to its checkbox (the 8/10 and 8/31 batches did this).
   await check('9. Per-class details', async () => {
     const ev = await q(admin.from('events').select('name,event_date,divisions,division_details').eq('status', 'published').gte('event_date', new Date().toISOString().slice(0, 10)));
-    const bad = ev.filter((e) => Array.isArray(e.divisions) && e.divisions.length > 1 && (!e.division_details || Object.keys(e.division_details).length === 0));
-    lines.push(`9. Upcoming events with several classes but no per-class details: ${bad.length ? 'ATTENTION - ' + bad.slice(0, 6).map((e) => `${e.name} (${e.event_date})`).join('; ') : 'none'}`);
-    if (bad.length) urgent.push(`${bad.length} upcoming event(s) are missing per-class details (shown as one long paragraph): ${bad.slice(0, 4).map((e) => e.name).join('; ')}. Tell Claude to fix.`);
+    const bad = ev.filter((e) => Array.isArray(e.divisions) && e.divisions.length > 1 && e.divisions.some((d: number) => !String(e.division_details?.[String(d)] ?? '').trim()));
+    lines.push(`9. Upcoming events where a class has no details of its own: ${bad.length ? 'ATTENTION - ' + bad.slice(0, 6).map((e) => `${e.name} (${e.event_date})`).join('; ') : 'none'}`);
+    if (bad.length) urgent.push(`${bad.length} upcoming event(s) have a class with no details of its own (users get one long paragraph): ${bad.slice(0, 4).map((e) => e.name).join('; ')}. Tell Claude to fix.`);
   });
 
   // 10 unexpected admins
