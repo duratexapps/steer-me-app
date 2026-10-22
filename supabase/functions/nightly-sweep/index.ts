@@ -149,6 +149,15 @@ Deno.serve(async (req) => {
     lines.push(`8. Published events more than 30 days past: ${old.length || 'none'}`);
   });
 
+  // 9 events posted without per-class details: several classes but an empty division_details, so the card shows one
+  // long paragraph instead of each class's fee and format next to its checkbox (the 8/10 and 8/31 batches did this).
+  await check('9. Per-class details', async () => {
+    const ev = await q(admin.from('events').select('name,event_date,divisions,division_details').eq('status', 'published').gte('event_date', new Date().toISOString().slice(0, 10)));
+    const bad = ev.filter((e) => Array.isArray(e.divisions) && e.divisions.length > 1 && (!e.division_details || Object.keys(e.division_details).length === 0));
+    lines.push(`9. Upcoming events with several classes but no per-class details: ${bad.length ? 'ATTENTION - ' + bad.slice(0, 6).map((e) => `${e.name} (${e.event_date})`).join('; ') : 'none'}`);
+    if (bad.length) urgent.push(`${bad.length} upcoming event(s) are missing per-class details (shown as one long paragraph): ${bad.slice(0, 4).map((e) => e.name).join('; ')}. Tell Claude to fix.`);
+  });
+
   // 10 unexpected admins
   await check('10. Admin accounts', async () => {
     const ad = await q(admin.from('profiles').select('full_name').eq('is_admin', true));
