@@ -77,7 +77,7 @@ accepted gap for v1 - see the build plan's "necessary deviations" section.
    (confirmed 2026-08-11 via Wix Support: nameservers can't be changed
    without a full domain transfer). `ropingtoolsmail.com` was registered
    specifically as a dedicated send-only domain with normal DNS control.
-   `reply_to` is set to `support@ropingtools.com` - nothing routes to a
+   `reply_to` is set to `ropingtools@duratex-ie.com` (the shared company inbox; support@ropingtools.com has no mailbox, ropingtools.com has no MX records) - nothing routes to a
    personal inbox. Until the key is set (or the domain isn't verified yet),
    the function skips silently and account creation is unaffected - same
    degrade-gracefully principle as step 4.5.

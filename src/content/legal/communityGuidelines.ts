@@ -32,9 +32,9 @@ Every profile and post has a **Report** option. Reporting requires:
 
 ## 4. Appeals
 
-If your account is suspended and you believe it was a mistake, you can contact us at support@ropingtools.com to request a review.
+If your account is suspended and you believe it was a mistake, you can contact us at ropingtools@duratex-ie.com to request a review.
 
 ## 5. Where to report a concern
 
-Beyond in-app reporting, you can always reach us directly at support@ropingtools.com with any concern about another user's conduct, including anything urgent involving the safety of a minor.
+Beyond in-app reporting, you can always reach us directly at ropingtools@duratex-ie.com with any concern about another user's conduct, including anything urgent involving the safety of a minor.
 `;

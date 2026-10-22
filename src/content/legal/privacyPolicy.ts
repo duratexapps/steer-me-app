@@ -9,7 +9,7 @@ export const PRIVACY_POLICY = `# Privacy Policy
 
 Steer Me ("we," "us," "the app") is a mobile app that helps team ropers find eligible partners for roping events based on Global Handicap classification numbers. Steer Me is operated by Duratex Instrument & Electric, LLC, a Texas limited liability company, doing business as Duratex Applications. This policy explains what information we collect, why, and what control you have over it.
 
-**Contact:** support@ropingtools.com
+**Contact:** ropingtools@duratex-ie.com
 **Company:** Duratex Instrument & Electric, LLC dba Duratex Applications, PO Box 12, Rosharon, TX 77583
 
 ## 2. Information we collect
@@ -105,7 +105,7 @@ A user can hold a producer profile in addition to their athlete profile.
 - **Attendance:** marking yourself "attending" a specific event and division is used to show you eligible partners who are also attending that event.
 - **Payments:** once entry fees can be paid in-app, payment details are handled by our payment processor and are not stored directly by us.
 - **Ratings and reviews:** if you attended an event, you can submit a 1-5 star rating and an optional written review after the event date passes. The public display only shows an aggregate average once an event has enough ratings.
-- Deleting your athlete profile does not automatically delete a separate producer profile or its event listings. Contact us at support@ropingtools.com to remove a producer profile and its listings.
+- Deleting your athlete profile does not automatically delete a separate producer profile or its event listings. Contact us at ropingtools@duratex-ie.com to remove a producer profile and its listings.
 
 ## 9. Camera and photo library access
 
@@ -138,7 +138,7 @@ At sign-up, every user indicates whether they are 18 or older. If a profile is b
 
 - Minor profiles are visibly marked as guardian-managed.
 - Partner requests involving a minor are routed to the parent/guardian for approval before any contact information is exchanged with the other party. A minor's direct contact information is never shown to other users.
-- A guardian can request a copy of, correct, or delete their minor's data at any time by contacting support@ropingtools.com, in addition to the in-app deletion option.
+- A guardian can request a copy of, correct, or delete their minor's data at any time by contacting ropingtools@duratex-ie.com, in addition to the in-app deletion option.
 - We do not knowingly collect information from a child whose sign-up was not accompanied by verified guardian consent as described above.
 
 ## 12. Service providers we use
@@ -158,7 +158,7 @@ You can, at any time from within the app:
 - Update your classification, which deletes your previous verification screenshot
 - Delete your profile, which permanently deletes your screenshot, classification data, and account
 
-Depending on where you live, you may also have the right to request a copy of your data, correct inaccurate data, or object to certain uses. Contact us at support@ropingtools.com to exercise these rights.
+Depending on where you live, you may also have the right to request a copy of your data, correct inaccurate data, or object to certain uses. Contact us at ropingtools@duratex-ie.com to exercise these rights.
 
 ## 14. Data security
 
@@ -170,5 +170,5 @@ We'll update the effective date above when this policy changes, and notify you i
 
 ## 16. Contact us
 
-Questions about this policy or your data: support@ropingtools.com
+Questions about this policy or your data: ropingtools@duratex-ie.com
 `;

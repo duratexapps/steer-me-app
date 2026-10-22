@@ -103,5 +103,5 @@ We may update these Terms from time to time. We'll update the effective date abo
 
 ## 15. Contact us
 
-Questions about these Terms: support@ropingtools.com
+Questions about these Terms: ropingtools@duratex-ie.com
 `;

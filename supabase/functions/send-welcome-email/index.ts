@@ -18,7 +18,7 @@ const RESEND_API_URL = 'https://api.resend.com/emails';
 // specifically as a dedicated send-only domain with normal DNS control.
 // Reply-To still routes to the real support inbox below.
 const FROM_ADDRESS = 'Steer Me <welcome@ropingtoolsmail.com>';
-const REPLY_TO = 'support@ropingtools.com';
+const REPLY_TO = 'ropingtools@duratex-ie.com';
 // Social icon PNGs for the header/footer below, hosted in a dedicated
 // public bucket (email-assets) rather than reusing avatars/event-fliers -
 // those are scoped to per-user/per-event uploads with their own RLS
@@ -164,7 +164,7 @@ function welcomeEmailHtml(firstName: string, referralCode: string | null): strin
                 you'll notice the user count is small — that's just because we're brand new, not because
                 anything's wrong. Explore around, and if you run into any bugs, glitches, or anything that
                 seems off, we'd genuinely appreciate hearing about it. Just email
-                <a href="mailto:support@ropingtools.com" style="color:#8A5A2B;">support@ropingtools.com</a>
+                <a href="mailto:ropingtools@duratex-ie.com" style="color:#8A5A2B;">ropingtools@duratex-ie.com</a>
                 and we'll take a look.
               </p>
 
@@ -191,7 +191,7 @@ function welcomeEmailHtml(firstName: string, referralCode: string | null): strin
                     round-by-round results only work for events whose producer is actually using Draw Pro
                     to run their books. If you're participating in an event and would like all the benefits
                     of the platform, ask the producer to use Draw Pro, or contact us at
-                    <a href="mailto:support@ropingtools.com" style="color:#5C4A1E;">support@ropingtools.com</a>.
+                    <a href="mailto:ropingtools@duratex-ie.com" style="color:#5C4A1E;">ropingtools@duratex-ie.com</a>.
                   </td>
                 </tr>
               </table>
@@ -217,7 +217,7 @@ ${referralBlock}
           <tr>
             <td style="padding:18px 32px;background:#F4F1EC;color:#8A8175;font-size:12px;line-height:1.5;border-top:1px solid #E4DDD0;">
               You're receiving this because you created a Steer Me account. Questions or feedback any time:
-              <a href="mailto:support@ropingtools.com" style="color:#8A5A2B;">support@ropingtools.com</a>
+              <a href="mailto:ropingtools@duratex-ie.com" style="color:#8A5A2B;">ropingtools@duratex-ie.com</a>
             </td>
           </tr>
         </table>

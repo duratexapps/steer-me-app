@@ -33,7 +33,7 @@ const RESEND_API_URL = 'https://api.resend.com/emails';
 // can't originate from ropingtools.com/duratex-ie.com - both sit on Wix
 // nameservers, which don't expose the DNS control a sending domain needs).
 const FROM_ADDRESS = 'Steer Me Trust & Safety <trust@ropingtoolsmail.com>';
-const REPLY_TO = 'support@ropingtools.com';
+const REPLY_TO = 'ropingtools@duratex-ie.com';
 
 type ConflictRequest = {
   membershipId: string;
@@ -221,7 +221,7 @@ function emailShell(bodyHtml: string): string {
           </tr>
           <tr>
             <td style="padding:18px 32px;background:#F4F1EC;color:#8A8175;font-size:12px;line-height:1.5;border-top:1px solid #E4DDD0;">
-              Questions any time: <a href="mailto:support@ropingtools.com" style="color:#8A5A2B;">support@ropingtools.com</a>
+              Questions any time: <a href="mailto:ropingtools@duratex-ie.com" style="color:#8A5A2B;">ropingtools@duratex-ie.com</a>
             </td>
           </tr>
         </table>
@@ -247,7 +247,7 @@ function existingHolderEmailHtml(existingName: string): string {
     <p style="margin:0 0 16px;">
       If you think this might genuinely be your own mix-up (for example, you created a second account by
       mistake), reply to this email or contact
-      <a href="mailto:support@ropingtools.com" style="color:#8A5A2B;">support@ropingtools.com</a> and we'll help
+      <a href="mailto:ropingtools@duratex-ie.com" style="color:#8A5A2B;">ropingtools@duratex-ie.com</a> and we'll help
       sort it out.
     </p>
     <p style="margin:24px 0 4px;">Thanks for keeping Steer Me honest,</p>
@@ -274,7 +274,7 @@ function blockedAttemptEmailHtml(claimedName: string): string {
     </p>
     <p style="margin:0 0 16px;">
       If this is genuinely your own membership ID, reply to this email or contact
-      <a href="mailto:support@ropingtools.com" style="color:#8A5A2B;">support@ropingtools.com</a> with a clear
+      <a href="mailto:ropingtools@duratex-ie.com" style="color:#8A5A2B;">ropingtools@duratex-ie.com</a> with a clear
       photo of your card and we'll help verify and resolve it as quickly as we can.
     </p>
     <p style="margin:24px 0 4px;">Thanks for your patience,</p>
