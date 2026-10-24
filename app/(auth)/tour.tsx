@@ -44,7 +44,12 @@ import { goBackOrHome } from '@/src/lib/navigation';
 // clean time, a broken-barrier penalty, a one-leg-catch penalty, and a
 // No Time elimination.
 //
-// UPDATED 2026-08-06 - added "Get Paid Runs Without a Phone Call" and
+// UPDATED 2026-10-23 - the extra-run slide was retitled "Handle Extra Runs,
+// Buy Backs & Add-Ons From Your Phone" (Justin: the old title, "Get Paid Runs
+// Without a Phone Call", was wrong - producers never phone anyone, and a
+// "paid run" is just an entry). It covers the extra-run pay/decline charge.
+//
+// UPDATED 2026-08-06 - added the extra-run slide and
 // "Cancel Right From Your Phone", covering the extra-run pay/decline
 // flow and pre-draw self-service cancellation (see supabase migrations
 // 0046_draw_pro_extra_run_charges.sql and
@@ -200,10 +205,10 @@ const SLIDES = [
   {
     icon: 'cash-outline' as const,
     image: require('@/assets/tour/extra-run.png'),
-    title: 'Get Paid Runs Without a Phone Call',
-    body: "If a producer gives you an extra run beyond what you already paid for, you decide right from your phone - pay the fee, or decline and take reduced winnings instead.",
+    title: 'Handle Extra Runs, Buy Backs & Add-Ons From Your Phone',
+    body: "Forget the draw slip in your hat brim, it's all right here. When a producer adds an extra run for your team, you decide on your phone - pay the fee, or decline and take reduced winnings on that run.",
     hints: [
-      'Used to mean the producer tracking you down in person to explain it and collect payment.',
+      'Pay or decline in one tap, instead of finding the producer at the window.',
       'Your choice shows up on the producer’s draw sheet next to your team immediately.',
     ],
   },
