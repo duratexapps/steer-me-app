@@ -79,6 +79,18 @@ import { goBackOrHome } from '@/src/lib/navigation';
 // -> cancel -> post a need), then closes on the two features that reach
 // beyond a single roping (producer tools, referral) rather than bolting
 // them onto the end arbitrarily.
+// UPDATED 2026-10-23 - four slides for what shipped since the last audit:
+// signing up without a Global card (self-reported numbers, clearly
+// labeled), the WSTR Finale partner board, the hauling paperwork check
+// and the layover finder (both free for members). Images (no-card.png,
+// finale-board.png, paperwork.png, layovers.png) are hand-built HTML
+// mockups in the same convention (ropingtools-site's
+// docs/mockups/steer-me/steerme-{self-reported,finale,paperwork,
+// layovers}-mockup.html, 2x render autocropped). Placed to follow the
+// roper's journey: find a partner -> no-card welcome -> events -> enter
+// the draw -> Finale partners -> Coggins -> paperwork -> layovers ->
+// results, rest unchanged. Samples use invented names; the stops are
+// real listings and every slide keeps the "guide, call ahead" framing.
 const SLIDES = [
   {
     icon: 'people-outline' as const,
@@ -88,6 +100,17 @@ const SLIDES = [
     hints: [
       'Filter by classification cap, or toggle on nearby-now location.',
       'Report/Block are one tap away on every card, not buried in a menu.',
+    ],
+  },
+  {
+    icon: 'card-outline' as const,
+    image: require('@/assets/tour/no-card.png'),
+    title: "No Global Card? You're Welcome",
+    body: "Don't have a Global Handicap card? Answer a few honest questions about how you rope, confirm your phone, and you're in. Your number shows as Self-reported, so partners can see it.",
+    hints: [
+      'Ropers choose whether to include self-reported numbers when they search.',
+      'Global ropings like WSTR, USTRC and the Finale still ask for a current Global card.',
+      'Add a card later and your profile shows as Verified.',
     ],
   },
   {
@@ -111,6 +134,17 @@ const SLIDES = [
     ],
   },
   {
+    icon: 'trophy-outline' as const,
+    image: require('@/assets/tour/finale-board.png'),
+    title: "Qualified for the Finale?",
+    body: "Drawn partner already in, or someone got hurt? The WSTR Finale board lists qualified ropers who need a partner, sorted by class.",
+    hints: [
+      'One switch says you qualified and need a partner; another says you will buy in for someone who does.',
+      'The Finale uses a current Global card. If you do not have one, the app points you to where to get it.',
+      'Steer Me is independent and is not affiliated with WSTR.',
+    ],
+  },
+  {
     icon: 'qr-code-outline' as const,
     image: require('@/assets/tour/coggins.png'),
     title: 'Keep Your Coggins Ready to Go',
@@ -119,6 +153,27 @@ const SLIDES = [
       'One horse, one document - a Coggins belongs to the animal, not to you.',
       "Each code is fresh and expires in 30 minutes, so it can't be screenshotted and reused later.",
       "Event staff scan it and see everything they need - no Steer Me account required on their end.",
+    ],
+  },
+  {
+    icon: 'document-text-outline' as const,
+    image: require('@/assets/tour/paperwork.png'),
+    title: "Check Your Papers Before You Haul",
+    body: "Pick where you are leaving from and going to, plus the states in between, and see the health papers, Coggins and outbreak rules that may apply, with where each rule came from and when it was last checked.",
+    hints: [
+      'Free for Steer Me members.',
+      'A guide only: always confirm with the state, the event and your vet.',
+    ],
+  },
+  {
+    icon: 'moon-outline' as const,
+    image: require('@/assets/tour/layovers.png'),
+    title: "Find a Place to Stop",
+    body: "Hauling a long way? See stalls, pens and RV hookups along your route in the order you will reach them, with an address and a way to contact each stop.",
+    hints: [
+      'Say whether you want an RV hookup. If you do not, every stop has a hotels-nearby button.',
+      'Starting with routes between Montana and Arizona, Nevada and Texas, with more to come.',
+      'Listings come from public sources, so call ahead to confirm.',
     ],
   },
   {
