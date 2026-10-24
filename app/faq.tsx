@@ -34,12 +34,20 @@ const SECTIONS: FaqSection[] = [
     title: 'Getting started',
     items: [
       {
-        q: 'Why do I need to upload a Global Handicap card?',
-        a: "It's how we confirm your classification number and position - the thing that makes every match on the app actually eligible. Your card is only ever shown to someone you've actually matched with, never the whole platform.",
+        q: 'Why does Steer Me ask for a Global Handicap card?',
+        a: "If you have one, it's how we confirm your classification number and position, which makes every match eligible. Your card is only ever shown to someone you've actually matched with, never the whole platform. No card? See the next question: you're welcome here too.",
       },
       {
         q: "I don't have a Global card. Can I still use Steer Me?",
         a: "Yes. Choose No when we ask if you have a card, answer a few quick questions about your roping, and confirm your phone number with a one-time text. Your number will show as Self-reported, so partners know it's your own claim until a producer confirms it. You can raise it any time, but you can only lower it 90 days after your last change.",
+      },
+      {
+        q: "My text code never came. What do I do?",
+        a: "Check that the number is your mobile and that the country shown above it (US / Canada or Mexico) matches. Wait a minute, then tap Send a new code - only the newest code works, and each expires after about ten minutes. Some phones block unknown senders or short messages. Never send anyone your code, including us. Still stuck? Email ropingtools@duratex-ie.com and tell us where it stopped.",
+      },
+      {
+        q: "I signed up but never got the confirmation email.",
+        a: "Check your spam or junk folder for a message from noreply@ropingtoolsmail.com, tap Not spam, then tap the link. Or open Steer Me, tap Sign in, and if it says your email isn't confirmed, tap Send it again.",
       },
       {
         q: "What's a Switch Ender?",
@@ -57,6 +65,10 @@ const SECTIONS: FaqSection[] = [
       {
         q: 'How does Browse decide who I can partner with?',
         a: "By your position and classification number - only ropers you're actually eligible to team with show up. Use the location toggle to narrow it to people near you.",
+      },
+      {
+        q: 'I qualified for the WSTR Finale but lost my partner. Can Steer Me help?',
+        a: "Yes. Open the Finale board (WSTR Finale Partners), say you qualified and need a partner, and pick your class to see others in the same boat. The Finale uses a current Global card; if you don't have one, the app shows where to get it. Steer Me is independent and isn't affiliated with WSTR.",
       },
       {
         q: 'What happens when I favorite someone?',
@@ -110,16 +122,33 @@ const SECTIONS: FaqSection[] = [
     title: 'Account & subscription',
     items: [
       {
+        q: 'What is free and what needs a subscription?',
+        a: "Downloading, browsing and your first 3 accepted matches are free. After that, a subscription keeps you matching. See the Subscription screen for the current plans. You can subscribe in the app (billed by the App Store or Google Play) or on steerme.ropingtools.com. The paperwork check and layover finder are free with your Steer Me account.",
+      },
+      {
         q: 'How do I turn on notifications for team numbers and results?',
         a: "Account Settings, if you've entered at least one event through Steer Me.",
       },
       {
         q: 'What happens if I cancel my subscription?',
-        a: 'Your access continues through the end of your current billing period, then ends - cancel any time before that with no penalty.',
+        a: 'Your access continues through the end of your current billing period, then ends - cancel any time before that with no penalty. If you subscribed on the web, use Manage subscription on the Subscription screen. If you subscribed in the app, cancel in your App Store or Google Play subscription settings.',
       },
       {
         q: "I need to block or report someone.",
         a: "Block from their profile at any time - they can't contact you or appear in your matches after that, and you can unblock later if you change your mind. Report an event or a person directly from the relevant screen if something's wrong.",
+      },
+    ],
+  },
+  {
+    title: 'Hauling & travel',
+    items: [
+      {
+        q: 'Where are the paperwork check and the layover finder?',
+        a: "Profile, then Horse papers & travel check (My Horses). Both are free with your Steer Me account. The paperwork check shows the health papers, Coggins and outbreak rules that may apply for the states you haul from, through and to, with where each came from and when it was checked. The layover finder lists places to stop overnight along your route, with stalls or pens, RV hookups if you want them, and an address and contact for each.",
+      },
+      {
+        q: 'Can I count on the layover stops being open and available?',
+        a: "No. The stops come from public listings and can be out of date, and stalls fill up for events. Call ahead, and confirm paperwork rules with the state, the event and your vet. Know a stop we're missing, or see one that's wrong? Email ropingtools@duratex-ie.com.",
       },
     ],
   },
@@ -137,7 +166,7 @@ const SECTIONS: FaqSection[] = [
     items: [
       {
         q: "My question isn't answered here.",
-        a: 'Use Report an Issue from your Profile screen, or reach out through our usual support contact - let us know which event or screen you\'re asking about.',
+        a: 'Use Report an Issue from your Profile screen. If you can\'t get into the app, email ropingtools@duratex-ie.com and tell us where it stopped. Either way, let us know which event or screen you\'re asking about.',
       },
     ],
   },
