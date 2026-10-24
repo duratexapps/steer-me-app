@@ -157,7 +157,7 @@ export default function Landing() {
           />
           <Feature
             title="Built for real ropers, by real ropers"
-            body="Steer Me exists because finding a partner shouldn't cost you a draw-in fee or a wasted trip. It's free to browse, free to match, and built specifically for team roping."
+            body="Steer Me exists because finding a partner shouldn't cost you a draw-in fee or a wasted trip. It's free to download and browse, your first 3 matches are on us, and it's built specifically for team roping."
           />
         </View>
 
