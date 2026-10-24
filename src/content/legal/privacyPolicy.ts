@@ -21,6 +21,7 @@ Steer Me ("we," "us," "the app") is a mobile app that helps team ropers find eli
 - Roping position (header, heeler, or switch ender)
 - Home area / general location
 - Phone number or email address
+- **Phone number verification (if you join without a Global card):** we ask you to confirm a mobile number with a one-time code sent by text message, so each self-reported profile is tied to a real phone. We use the number to verify you and keep accounts safe. Message and data rates from your carrier may apply. We will never ask you to send us a code.
 
 **Classification verification:**
 - A screenshot of your Global Handicap card or membership page
@@ -31,11 +32,11 @@ Steer Me ("we," "us," "the app") is a mobile app that helps team ropers find eli
 - Events/roping caps you post as needing a partner
 
 **Subscription and payment:**
-- We do not directly collect or store your credit card, debit card, or bank information. Subscriptions are processed through Apple's App Store or Google Play billing systems (or a billing intermediary such as RevenueCat), which handle payment data under their own privacy terms.
+- We do not directly collect or store your credit card, debit card, or bank information. Subscriptions are processed through Apple's App Store or Google Play billing systems (or a billing intermediary such as RevenueCat), or, for subscriptions you buy on our website, through Stripe. Those providers handle payment data under their own privacy terms.
 
 **Automatically collected:**
 - Basic device and app diagnostic information (e.g., crash reports, app version) used to keep the app running reliably.
-- **Hauling Paperwork Check (no account needed):** when you use it we record anonymous usage, such as the animal type and the states you pick, whether you tap "Was this helpful?", and a random visitor ID kept in your own browser so we can count repeat visits. We use this only to see whether the feature is useful. We do not link this to your account, and we do not ask for or record your name, phone number or animal documents on that page. Opening the page from the Steer Me app is counted the same anonymous way, using a tag on the link; the app itself does not record it.
+- **Hauling Paperwork Check and Layover Finder (free with your account):** when you use them on our website we record anonymous usage, such as the states you pick, whether you choose an RV hookup, which listing buttons you tap (call, website, map, hotels nearby), whether you tap "Was this helpful?", and a random visitor ID kept in your own browser so we can count repeat visits. We use this only to see whether the features are useful. We do not link this usage to your account or name, and we do not ask for or record your phone number or animal documents on those pages. The Steer Me apps open these tools inside the app and do not record this usage.
 
 ## 3. How we use your information
 
@@ -46,6 +47,7 @@ Steer Me ("we," "us," "the app") is a mobile app that helps team ropers find eli
 - To manage your subscription and provide customer support
 - To maintain the security and reliability of the app
 - To determine your membership's current/not-current status where applicable
+- To verify your mobile phone number with a one-time text message when you join without a Global card
 
 ## 4. What other users can see
 
@@ -145,7 +147,9 @@ At sign-up, every user indicates whether they are 18 or older. If a profile is b
 
 We share limited data with the following types of providers, solely to operate the app:
 - **Hosting and database** — stores your profile, classification data, screenshot, and event/producer data
-- **Subscription billing** (Apple, Google, and/or RevenueCat) — processes subscription payments; we do not see your full payment details
+- **Subscription billing** (Apple, Google, and/or RevenueCat) — processes subscription payments made in the app; we do not see your full payment details
+- **Web subscription payments** (Stripe) — processes payment for subscriptions bought on our website; we do not see or store your full payment card details
+- **Text message verification** (Twilio) — sends the one-time code used to confirm your phone number when you join without a Global card
 - **Event payment processing** — processes entry-fee payments between athletes and producers; we do not see or store full payment card details
 - **AI verification provider** (Anthropic) — receives your verification screenshot at the moment you submit or update it, solely to read and confirm the name, membership ID, classification number(s), and expiration date printed on it against what you entered
 
