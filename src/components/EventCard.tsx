@@ -46,15 +46,17 @@ function buildSmsUrl(phone: string, body: string): string {
   return `sms:${number}${separator}body=${encodeURIComponent(body)}`;
 }
 
-function buildEntryMessage(event: { name: string }, me: { full_name: string; position: string; global_classification: number | null; header_classification: number | null; heeler_classification: number | null } | null | undefined): string {
-  if (!me) return `Hi, I'd like to enter ${event.name}.`;
+function buildEntryMessage(event: { name: string; is_clinic?: boolean }, me: { full_name: string; position: string; global_classification: number | null; header_classification: number | null; heeler_classification: number | null } | null | undefined): string {
+  // A clinic or school is signed up for, not entered.
+  const verb = event.is_clinic ? 'sign up for' : 'enter';
+  if (!me) return `Hi, I'd like to ${verb} ${event.name}.`;
   const classification = formatClassificationTag({
     position: me.position as 'Header' | 'Heeler' | 'Switch',
     globalClassification: me.global_classification,
     headerClassification: me.header_classification,
     heelerClassification: me.heeler_classification,
   });
-  return `Hi, I'd like to enter ${event.name}. Name: ${me.full_name}, ${me.position} #${classification}. (via Steer Me)`;
+  return `Hi, I'd like to ${verb} ${event.name}. Name: ${me.full_name}, ${me.position} #${classification}. (via Steer Me)`;
 }
 
 type EventCardProps = {
