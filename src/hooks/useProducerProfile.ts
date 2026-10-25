@@ -10,6 +10,8 @@ export type ProducerProfile = {
   affiliation: string | null;
   verification_doc_path: string | null;
   verification_status: 'pending' | 'verified' | 'rejected';
+  // Instructor who teaches clinics and schools (migration 0107). Their events are always clinics.
+  is_clinician: boolean;
 };
 
 export function useMyProducerProfile() {

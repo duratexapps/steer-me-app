@@ -77,6 +77,10 @@ export type EventRow = {
   // producer_id/external_producer_name. See withProducerNames() below for
   // where the actual rating gets attached for display.
   producer_identity_id: string | null;
+  // NEW, added 2026-10-24 alongside migration 0106 - a roping clinic or school (taught by a pro roper, listed from a
+  // flier). Not a jackpot: no classes, partners or attendance, and kept out of the main Events list; it only shows
+  // under the "Clinics & schools" chip. See event-filters.ts and EventCard.tsx.
+  is_clinic: boolean;
 };
 
 export type EventWithProducer = EventRow & {
@@ -211,6 +215,8 @@ export function useCreateEvent() {
       // own comment.
       entry_method?: 'text' | 'call' | null;
       entry_phone?: string | null;
+      // A clinician's events are always clinics (the database enforces it regardless; migration 0107).
+      is_clinic?: boolean;
     }) => {
       const { error } = await supabase.from('events').insert(input);
       if (error) throw error;
@@ -255,6 +261,8 @@ export function useCreateAdminEvent() {
       // own comment.
       entry_method?: 'text' | 'call' | null;
       entry_phone?: string | null;
+      // Clinic or school listing (migration 0106). Uses the one-placeholder divisions array.
+      is_clinic?: boolean;
     }) => {
       const { error } = await supabase.from('events').insert({
         ...input,
@@ -355,6 +363,7 @@ export function useSearchPublishedEvents(query: string) {
         .from('events')
         .select('*')
         .eq('status', 'published')
+        .eq('is_clinic', false)
         .ilike('name', `%${query.trim()}%`)
         .order('event_date', { ascending: true })
         .limit(10);

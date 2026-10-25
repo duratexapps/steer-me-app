@@ -71,6 +71,10 @@ const SECTIONS: FaqSection[] = [
         a: "Yes. Open the Finale board (WSTR Finale Partners), say you qualified and need a partner, and pick your class to see others in the same boat. The Finale uses a current Global card; if you don't have one, the app shows where to get it. Steer Me is independent and isn't affiliated with WSTR.",
       },
       {
+        q: 'Where are the clinics and schools?',
+        a: "Open Events and tap Clinics & schools in the Type row. They are kept out of the main list of ropings, so you only see them when you choose that chip. Each one shows the instructor, dates, cost and how to sign up.",
+      },
+      {
         q: 'What happens when I favorite someone?',
         a: "It's private - they're never notified. Favoriting just gives you quick access to them later, and lets you choose \"My Favorites\" or \"Select Favorites\" as the audience when you post a need.",
       },
@@ -155,6 +159,10 @@ const SECTIONS: FaqSection[] = [
   {
     title: 'Producers',
     items: [
+      {
+        q: 'I teach clinics or schools. Can I list them?',
+        a: "Yes. When you create your account choose I teach clinics or schools, or open Producer tools from Home and pick An instructor. After a quick verification (a flier from a past clinic or a screenshot of your website or social page works), you can post your clinics and schools. They show only under Clinics & schools, and it is free.",
+      },
       {
         q: "I list events on Steer Me. Is that the same thing as Draw Pro?",
         a: "No - listing and promoting your event is done from your Producer dashboard right here in Steer Me. Draw Pro is a separate tool for running the event itself (draw, run order, live results, payouts). You can use either on its own, or both together for the full synced experience contestants see in My Entries.",

@@ -630,3 +630,37 @@ this lives in Steer Me rather than Draw Pro.
   nav button on Profile, `useCreateAdminEvent()`, and the
   `posted_by_admin`/`admin_poster_id`/`is_admin` columns + their RLS
   policies (a new migration, not a rewrite of 0038).
+
+## Stripe web subscriptions (added 2026-10-23)
+
+- **What it is:** web subscriptions at steerme.ropingtools.com/subscription. Edge Functions `stripe-checkout` (creates a Checkout session, card only), `stripe-portal` (customer portal), `stripe-webhook` (the only writer of `stripe_subscriptions`). In-app purchases stay on RevenueCat; "subscribed" = either source (`get_subscription_status()`).
+- **Secrets** (Supabase dashboard > Edge Functions > Secrets; never paste in chat; check with `npx supabase secrets list`, which shows only digests): `STRIPE_SECRET_KEY` (a restricted-to-"all except sensitive operations" live key named "Steer Me Supabase"), `STRIPE_WEBHOOK_SECRET` (signing secret of the LIVE webhook "Steer Me web subscriptions (Supabase, live)"). Empty-string SHA-256 `e3b0c442...` means a secret is empty. A wrong webhook secret shows as `400 Bad signature` in the function logs.
+- **Switches** (`app_settings`): `web_checkout_enabled`, `web_free_trial_days` (0 = no free month), `paywall_enabled`, `free_matches`, `stripe_tax_reviewed`. Flip with `npx supabase db query --linked "update public.app_settings set value = 'true'::jsonb where key = '...'"`.
+- **Testing without a card:** in the live dashboard, add a $0 free-trial subscription to a test customer with no payment method (turn off "Collect tax automatically", the customer has no address). Check `stripe_subscriptions`, cancel in the portal, confirm `cancel_at_period_end`. The API version uses `cancel_at` for cancel-at-period-end; the webhook treats either as cancelling.
+- **Stripe Tax:** monitor-only, on hold; nightly check 12 reminds when the first real web subscriber exists; set `stripe_tax_reviewed = true` afterwards.
+- **Payouts:** automatic, daily, to the linked bank account (Stripe dashboard > Settings > Linked accounts and payouts).
+
+## Phone verification for no-card sign-ups (Twilio Verify)
+
+- Supabase Auth > Providers > Phone uses **Twilio Verify** (not plain Twilio SMS). Allowed countries (Twilio Geo Permissions): US, Canada, Mexico only. Supabase SMS rate limit is 30 per hour (raise it if sign-ups spike). Twilio Fraud Guard is on.
+- `app_settings.require_phone_for_unverified` (true) makes the database refuse a self-reported profile without a confirmed phone (`phone_required_for_unverified()`, migration 0096). If codes stop arriving, check Twilio's message logs first, then the country picker on the sign-up screen, then the Supabase rate limit.
+
+## Comped accounts (never have to subscribe)
+
+`comped_users` (migration 0099): `has_active_subscription()` returns true for anyone listed. Add: `insert into public.comped_users (user_id, note) select id, 'reason' from auth.users where email = '...';`. The table has RLS with no policies, so only the service role can read or change it.
+
+## Layover spots and travel data
+
+- `layover_spots` (migrations 0101-0104) and `travel_states/rules/alerts` are curated data, editable by SQL with no app release; readable only by signed-in members. Every row needs a source_url and verified_on; add `verification = 'confirmed', confirmed_on = ...` after phoning a facility. A stop with no phone/website/address is set `active = false`.
+- Usage counts are in `feature_events` (features `layover_finder`, `travel_checker`), written by `log_feature_event()` (anonymous: user_id is always null) and summarized in nightly-sweep checks 11/11b.
+
+## Per-class event details guard
+
+Trigger `events_require_per_class_details` (migration 0105) rejects an admin-posted, published event with more than one division unless every division has its own `division_details` entry (key = number as text, e.g. '9.5') and `entry_fee` is <= 240 characters. If a posting script fails with `per_class_details_required`, add the per-class text; do not loosen the trigger. Nightly-sweep check 9 also lists upcoming events (any source) where a class has no details of its own.
+
+## Clinics & schools and instructor (clinician) accounts
+
+- **What they are:** `events.is_clinic = true` (migration 0106). Shown only under the Clinics & schools chip in Events; excluded from the main list and from the need-post event search. Placeholder `divisions = {19}`, `division_details` null.
+- **Instructor sign-up:** same producer sign-up with `producer_profiles.is_clinician = true` (migration 0107). Review exactly like a producer (see "Reviewing a producer for verification"): the proof is a flier from a past clinic, a screenshot of a website or social page, or a letter from a sponsor or association. Their clinics stay visible only to them until `verification_status = 'verified'`. List pending instructors: `select id, org_name, contact_info, affiliation from public.producer_profiles where is_clinician and verification_status = 'pending';`.
+- **Kind is enforced by the database:** trigger `events_force_clinic_kind` sets `is_clinic` from the posting profile (clinician = true, producer = false). Admin-posted events (producer_id null) keep the admin's choice (the Admin Post Event screen has a "This is a clinic or school" switch).
+- **From fliers:** the scan stages `clinics/clinics.json` in the dated FLIERS folder. Post with the service role: `is_clinic true`, `divisions [19]`, `division_details null`, `entry_method`/`entry_phone` only if the flier says to text or call to reserve. Team roping clinics only unless Justin widens it. Same 30-day expiry as other events.

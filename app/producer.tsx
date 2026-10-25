@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -15,6 +15,7 @@ import { colors, fonts, radii } from '@/src/theme/theme';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
+import { Pill } from '@/src/components/ui/Pill';
 import { showToast } from '@/src/state/toast-store';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProducerProfile, useInvalidateProducerProfile } from '@/src/hooks/useProducerProfile';
@@ -52,6 +53,10 @@ export default function Producer() {
 }
 
 function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
+  // An instructor who teaches clinics or schools signs up through the same flow (migration 0107). They arrive here
+  // from the "I teach clinics or schools" choice (kind=clinician) or pick it with the pills below.
+  const { kind } = useLocalSearchParams<{ kind?: string }>();
+  const [clinician, setClinician] = useState(kind === 'clinician');
   const [orgName, setOrgName] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const [contactName, setContactName] = useState('');
@@ -68,7 +73,7 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
   // decided - once a producer has picked "this is me" or "not me" there's
   // no reason to keep re-querying while they finish the rest of the form.
   const searchActive = !claimedMatch && !dismissedMatches;
-  const { data: matches } = useProducerIdentityMatches(searchActive ? orgName : '');
+  const { data: matches } = useProducerIdentityMatches(searchActive && !clinician ? orgName : '');
 
   async function handlePicked(image: PickedImage) {
     const {
@@ -96,6 +101,7 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
       p_affiliation: affiliation.trim() || null,
       p_verification_doc_path: docPath,
       p_claim_identity_id: claimedMatch?.id ?? null,
+      p_is_clinician: clinician,
     });
     setSubmitting(false);
 
@@ -103,34 +109,60 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
       showToast(error.message);
       return;
     }
-    showToast(`Producer profile submitted for ${orgName.trim()} - pending verification`);
+    showToast(`${clinician ? 'Clinic and school' : 'Producer'} profile submitted for ${orgName.trim()} - pending verification`);
     onCreated();
   }
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Producer Tools" subtitle="Set up a producer profile to list your own events" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader
+        title={clinician ? 'Clinic & School Tools' : 'Producer Tools'}
+        subtitle={clinician ? 'Set up a profile to list your clinics and schools' : 'Set up a producer profile to list your own events'}
+        onBack={() => goBackOrHome()}
+        onHelp={() => setHelpOpen(true)}
+      />
       <ScrollView contentContainerStyle={styles.content}>
-        <DividerNote>
-          Producer accounts are separate from your athlete profile - you can hold both. Producer listings
-          go through their own verification and are subject to separate Producer Guidelines covering
-          accurate event details and no fraudulent listings.
-        </DividerNote>
-        <DividerNote>
-          <Text style={{ fontFamily: fonts.bodyBold }}>Pricing: </Text>
-          free to create a producer profile and list events. Once in-app entry-fee payment is available,
-          Steer Me takes 4% + $1.50 per paid registration - nothing until you collect a payment.
-        </DividerNote>
+        <Text style={styles.label}>I am setting up</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          <Pill label="A producer (ropings)" selected={!clinician} onPress={() => setClinician(false)} />
+          <Pill label="An instructor (clinics & schools)" selected={clinician} onPress={() => setClinician(true)} />
+        </View>
+        {clinician ? (
+          <>
+            <DividerNote>
+              Instructor accounts are separate from your athlete profile - you can hold both. Your clinics and
+              schools are listed under Clinics & schools after a quick verification, and nothing you post is
+              public until then.
+            </DividerNote>
+            <DividerNote>
+              <Text style={{ fontFamily: fonts.bodyBold }}>Pricing: </Text>
+              free to create a profile and list your clinics and schools.
+            </DividerNote>
+          </>
+        ) : (
+          <>
+            <DividerNote>
+              Producer accounts are separate from your athlete profile - you can hold both. Producer listings
+              go through their own verification and are subject to separate Producer Guidelines covering
+              accurate event details and no fraudulent listings.
+            </DividerNote>
+            <DividerNote>
+              <Text style={{ fontFamily: fonts.bodyBold }}>Pricing: </Text>
+              free to create a producer profile and list events. Once in-app entry-fee payment is available,
+              Steer Me takes 4% + $1.50 per paid registration - nothing until you collect a payment.
+            </DividerNote>
+          </>
+        )}
 
         <TextField
-          label="Organization name"
+          label={clinician ? 'Clinic or school name (or your name)' : 'Organization name'}
           value={orgName}
           onChangeText={(v) => {
             setOrgName(v);
             setClaimedMatch(null);
             setDismissedMatches(false);
           }}
-          placeholder="e.g. Mathews Land & Cattle Xtreme Team Roping"
+          placeholder={clinician ? 'e.g. Jane Doe Roping School' : 'e.g. Mathews Land & Cattle Xtreme Team Roping'}
         />
 
         {claimedMatch ? (
@@ -168,12 +200,12 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
           </View>
         ) : null}
 
-        <TextField label="Contact name" value={contactName} onChangeText={setContactName} placeholder="e.g. Mathews office contact" />
-        <TextField label="Contact phone or email" value={contactInfo} onChangeText={setContactInfo} placeholder="e.g. events@example.com" />
-        <TextField label="Affiliation (if any)" value={affiliation} onChangeText={setAffiliation} placeholder="e.g. WSTR-sanctioned, USTRC-sanctioned, independent" />
+        <TextField label="Contact name" value={contactName} onChangeText={setContactName} placeholder={clinician ? 'e.g. your name' : 'e.g. Mathews office contact'} />
+        <TextField label="Contact phone or email" value={contactInfo} onChangeText={setContactInfo} placeholder={clinician ? 'e.g. (555) 123-4567 or you@example.com' : 'e.g. events@example.com'} />
+        <TextField label={clinician ? 'Credentials or affiliation (if any)' : 'Affiliation (if any)'} value={affiliation} onChangeText={setAffiliation} placeholder={clinician ? 'e.g. NFR qualifier, retired pro, independent' : 'e.g. WSTR-sanctioned, USTRC-sanctioned, independent'} />
 
         <Text style={styles.label}>
-          Proof of producer status <Text style={styles.required}>*required</Text>
+          {clinician ? 'Proof you teach clinics or schools' : 'Proof of producer status'} <Text style={styles.required}>*required</Text>
         </Text>
         <Pressable style={styles.dropzone} onPress={() => setDocOpen(true)}>
           {docUri ? (
@@ -185,9 +217,11 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
             <>
               <Ionicons name="document-text-outline" size={26} color={colors.espresso} />
               <Text style={styles.dropzoneText}>
-                Upload a business license, insurance certificate, or sanctioning-body affiliation letter
+                {clinician
+                  ? 'Upload a flier from a past clinic, a screenshot of your website or social page, or a letter from a sponsor or association'
+                  : 'Upload a business license, insurance certificate, or sanctioning-body affiliation letter'}
               </Text>
-              <Text style={styles.dropzoneSub}>Reviewed before your events go public</Text>
+              <Text style={styles.dropzoneSub}>{clinician ? 'Reviewed before your clinics go public' : 'Reviewed before your events go public'}</Text>
             </>
           )}
         </Pressable>
@@ -200,7 +234,8 @@ function ProducerSignUp({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function ProducerDashboard({ producer }: { producer: { org_name: string; verification_status: string } }) {
+function ProducerDashboard({ producer }: { producer: { org_name: string; verification_status: string; is_clinician?: boolean } }) {
+  const clinician = !!producer.is_clinician;
   const [helpOpen, setHelpOpen] = useState(false);
   const { data: events, isLoading: eventsLoading } = useMyEvents();
   const eventIds = (events ?? []).map((e) => e.id);
@@ -209,15 +244,16 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Producer Tools" subtitle={`Managing events for ${producer.org_name}`} onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title={clinician ? 'Clinic & School Tools' : 'Producer Tools'} subtitle={clinician ? `Managing clinics and schools for ${producer.org_name}` : `Managing events for ${producer.org_name}`} onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
         {producer.verification_status !== 'verified' ? (
           <DividerNote>
-            Pending verification - your events are visible only to you until our team verifies your
-            producer profile.
+            {clinician
+              ? 'Pending verification - your clinics and schools are visible only to you until our team verifies your profile.'
+              : 'Pending verification - your events are visible only to you until our team verifies your producer profile.'}
           </DividerNote>
         ) : null}
-        {identity ? (
+        {identity && !clinician ? (
           <View style={styles.ratingBanner}>
             <Text style={styles.ratingNum}>{identity.avg_stars != null ? `★${identity.avg_stars}` : '—'}</Text>
             <View style={{ flex: 1 }}>
@@ -230,19 +266,21 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
             </View>
           </View>
         ) : null}
-        <DividerNote>
-          Ropers who find their own partner through this app both show up ready to pay their own entry
-          fee - unlike a producer draw, where the drawn partner isn't obligated to pay. Pairs who connect
-          here bring you two paid entries, not one paid and one owed.
-        </DividerNote>
+        {!clinician ? (
+          <DividerNote>
+            Ropers who find their own partner through this app both show up ready to pay their own entry
+            fee - unlike a producer draw, where the drawn partner isn't obligated to pay. Pairs who connect
+            here bring you two paid entries, not one paid and one owed.
+          </DividerNote>
+        ) : null}
 
-        <Button label="+ Create an event" onPress={() => router.push('/create-event')} style={{ marginBottom: 20 }} />
+        <Button label={clinician ? '+ Post a clinic or school' : '+ Create an event'} onPress={() => router.push('/create-event')} style={{ marginBottom: 20 }} />
 
-        <Text style={styles.eyebrow}>Your events</Text>
+        <Text style={styles.eyebrow}>{clinician ? 'Your clinics and schools' : 'Your events'}</Text>
         {eventsLoading ? (
           <ActivityIndicator color={colors.brass} style={{ marginTop: 12 }} />
         ) : !events || events.length === 0 ? (
-          <DividerNote>No events posted yet. Create your first one above.</DividerNote>
+          <DividerNote>{clinician ? 'No clinics or schools posted yet. Post your first one above.' : 'No events posted yet. Create your first one above.'}</DividerNote>
         ) : (
           events.map((e) => (
             <EventCard

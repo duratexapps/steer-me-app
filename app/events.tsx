@@ -102,7 +102,11 @@ export default function Events() {
     () => applyEventFilters(events ?? [], filters, distances, hotspots ?? []),
     [events, filters, distances, hotspots]
   );
-  const states = useMemo(() => distinctStates(events ?? []), [events]);
+  // State chips only list states that have something in the group being viewed (ropings, or clinics & schools).
+  const states = useMemo(
+    () => distinctStates((events ?? []).filter((e) => !!e.is_clinic === (filters.type === 'clinic'))),
+    [events, filters.type]
+  );
   const types = useMemo(() => distinctTypes(events ?? []), [events]);
 
   const listRef = useRef<FlatList>(null);

@@ -20,6 +20,7 @@ import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
 import { useCreateEvent, buildDivisionDetailsPayload } from '@/src/hooks/useEvents';
+import { useMyProducerProfile } from '@/src/hooks/useProducerProfile';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
@@ -31,6 +32,10 @@ import { goBackOrHome } from '@/src/lib/navigation';
 // team and anything at or above that is Open).
 export default function CreateEvent() {
   const createEvent = useCreateEvent();
+  // An instructor (migration 0107) posts clinics and schools: no classes, a plain sign-up method, listed only under
+  // Clinics & schools. The database forces that regardless of what is sent.
+  const { data: producerProfile } = useMyProducerProfile();
+  const clinic = !!producerProfile?.is_clinician;
   const [name, setName] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const [date, setDate] = useState<string | null>(null);
@@ -83,8 +88,8 @@ export default function CreateEvent() {
   }
 
   async function handleSubmit() {
-    if (!name.trim() || !date || !location.trim() || divisions.length === 0) {
-      showToast('Fill in event name, date, location, and at least one division');
+    if (!name.trim() || !date || !location.trim() || (!clinic && divisions.length === 0)) {
+      showToast(clinic ? 'Fill in the clinic name, date and location' : 'Fill in event name, date, location, and at least one division');
       return;
     }
     // Mirrors migration 0039's own DB check constraint (event_end_date_after_start)
@@ -104,10 +109,11 @@ export default function CreateEvent() {
         event_end_date: endDate,
         location: location.trim(),
         entry_fee: fee.trim() || 'See listing',
-        divisions,
+        divisions: clinic ? [19] : divisions,
+        is_clinic: clinic,
         description: description.trim() || 'No description provided.',
         flier_path: flierPath,
-        division_details: buildDivisionDetailsPayload(divisions, divisionDetails),
+        division_details: clinic ? null : buildDivisionDetailsPayload(divisions, divisionDetails),
         booking_link: bookingLink.trim() || null,
         booking_phone: bookingPhone.trim() || null,
         entry_method: entryMethod,
@@ -124,14 +130,14 @@ export default function CreateEvent() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <ScreenHeader title="Create Event" subtitle="Listed under your verified producer profile" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
+      <ScreenHeader title={clinic ? 'Post a Clinic or School' : 'Create Event'} subtitle={clinic ? 'Listed under Clinics & schools once your profile is verified' : 'Listed under your verified producer profile'} onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       {/* keyboardShouldPersistTaps="handled" - real bug shared with
           sign-up.tsx/edit-profile.tsx: without it, tapping a Location
           dropdown suggestion (AutocompleteField.tsx) while that field is
           still focused gets swallowed as a keyboard-dismiss tap instead of
           reaching the Pressable's onPress. */}
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <TextField label="Event name" value={name} onChangeText={setName} placeholder="e.g. Fall Qualifier" />
+        <TextField label={clinic ? 'Clinic or school name' : 'Event name'} value={name} onChangeText={setName} placeholder={clinic ? 'e.g. Two-Day Heeling School' : 'e.g. Fall Qualifier'} />
         <DateField label={endDate ? 'Start date' : 'Date'} value={date} onChange={setDate} minimumDate={new Date()} />
 
         {/* NEW, added 2026-07-29 alongside migration 0039 - real ask: "sometimes
@@ -155,7 +161,7 @@ export default function CreateEvent() {
             filter on Events has something consistent to look up for every event,
             not just admin-posted ones. */}
         <AutocompleteField label="Location" value={location} onChange={setLocation} placeholder="e.g. Wickenburg, AZ" required />
-        <TextField label="Entry fee" value={fee} onChangeText={setFee} placeholder="e.g. $300/team" />
+        <TextField label={clinic ? 'Cost' : 'Entry fee'} value={fee} onChangeText={setFee} placeholder={clinic ? 'e.g. $450 for both days' : 'e.g. $300/team'} />
         <TextField
           label="Venue booking link (optional)"
           value={bookingLink}
@@ -172,6 +178,8 @@ export default function CreateEvent() {
           keyboardType="phone-pad"
         />
 
+        {!clinic ? (
+          <>
         <Text style={styles.label}>Divisions / classification caps</Text>
         <View style={styles.pillWrap}>
           {DIVISION_OPTIONS.map((d) => (
@@ -186,31 +194,35 @@ export default function CreateEvent() {
         <Text style={styles.helper}>Tap every class you're running - at least one required.</Text>
 
         <DivisionDetailsFields divisions={divisions} details={divisionDetails} onChange={setDivisionDetails} />
+          </>
+        ) : null}
 
         <Text style={styles.label}>Description</Text>
         <Text style={styles.helper}>
-          Whole-event details that apply no matter the class or day - venue rules, payback, sponsors, contact
-          info, membership requirements. Class-specific details belong above, not here.
+          {clinic
+            ? 'Who teaches, what is covered (header, heeler, horse), skill levels, dates and times, how many spots, what to bring, and anything else a roper needs to know before signing up.'
+            : 'Whole-event details that apply no matter the class or day - venue rules, payback, sponsors, contact info, membership requirements. Class-specific details belong above, not here.'}
         </Text>
         <TextInput
           style={styles.textarea}
           value={description}
           onChangeText={setDescription}
-          placeholder="Venue address, payback %, sponsors, contact info, membership rules..."
+          placeholder={clinic ? 'Instructor, what is covered, levels, spots, what to bring...' : 'Venue address, payback %, sponsors, contact info, membership rules...'}
           placeholderTextColor="#9c8a6b"
           multiline
           numberOfLines={4}
         />
 
-        <Text style={styles.label}>How ropers enter (optional)</Text>
+        <Text style={styles.label}>{clinic ? 'How ropers sign up (optional)' : 'How ropers enter (optional)'}</Text>
         <Text style={styles.helper}>
-          If you take entries by text or call, pick it here - Steer Me will pre-fill the entrant's own name and
-          classification into their phone's message/call so they don't have to retype it.
+          {clinic
+            ? "If you take sign-ups by text or call, pick it here - Steer Me will pre-fill the roper's own name into their phone's message/call so they don't have to retype it."
+            : "If you take entries by text or call, pick it here - Steer Me will pre-fill the entrant's own name and classification into their phone's message/call so they don't have to retype it."}
         </Text>
         <View style={styles.pillWrap}>
           <Pill label="Not phone-based" selected={entryMethod === null} onPress={() => setEntryMethod(null)} />
-          <Pill label="Text to enter" selected={entryMethod === 'text'} onPress={() => setEntryMethod('text')} />
-          <Pill label="Call to enter" selected={entryMethod === 'call'} onPress={() => setEntryMethod('call')} />
+          <Pill label={clinic ? 'Text to sign up' : 'Text to enter'} selected={entryMethod === 'text'} onPress={() => setEntryMethod('text')} />
+          <Pill label={clinic ? 'Call to sign up' : 'Call to enter'} selected={entryMethod === 'call'} onPress={() => setEntryMethod('call')} />
         </View>
         {entryMethod ? (
           <TextField
@@ -222,7 +234,7 @@ export default function CreateEvent() {
           />
         ) : null}
 
-        <Text style={[styles.label, { marginTop: 16 }]}>Event flier (optional)</Text>
+        <Text style={[styles.label, { marginTop: 16 }]}>{clinic ? 'Clinic flier (optional)' : 'Event flier (optional)'}</Text>
         <Pressable style={styles.dropzone} onPress={() => setFlierOpen(true)}>
           {flierUri ? (
             <>
@@ -238,7 +250,7 @@ export default function CreateEvent() {
           )}
         </Pressable>
 
-        <Button label="Post event" onPress={handleSubmit} loading={submitting} style={{ marginTop: 8 }} />
+        <Button label={clinic ? 'Post clinic or school' : 'Post event'} onPress={handleSubmit} loading={submitting} style={{ marginTop: 8 }} />
       </ScrollView>
       <PhotoChooserSheet visible={flierOpen} onClose={() => setFlierOpen(false)} onPicked={handleFlierPicked} />
           <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="create-event" />

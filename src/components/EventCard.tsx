@@ -194,6 +194,7 @@ export function EventCard({
   return (
     <>
     <View style={styles.card}>
+      {event.is_clinic ? <Text style={styles.clinicBadge}>CLINIC OR SCHOOL</Text> : null}
       <Text style={styles.name}>{event.name}</Text>
       <Text style={styles.producerLine}>
         {event.producer_org_name ?? 'Posted via Draw Pro'} · {formatDateRangeDisplay(event.event_date, event.event_end_date)}
@@ -207,7 +208,7 @@ export function EventCard({
           the event's own rating below) - shown as an honest low-confidence
           note rather than hidden outright, since "1 rating so far" is
           still more informative than nothing for a brand-new producer. */}
-      {event.producer_rating_count > 0 ? (
+      {event.producer_rating_count > 0 && !event.is_clinic ? (
         <Text style={styles.producerRatingLine}>
           {event.producer_avg_stars != null
             ? `Producer rating: ★ ${event.producer_avg_stars.toFixed(1)} (${event.producer_rating_count})`
@@ -222,7 +223,7 @@ export function EventCard({
           Draw-Pro-synced events use) - this is just the clarifier. */}
       {event.posted_by_admin ? (
         <View style={styles.adminPostedRow}>
-          <Text style={styles.adminPostedLine}>Posted by RopingTools on this producer's behalf</Text>
+          <Text style={styles.adminPostedLine}>{event.is_clinic ? "Posted by RopingTools on the instructor's behalf" : "Posted by RopingTools on this producer's behalf"}</Text>
           {/* NEW, added 2026-07-29 - real gap flagged directly by the user: nobody had
               any way to fix a typo or attach a flier to an event that already exists.
               Scoped to admin-posted events only, matching the events_update_admin RLS
@@ -261,7 +262,7 @@ export function EventCard({
           ) : null}
         </View>
       ) : null}
-      {!producerView ? (
+      {!producerView && !event.is_clinic ? (
         <Text style={[styles.rating, ratingSummary && ratingSummary.rating_count >= RATING_MIN_TO_SHOW ? styles.ratingActive : styles.ratingMuted]}>
           {ratingText}
         </Text>
@@ -273,6 +274,7 @@ export function EventCard({
         </Pressable>
       ) : null}
 
+      {!event.is_clinic ? (
       <View style={styles.divisionRow}>
         {event.divisions.map((d) => {
           const key = `${event.id}:${d}`;
@@ -311,6 +313,7 @@ export function EventCard({
           );
         })}
       </View>
+      ) : null}
 
       {/* One shared entry link per event (not per division) - Draw Pro's
           own entry page is where the entrant actually picks which class,
@@ -333,7 +336,7 @@ export function EventCard({
         <>
           <Pressable style={styles.enterDrawBtn} onPress={handlePhoneEntry}>
             <Ionicons name={event.entry_method === 'text' ? 'chatbubble-outline' : 'call-outline'} size={14} color={colors.bone} />
-            <Text style={styles.enterDrawBtnText}>{event.entry_method === 'text' ? 'Text to Enter' : 'Call to Enter'}</Text>
+            <Text style={styles.enterDrawBtnText}>{event.is_clinic ? (event.entry_method === 'text' ? 'Text to Sign Up' : 'Call to Sign Up') : event.entry_method === 'text' ? 'Text to Enter' : 'Call to Enter'}</Text>
           </Pressable>
           {event.producer_contact_info ? <Text style={styles.entryMethodNote}>{event.producer_contact_info}</Text> : null}
         </>
@@ -350,13 +353,19 @@ export function EventCard({
         // out to them.
         !producerView ? (
           <View style={styles.noDrawProNote}>
-            <Text style={styles.noDrawProNoteText}>
-              This producer isn't on Draw Pro yet — no online entry, automatic team numbers, or live round
-              results here.{' '}
-              {event.producer_contact_info
-                ? event.producer_contact_info
-                : 'See the flier or contact the producer directly to enter.'}
-            </Text>
+            {event.is_clinic ? (
+              <Text style={styles.noDrawProNoteText}>
+                {event.producer_contact_info ? `To sign up: ${event.producer_contact_info}` : 'See the flier for how to sign up.'}
+              </Text>
+            ) : (
+              <Text style={styles.noDrawProNoteText}>
+                This producer isn't on Draw Pro yet — no online entry, automatic team numbers, or live round
+                results here.{' '}
+                {event.producer_contact_info
+                  ? event.producer_contact_info
+                  : 'See the flier or contact the producer directly to enter.'}
+              </Text>
+            )}
           </View>
         ) : null
       )}
@@ -390,6 +399,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 14,
   },
+  clinicBadge: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1, color: colors.brass, marginBottom: 4 },
   name: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.espresso },
   producerLine: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.brass, marginTop: 1 },
   producerRatingLine: { fontFamily: fonts.body, fontSize: 11, color: colors.saddle, marginTop: 1 },

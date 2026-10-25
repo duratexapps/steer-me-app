@@ -53,6 +53,12 @@ export default function RoleSelect() {
           onPress={() => router.push({ pathname: '/(auth)/create-account', params: { role: 'producer' } })}
         />
         <ActionTile
+          icon="school-outline"
+          title="I teach clinics or schools"
+          description="List your clinics and schools for ropers to find - no athlete profile required"
+          onPress={() => router.push({ pathname: '/(auth)/create-account', params: { role: 'clinician' } })}
+        />
+        <ActionTile
           icon="people-outline"
           title="Both"
           description="Start with your athlete profile, then add producer tools from Home"

@@ -56,7 +56,10 @@ export default function CreateAccount() {
       return;
     }
 
-    if (role === 'producer') {
+    if (role === 'clinician') {
+      // An instructor has no athlete profile to set up: straight to the clinic and school profile.
+      router.replace({ pathname: '/producer', params: { kind: 'clinician' } });
+    } else if (role === 'producer') {
       router.replace('/(tabs)');
     } else {
       router.replace('/(auth)/sign-up');

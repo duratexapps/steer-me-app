@@ -60,6 +60,8 @@ export default function AdminPostEvent() {
   const [bookingLink, setBookingLink] = useState('');
   const [bookingPhone, setBookingPhone] = useState('');
   const [divisions, setDivisions] = useState<number[]>([]);
+  // Clinic or school (migration 0106): no classes, no partners; listed only under Clinics & schools.
+  const [isClinic, setIsClinic] = useState(false);
   // NEW, added 2026-07-30 alongside migration 0041 - see create-event.tsx's
   // matching comment.
   const [divisionDetails, setDivisionDetails] = useState<Record<string, string>>({});
@@ -132,8 +134,8 @@ export default function AdminPostEvent() {
 
   async function handleSubmit() {
     if (!me) return;
-    if (!producerName.trim() || !name.trim() || !date || !location.trim() || divisions.length === 0) {
-      showToast('Fill in producer name, event name, date, location, and at least one division');
+    if (!producerName.trim() || !name.trim() || !date || !location.trim() || (!isClinic && divisions.length === 0)) {
+      showToast(isClinic ? 'Fill in instructor name, clinic name, date and location' : 'Fill in producer name, event name, date, location, and at least one division');
       return;
     }
     if (endDate && endDate < date) {
@@ -149,12 +151,14 @@ export default function AdminPostEvent() {
         event_end_date: endDate,
         location: location.trim(),
         entry_fee: fee.trim() || 'See listing',
-        divisions,
+        // A clinic carries the one-placeholder divisions array (same convention as round-robin ropings).
+        divisions: isClinic ? [19] : divisions,
+        is_clinic: isClinic,
         description: description.trim() || 'No description provided.',
         flier_path: flierPath,
         external_producer_name: producerName.trim(),
         admin_poster_id: me.id,
-        division_details: buildDivisionDetailsPayload(divisions, divisionDetails),
+        division_details: isClinic ? null : buildDivisionDetailsPayload(divisions, divisionDetails),
         producer_contact_info: contactInfo.trim() || null,
         booking_link: bookingLink.trim() || null,
         booking_phone: bookingPhone.trim() || null,
@@ -194,7 +198,13 @@ export default function AdminPostEvent() {
           behalf. Use this only until enough producers are onboarded directly.
         </Text>
 
-        <TextField label="Producer name" value={producerName} onChangeText={setProducerName} placeholder="e.g. Circle T Ropings" />
+        <ToggleRow
+          title="This is a clinic or school"
+          description="Taught by an instructor. Shows only under Clinics & schools, with no classes or partner matching."
+          value={isClinic}
+          onToggle={() => setIsClinic((v) => !v)}
+        />
+        <TextField label={isClinic ? 'Instructor or school name' : 'Producer name'} value={producerName} onChangeText={setProducerName} placeholder={isClinic ? 'e.g. Jane Doe Roping School' : 'e.g. Circle T Ropings'} />
         <TextField label="Event name" value={name} onChangeText={setName} placeholder="e.g. Fall Qualifier" />
         <DateField label={endDate ? 'Start date' : 'Date'} value={date} onChange={setDate} minimumDate={new Date()} />
 
@@ -226,6 +236,8 @@ export default function AdminPostEvent() {
           keyboardType="phone-pad"
         />
 
+        {!isClinic ? (
+          <>
         <Text style={styles.label}>Divisions / classification caps</Text>
         <View style={styles.pillWrap}>
           {DIVISION_OPTIONS.map((d) => (
@@ -240,6 +252,8 @@ export default function AdminPostEvent() {
         <Text style={styles.helper}>Tap every class listed on the flier - at least one required.</Text>
 
         <DivisionDetailsFields divisions={divisions} details={divisionDetails} onChange={setDivisionDetails} />
+          </>
+        ) : null}
 
         <Text style={styles.label}>Description</Text>
         <Text style={styles.helper}>
