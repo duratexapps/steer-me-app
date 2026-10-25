@@ -210,10 +210,13 @@ Deno.serve(async (req) => {
   // 13 pending verifications and owner-submitted layover listings. An instructor or layover/hotel owner cannot go live until
   // someone verifies the profile (and, for lodging, approves each listing and adds its coordinates). RUNBOOK has the steps.
   await check('13. Pending verifications', async () => {
-    const prof = await q(admin.from('producer_profiles').select('org_name,created_at,is_clinician,is_lodging').eq('verification_status', 'pending').order('created_at'));
+    const prof = await q(admin.from('producer_profiles').select('id,org_name,created_at,is_clinician,is_lodging').eq('verification_status', 'pending').order('created_at'));
+    // A sign-up can claim an existing producer identity (name and rating history); show it so a wrong claim is caught at verification.
+    const claims = await q(admin.from('producer_identities').select('org_name,claimed_by').in('claimed_by', prof.map((x) => x.id)));
+    const claimOf = (id: string) => claims.find((c) => c.claimed_by === id)?.org_name;
     const spots = await q(admin.from('layover_spots').select('name,state').eq('review_status', 'pending').order('name'));
     const kind = (x: Row) => (x.is_lodging ? 'layover/hotel' : x.is_clinician ? 'instructor' : 'producer');
-    lines.push(`13. Waiting on you: ${prof.length || spots.length ? 'ATTENTION' : 'clear'} - ${prof.length} profile(s) to verify${prof.length ? ' (' + prof.slice(0, 6).map((x) => `${x.org_name}, ${kind(x)}, ${ago(x.created_at)}`).join('; ') + ')' : ''}; ${spots.length} layover listing(s) to approve${spots.length ? ' (' + spots.slice(0, 6).map((x) => `${x.name}, ${x.state}`).join('; ') + ')' : ''}`);
+    lines.push(`13. Waiting on you: ${prof.length || spots.length ? 'ATTENTION' : 'clear'} - ${prof.length} profile(s) to verify${prof.length ? ' (' + prof.slice(0, 6).map((x) => `${x.org_name}, ${kind(x)}, ${ago(x.created_at)}${claimOf(x.id) && claimOf(x.id) !== x.org_name ? ', CLAIMS identity "' + claimOf(x.id) + '"' : ''}`).join('; ') + ')' : ''}; ${spots.length} layover listing(s) to approve${spots.length ? ' (' + spots.slice(0, 6).map((x) => `${x.name}, ${x.state}`).join('; ') + ')' : ''}`);
     if (prof.length) urgent.push(`${prof.length} producer, instructor or layover/hotel profile(s) waiting for verification (oldest ${ago(prof[0].created_at)})`);
     if (spots.length) urgent.push(`${spots.length} owner-submitted layover listing(s) waiting for approval (set lat/lng and review_status='approved')`);
   });
