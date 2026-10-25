@@ -11,6 +11,7 @@ import { FlierViewerModal } from '@/src/components/FlierViewerModal';
 import type { EventWithProducer, RatingSummary } from '@/src/hooks/useEvents';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useCreateEntryHandoff, withHandoffParam, useCreateDrawProEntryLink, withEntryLinkParam } from '@/src/hooks/useEntryHandoff';
+import { isFeatured } from '@/src/lib/date';
 
 const RATING_MIN_TO_SHOW = 3;
 
@@ -198,6 +199,7 @@ export function EventCard({
     <View style={styles.card}>
       {event.is_clinic ? (
         <Text style={styles.clinicBadge}>
+          {isFeatured(event.featured_until) ? 'FEATURED · ' : ''}
           {event.clinic_discipline ? `CLINIC OR SCHOOL · ${event.clinic_discipline.toUpperCase()}` : 'CLINIC OR SCHOOL'}
         </Text>
       ) : null}

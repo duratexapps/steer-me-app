@@ -59,6 +59,9 @@ export default function CreateAccount() {
     if (role === 'clinician') {
       // An instructor has no athlete profile to set up: straight to the clinic and school profile.
       router.replace({ pathname: '/producer', params: { kind: 'clinician' } });
+    } else if (role === 'lodging') {
+      // A layover spot or hotel owner has no athlete profile either: straight to the lodging profile.
+      router.replace({ pathname: '/producer', params: { kind: 'lodging' } });
     } else if (role === 'producer') {
       router.replace('/(tabs)');
     } else {

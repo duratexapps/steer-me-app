@@ -1,7 +1,7 @@
 import type { EventWithProducer } from '@/src/hooks/useEvents';
 import type { TownDistanceMap } from '@/src/hooks/useTownDistances';
 import type { Hotspot } from '@/src/hooks/useHotspots';
-import { isEventStillUpcoming } from '@/src/lib/date';
+import { isEventStillUpcoming, isFeatured } from '@/src/lib/date';
 
 // Real ask, directly from the user: "Users should be able to sort by state
 // or dates (within a week, within a month etc)... Regardless they should
@@ -170,7 +170,7 @@ export function applyEventFilters(
   hotspots: Hotspot[] = []
 ): EventWithProducer[] {
   const activeHotspot = filters.hotspot ? hotspots.find((h) => h.id === filters.hotspot) ?? null : null;
-  return events.filter((event) => {
+  const matches = events.filter((event) => {
     if (!filters.showPast && !isEventStillUpcoming(event.event_date, event.event_end_date)) {
       return false;
     }
@@ -203,4 +203,9 @@ export function applyEventFilters(
     }
     return true;
   });
+  // Paid Featured clinics lead the Clinics & schools list; everything else keeps its date order.
+  if (filters.type === 'clinic') {
+    return [...matches.filter((e) => isFeatured(e.featured_until)), ...matches.filter((e) => !isFeatured(e.featured_until))];
+  }
+  return matches;
 }

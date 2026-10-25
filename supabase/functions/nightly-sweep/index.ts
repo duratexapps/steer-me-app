@@ -207,6 +207,34 @@ Deno.serve(async (req) => {
     if (real.length && !reviewed) urgent.push('First web (Stripe) subscriber(s) now exist: open Stripe > Tax and check whether it flags a registration or any location needing attention, then tell Claude it is reviewed so this reminder stops.');
   });
 
+  // 13 pending verifications and owner-submitted layover listings. An instructor or layover/hotel owner cannot go live until
+  // someone verifies the profile (and, for lodging, approves each listing and adds its coordinates). RUNBOOK has the steps.
+  await check('13. Pending verifications', async () => {
+    const prof = await q(admin.from('producer_profiles').select('org_name,created_at,is_clinician,is_lodging').eq('verification_status', 'pending').order('created_at'));
+    const spots = await q(admin.from('layover_spots').select('name,state').eq('review_status', 'pending').order('name'));
+    const kind = (x: Row) => (x.is_lodging ? 'layover/hotel' : x.is_clinician ? 'instructor' : 'producer');
+    lines.push(`13. Waiting on you: ${prof.length || spots.length ? 'ATTENTION' : 'clear'} - ${prof.length} profile(s) to verify${prof.length ? ' (' + prof.slice(0, 6).map((x) => `${x.org_name}, ${kind(x)}, ${ago(x.created_at)}`).join('; ') + ')' : ''}; ${spots.length} layover listing(s) to approve${spots.length ? ' (' + spots.slice(0, 6).map((x) => `${x.name}, ${x.state}`).join('; ') + ')' : ''}`);
+    if (prof.length) urgent.push(`${prof.length} producer, instructor or layover/hotel profile(s) waiting for verification (oldest ${ago(prof[0].created_at)})`);
+    if (spots.length) urgent.push(`${spots.length} owner-submitted layover listing(s) waiting for approval (set lat/lng and review_status='approved')`);
+  });
+
+  // 14 featured listing purchases. A paid purchase should always have lifted featured_until; a pending one older than a day
+  // is an abandoned checkout (harmless). Read-only: refunds and fixes are done by hand (RUNBOOK).
+  await check('14. Featured listings', async () => {
+    const on = (await q(admin.from('app_settings').select('value').eq('key', 'featured_listings_enabled')))[0]?.value === true;
+    const rows = await q(admin.from('featured_purchases').select('target_type,target_id,status,paid_at,created_at'));
+    const week = rows.filter((x) => x.status === 'paid' && hoursSince(x.paid_at) < 7 * 24);
+    const missing: string[] = [];
+    for (const r of rows.filter((x) => x.status === 'paid')) {
+      const t = r.target_type === 'event' ? 'events' : 'layover_spots';
+      const hit = (await q(admin.from(t).select('featured_until').eq('id', r.target_id)))[0];
+      if (!hit?.featured_until || new Date(hit.featured_until).getTime() < new Date(r.paid_at).getTime()) missing.push(`${r.target_type} ${r.target_id}`);
+    }
+    lines.push(`14. Featured listings (${on ? 'on' : 'off'}): ${rows.filter((x) => x.status === 'paid').length} paid in total, ${week.length} in the last 7 days; ${missing.length ? 'ATTENTION - paid but not featured: ' + missing.join(', ') : 'every paid purchase is live'}`);
+    if (missing.length) urgent.push(`${missing.length} paid featured purchase(s) have no matching featured_until - check the Stripe webhook log`);
+    if (week.length) urgent.push(`${week.length} featured listing(s) bought in the last 7 days - FYI, nothing to do unless one needs a refund`);
+  });
+
   const when = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' });
   const subject = urgent.length
     ? `${urgent.some((u) => u.startsWith('URGENT')) ? 'URGENT - ' : ''}Steer Me nightly check: ${urgent.length} item(s) need attention`

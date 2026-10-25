@@ -549,5 +549,9 @@ verify_jwt = false
 [functions.stripe-portal]
 verify_jwt = false
 
+# Featured listings (migration 0109): the browser calls it, it checks the caller and the listing's owner itself.
+[functions.stripe-featured-checkout]
+verify_jwt = false
+
 [functions.stripe-webhook]
 verify_jwt = false

@@ -9,6 +9,7 @@ import { MembersGate } from '@/src/components/MembersGate';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { supabase } from '@/src/lib/supabase';
 import { logFeature } from '@/src/lib/feature-log';
+import { isFeatured } from '@/src/lib/date';
 
 // Layover finder: where to stop overnight with horses on a haul, and whether the stop has RV hookups. Free for
 // registered members (the database requires a signed-in user to read layover_spots). Every listing is curated data
@@ -18,17 +19,18 @@ import { logFeature } from '@/src/lib/feature-log';
 // Usage is logged anonymously on the website only (see src/lib/feature-log.ts).
 
 type Spot = {
-  id: string; name: string; kind: 'fairgrounds' | 'equestrian_center' | 'boarding_barn' | 'arena' | 'campground';
+  id: string; name: string; kind: 'fairgrounds' | 'equestrian_center' | 'boarding_barn' | 'arena' | 'campground' | 'hotel';
   state: string; city: string; address: string | null; lat: number; lng: number; phone: string | null; website: string | null;
   has_stalls: boolean; has_pens: boolean; housing_detail: string | null; rv_hookups: boolean; rv_detail: string | null;
   requirements: string | null; season_note: string | null; notes: string | null;
+  featured_until: string | null;
   verification: 'unverified' | 'confirmed'; confirmed_on: string | null; source_name: string; source_url: string; verified_on: string;
 };
 type StateRow = { code: string; name: string };
 
 const REPORT_EMAIL = 'ropingtools@duratex-ie.com';
 const KIND_LABEL: Record<Spot['kind'], string> = {
-  fairgrounds: 'Fairgrounds', equestrian_center: 'Equestrian center', boarding_barn: 'Horse motel / barn', arena: 'Arena', campground: 'RV park with horses',
+  fairgrounds: 'Fairgrounds', equestrian_center: 'Equestrian center', boarding_barn: 'Horse motel / barn', arena: 'Arena', campground: 'RV park with horses', hotel: 'Hotel',
 };
 
 // Rough state centers, used only to put stops in travel order along the line from where you start to where you finish.
@@ -79,9 +81,11 @@ function useSpots() {
     queryKey: ['layover-spots'],
     staleTime: 10 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.from('layover_spots').select('*');
+      // Owner-submitted listings are visible to their owner while pending (RLS), and have no coordinates until approved,
+      // so the finder only takes approved ones.
+      const { data, error } = await supabase.from('layover_spots').select('*').eq('review_status', 'approved');
       if (error) throw error;
-      return (data as Spot[]).map((s) => ({ ...s, lat: Number(s.lat), lng: Number(s.lng) }));
+      return (data as Spot[]).filter((s) => s.lat != null && s.lng != null).map((s) => ({ ...s, lat: Number(s.lat), lng: Number(s.lng) }));
     },
   });
 }
@@ -99,8 +103,9 @@ function StateGrid({ states, selected, onToggle }: { states: StateRow[]; selecte
 function SpotCard({ spot, onAction }: { spot: Spot; onAction: (event: string) => void }) {
   const housing = [spot.has_stalls ? 'Stalls' : null, spot.has_pens ? 'Pens / corrals' : null].filter(Boolean).join(' and ');
   return (
-    <View style={styles.spot}>
+    <View style={[styles.spot, isFeatured(spot.featured_until) && styles.spotFeatured]}>
       <View style={styles.spotHead}>
+        {isFeatured(spot.featured_until) ? <Text style={[styles.badge, styles.featuredBadge]}>Featured</Text> : null}
         <Text style={styles.badge}>{KIND_LABEL[spot.kind]}</Text>
         <Text style={styles.spotName}>{spot.name}</Text>
       </View>
@@ -142,15 +147,17 @@ function SpotCard({ spot, onAction }: { spot: Spot; onAction: (event: string) =>
         <Pressable style={styles.action} onPress={() => { onAction('spot_directions'); Linking.openURL(mapsUrl(spot.address && /\d/.test(spot.address) ? `${spot.name}, ${spot.address}` : `${spot.name}, ${spot.city}, ${spot.state}`)); }}>
           <Text style={styles.actionText}>Map</Text>
         </Pressable>
-        <Pressable
-          style={styles.action}
-          onPress={() => {
-            onAction('spot_hotels');
-            Linking.openURL(`https://www.google.com/maps/search/hotels/@${spot.lat},${spot.lng},13z`);
-          }}
-        >
-          <Text style={styles.actionText}>Hotels nearby</Text>
-        </Pressable>
+        {spot.kind !== 'hotel' ? (
+          <Pressable
+            style={styles.action}
+            onPress={() => {
+              onAction('spot_hotels');
+              Linking.openURL(`https://www.google.com/maps/search/hotels/@${spot.lat},${spot.lng},13z`);
+            }}
+          >
+            <Text style={styles.actionText}>Hotels nearby</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -201,6 +208,10 @@ function Layovers() {
     const t = (s: Spot) => (s.lng - a[1]) * k * vx + (s.lat - a[0]) * vy;
     return list.sort((x, y) => t(x) - t(y));
   }, [ready, spots.data, routeStates, rv, from, to]);
+
+  // Paid-for featured stops sit in their own block above the route; the rest stay in travel order.
+  const featuredStops = useMemo(() => ordered.filter((s) => isFeatured(s.featured_until)), [ordered]);
+  const regularStops = useMemo(() => ordered.filter((s) => !isFeatured(s.featured_until)), [ordered]);
 
   const withoutListings = routeStates.filter((st) => !ordered.some((s) => s.state === st));
   const season = new Date().getMonth();
@@ -298,10 +309,21 @@ function Layovers() {
               <Text style={styles.detail}>No place with RV hookups is listed in {routeStates.map((c) => stateName(c)).join(', ')} yet. Try "No, just the horses", or tell us about one below.</Text>
             ) : null}
 
-            {ordered.map((s, i) => (
+            {featuredStops.length ? (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={styles.featuredHead}>Featured stops</Text>
+                {featuredStops.map((s) => (
+                  <View key={s.id} style={{ marginBottom: 6 }}>
+                    <SpotCard spot={s} onAction={(e) => log(e, { spot: s.name, featured: true })} />
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {regularStops.map((s, i) => (
               <View key={s.id}>
                 {i > 0 ? (
-                  <Text style={styles.gap}>about {Math.round(miles(ordered[i - 1], s))} mi straight-line from the stop above</Text>
+                  <Text style={styles.gap}>about {Math.round(miles(regularStops[i - 1], s))} mi straight-line from the stop above</Text>
                 ) : null}
                 <SpotCard spot={s} onAction={(e) => log(e, { spot: s.name })} />
               </View>
@@ -394,6 +416,9 @@ const styles = StyleSheet.create({
   spot: { backgroundColor: colors.tanLight, borderWidth: 1, borderColor: colors.saddle, borderRadius: radii.md, padding: 14, marginBottom: 6 },
   spotHead: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   spotName: { flexShrink: 1, fontFamily: fonts.bodyBold, fontSize: 16, color: colors.espresso },
+  featuredBadge: { backgroundColor: colors.espresso },
+  spotFeatured: { borderColor: colors.brass, borderWidth: 2 },
+  featuredHead: { fontFamily: fonts.bodyBold, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: colors.brass, marginBottom: 6 },
   badge: { fontFamily: fonts.bodyBold, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, paddingVertical: 3, paddingHorizontal: 8, borderRadius: radii.pill, overflow: 'hidden', backgroundColor: colors.brass, color: colors.bone },
   where: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.brass, marginTop: 6 },
   detail: { fontFamily: fonts.body, fontSize: 13.5, color: colors.espresso, lineHeight: 19, marginTop: 6 },

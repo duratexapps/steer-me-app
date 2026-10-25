@@ -83,6 +83,8 @@ export type EventRow = {
   is_clinic: boolean;
   // Discipline of a clinic that is NOT team roping (migration 0108); null = team roping. Shown as a note at the top of the tile.
   clinic_discipline: string | null;
+  // Paid Featured placement (migration 0109): a clinic is featured while this is in the future.
+  featured_until: string | null;
 };
 
 export const CLINIC_DISCIPLINES = ['Tie-down roping', 'Breakaway roping', 'Big loop / ranch roping'] as const;
@@ -223,8 +225,9 @@ export function useCreateEvent() {
       is_clinic?: boolean;
       clinic_discipline?: string | null;
     }) => {
-      const { error } = await supabase.from('events').insert(input);
+      const { data, error } = await supabase.from('events').insert(input).select('id').single();
       if (error) throw error;
+      return data.id as string;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });

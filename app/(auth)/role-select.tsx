@@ -36,7 +36,7 @@ export default function RoleSelect() {
         <Text style={styles.eyebrow}>Get started</Text>
         <Text style={styles.h2}>How will you use Steer Me?</Text>
         <Text style={styles.helper}>
-          You can add the other role later from your Profile or Producer dashboard - this just decides
+          You can add the other role later from your Profile or the business card on Home - this just decides
           where to start.
         </Text>
 
@@ -57,6 +57,12 @@ export default function RoleSelect() {
           title="I teach clinics or schools"
           description="List your clinics and schools for ropers to find - no athlete profile required"
           onPress={() => router.push({ pathname: '/(auth)/create-account', params: { role: 'clinician' } })}
+        />
+        <ActionTile
+          icon="bed-outline"
+          title="I own a layover spot or hotel"
+          description="List where ropers can stop with horses and rigs - no athlete profile required"
+          onPress={() => router.push({ pathname: '/(auth)/create-account', params: { role: 'lodging' } })}
         />
         <ActionTile
           icon="people-outline"

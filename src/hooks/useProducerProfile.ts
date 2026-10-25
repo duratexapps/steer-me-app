@@ -12,6 +12,8 @@ export type ProducerProfile = {
   verification_status: 'pending' | 'verified' | 'rejected';
   // Instructor who teaches clinics and schools (migration 0107). Their events are always clinics.
   is_clinician: boolean;
+  // Layover spot or hotel owner (migration 0109). Lists spots, never events.
+  is_lodging: boolean;
 };
 
 export function useMyProducerProfile() {

@@ -11,7 +11,7 @@ export type HelpTopic = {
 export const HELP_CONTENT: Record<string, HelpTopic> = {
   'role-select': {
     title: 'Getting started',
-    body: "Choose Athlete if you're here to find a roping partner, Producer if you're only listing events, or Both. You can always add the other role later from Profile or your Producer dashboard.",
+    body: "Choose Athlete if you're here to find a roping partner, Producer if you're only listing events, or Both. Teach clinics, or own a layover spot or hotel? Pick that one. You can always add the other role later from Profile or the business card on Home.",
   },
   'create-account': {
     title: 'Create your account',
@@ -27,7 +27,7 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
   },
   home: {
     title: 'Home',
-    body: "Your home base. Browse events, browse eligible ropers, post that you need a partner, check your requests, or jump into your Producer dashboard - all from here.",
+    body: "Your home base. Browse events, browse eligible ropers, post that you need a partner, check your requests, or jump into your business dashboard - all from here.",
   },
   browse: {
     title: 'Browse partners',
@@ -82,8 +82,8 @@ export const HELP_CONTENT: Record<string, HelpTopic> = {
     body: "Browse real events posted by producers. Mark yourself attending a division to see other eligible partners going to that same event, and rate an event once it has passed.\n\nOnline entry, automatic team numbers, and live round results only show up for events the producer runs on Draw Pro - you'll see a note on the event card when that's not the case. See \"Online entry & live results\" in Browse all topics for more.",
   },
   producer: {
-    title: 'Producer dashboard',
-    body: 'Set up verification once, then create and manage your event listings. Producer accounts are separate from your athlete profile, and you can hold both.',
+    title: 'Business dashboard',
+    body: 'Set up verification once, then create and manage your event, clinic or layover listings. Business accounts (producer, instructor, layover spot or hotel) are separate from your athlete profile, and you can hold both.',
   },
   'create-event': {
     title: 'Create an event',

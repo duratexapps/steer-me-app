@@ -24,6 +24,8 @@ import { useMyProducerProfile } from '@/src/hooks/useProducerProfile';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
+import { FeaturedToggle } from '@/src/components/FeaturedOption';
+import { goToCheckout, startFeaturedCheckout } from '@/src/lib/featured';
 
 // Divisions are picked from the exact same option set as Post a Need
 // (DIVISION_OPTIONS) rather than typed in as free text - a producer can no
@@ -70,6 +72,8 @@ export default function CreateEvent() {
   const [entryMethod, setEntryMethod] = useState<'text' | 'call' | null>(null);
   const [entryPhone, setEntryPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Clinics only: pay to feature the listing (website only; the toggle renders nothing elsewhere or while featuring is off).
+  const [wantFeatured, setWantFeatured] = useState(false);
 
   function toggleDivision(d: number) {
     setDivisions((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
@@ -105,7 +109,7 @@ export default function CreateEvent() {
 
     setSubmitting(true);
     try {
-      await createEvent.mutateAsync({
+      const eventId = await createEvent.mutateAsync({
         name: name.trim(),
         event_date: date,
         event_end_date: endDate,
@@ -122,6 +126,17 @@ export default function CreateEvent() {
         entry_method: entryMethod,
         entry_phone: entryMethod ? entryPhone.trim() || null : null,
       });
+      if (clinic && wantFeatured) {
+        try {
+          showToast(`"${name.trim()}" saved - taking you to checkout`);
+          goToCheckout(await startFeaturedCheckout('event', eventId));
+          return;
+        } catch (err) {
+          showToast(err instanceof Error ? err.message : "Saved, but we couldn't start checkout. Open it from your dashboard to feature it.");
+          router.back();
+          return;
+        }
+      }
       showToast(`"${name.trim()}" posted`);
       router.back();
     } catch (err) {
@@ -263,6 +278,8 @@ export default function CreateEvent() {
             </>
           )}
         </Pressable>
+
+        {clinic ? <FeaturedToggle target="event" value={wantFeatured} onToggle={() => setWantFeatured((v) => !v)} /> : null}
 
         <Button label={clinic ? 'Post clinic or school' : 'Post event'} onPress={handleSubmit} loading={submitting} style={{ marginTop: 8 }} />
       </ScrollView>

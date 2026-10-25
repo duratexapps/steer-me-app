@@ -75,3 +75,8 @@ export function relativeTime(timestampMs: number): string {
   if (diffHr < 24) return `${diffHr} hr ago`;
   return new Date(timestampMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
+
+// A paid Featured placement (migration 0109) is live while its featured_until timestamp is in the future.
+export function isFeatured(until: string | null | undefined): boolean {
+  return !!until && new Date(until).getTime() > Date.now();
+}

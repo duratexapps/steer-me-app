@@ -40,6 +40,11 @@ Deno.serve(async (req) => {
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
+        // A paid featured-listing purchase (migration 0109) is a one-time payment, not a subscription.
+        if (obj.metadata?.kind === 'featured') {
+          await activateFeatured(admin, obj);
+          break;
+        }
         // Links the Stripe customer / subscription to the Steer Me user. The subscription events below carry the
         // real status; this just makes sure the link exists even if they arrive first.
         const userId = obj.client_reference_id as string | null;
@@ -118,4 +123,34 @@ async function syncSubscription(admin: Admin, sub: any, eventCreated: number, fa
     last_event_at: new Date(eventCreated * 1000).toISOString(),
   });
   if (error) throw error;
+}
+
+// A featured-listing payment completed: mark the purchase paid and extend the listing's featured_until by the days
+// that were bought (stacking on any time still remaining). Safe to run twice for the same session (Stripe retries):
+// a purchase that is already paid is left alone.
+async function activateFeatured(admin: Admin, session: any) {
+  const purchaseId = session.metadata?.purchase_id as string | undefined;
+  // 'no_payment_required' is a 100%-off promotion code: nothing was charged, but the purchase is still honored.
+  if (!purchaseId || (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required')) return;
+
+  const { data: purchase } = await admin.from('featured_purchases').select('*').eq('id', purchaseId).maybeSingle();
+  if (!purchase) {
+    console.error('Featured purchase not found', purchaseId);
+    return;
+  }
+  if (purchase.status === 'paid') return;
+
+  const table = purchase.target_type === 'event' ? 'events' : 'layover_spots';
+  const { data: target } = await admin.from(table).select('featured_until').eq('id', purchase.target_id).maybeSingle();
+  const now = Date.now();
+  const current = target?.featured_until ? new Date(target.featured_until).getTime() : 0;
+  const until = new Date(Math.max(now, current) + purchase.days * 24 * 60 * 60 * 1000).toISOString();
+
+  const { error: updError } = await admin.from(table).update({ featured_until: until }).eq('id', purchase.target_id);
+  if (updError) throw updError;
+  const { error: payError } = await admin
+    .from('featured_purchases')
+    .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_session_id: session.id })
+    .eq('id', purchaseId);
+  if (payError) throw payError;
 }

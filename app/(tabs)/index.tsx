@@ -99,10 +99,10 @@ export default function Home() {
         ) : (
           <View style={styles.hero}>
             <Text style={styles.greet}>Welcome</Text>
-            <Text style={styles.who}>{hasProducerProfile ? 'Producer account' : 'Your account'}</Text>
+            <Text style={styles.who}>{hasProducerProfile ? 'Business account' : 'Your account'}</Text>
             <Text style={styles.role}>
               {hasProducerProfile
-                ? "You haven't set up an athlete profile yet - you're using Steer Me as a producer only."
+                ? "You haven't set up an athlete profile yet - you're using Steer Me for your business only."
                 : 'Set up a profile to get started.'}
             </Text>
           </View>
@@ -188,9 +188,11 @@ export default function Home() {
           <View style={{ width: tileWidth }}>
             <ActionTile
               icon="pricetag-outline"
-              title={hasProducerProfile ? 'Producer dashboard' : 'Producer tools'}
+              title={hasProducerProfile ? 'Business dashboard' : 'List your business'}
               description={
-                hasProducerProfile ? 'Manage your events' : 'Set up a producer profile to list your own events'
+                hasProducerProfile
+                  ? 'Manage your events, clinics or listings'
+                  : 'Producers, clinic instructors, layover spots and hotels: set up a free listing'
               }
               onPress={() => router.push('/producer')}
             />
