@@ -196,7 +196,11 @@ export function EventCard({
   return (
     <>
     <View style={styles.card}>
-      {event.is_clinic ? <Text style={styles.clinicBadge}>CLINIC OR SCHOOL</Text> : null}
+      {event.is_clinic ? (
+        <Text style={styles.clinicBadge}>
+          {event.clinic_discipline ? `CLINIC OR SCHOOL · ${event.clinic_discipline.toUpperCase()}` : 'CLINIC OR SCHOOL'}
+        </Text>
+      ) : null}
       <Text style={styles.name}>{event.name}</Text>
       <Text style={styles.producerLine}>
         {event.producer_org_name ?? 'Posted via Draw Pro'} · {formatDateRangeDisplay(event.event_date, event.event_end_date)}

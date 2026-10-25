@@ -18,7 +18,7 @@ import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
-import { useCreateAdminEvent, buildDivisionDetailsPayload } from '@/src/hooks/useEvents';
+import { useCreateAdminEvent, buildDivisionDetailsPayload, CLINIC_DISCIPLINES } from '@/src/hooks/useEvents';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
@@ -62,6 +62,8 @@ export default function AdminPostEvent() {
   const [divisions, setDivisions] = useState<number[]>([]);
   // Clinic or school (migration 0106): no classes, no partners; listed only under Clinics & schools.
   const [isClinic, setIsClinic] = useState(false);
+  // Null = team roping; only the other disciplines get a note on the tile.
+  const [clinicDiscipline, setClinicDiscipline] = useState<string | null>(null);
   // NEW, added 2026-07-30 alongside migration 0041 - see create-event.tsx's
   // matching comment.
   const [divisionDetails, setDivisionDetails] = useState<Record<string, string>>({});
@@ -154,6 +156,7 @@ export default function AdminPostEvent() {
         // A clinic carries the one-placeholder divisions array (same convention as round-robin ropings).
         divisions: isClinic ? [19] : divisions,
         is_clinic: isClinic,
+        clinic_discipline: isClinic ? clinicDiscipline : null,
         description: description.trim() || 'No description provided.',
         flier_path: flierPath,
         external_producer_name: producerName.trim(),
@@ -204,6 +207,17 @@ export default function AdminPostEvent() {
           value={isClinic}
           onToggle={() => setIsClinic((v) => !v)}
         />
+        {isClinic ? (
+          <>
+            <Text style={styles.label}>Discipline</Text>
+            <View style={styles.pillWrap}>
+              <Pill label="Team roping" selected={clinicDiscipline === null} onPress={() => setClinicDiscipline(null)} />
+              {CLINIC_DISCIPLINES.map((d) => (
+                <Pill key={d} label={d} selected={clinicDiscipline === d} onPress={() => setClinicDiscipline(d)} />
+              ))}
+            </View>
+          </>
+        ) : null}
         <TextField label={isClinic ? 'Instructor or school name' : 'Producer name'} value={producerName} onChangeText={setProducerName} placeholder={isClinic ? 'e.g. Jane Doe Roping School' : 'e.g. Circle T Ropings'} />
         <TextField label="Event name" value={name} onChangeText={setName} placeholder="e.g. Fall Qualifier" />
         <DateField label={endDate ? 'Start date' : 'Date'} value={date} onChange={setDate} minimumDate={new Date()} />

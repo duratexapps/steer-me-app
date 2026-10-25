@@ -19,7 +19,7 @@ import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { uploadUserFile } from '@/src/lib/storage-upload';
 import type { PickedImage } from '@/src/lib/image-picker';
-import { useCreateEvent, buildDivisionDetailsPayload } from '@/src/hooks/useEvents';
+import { useCreateEvent, buildDivisionDetailsPayload, CLINIC_DISCIPLINES } from '@/src/hooks/useEvents';
 import { useMyProducerProfile } from '@/src/hooks/useProducerProfile';
 import { DIVISION_OPTIONS, OPEN_CAP } from '@/src/lib/matching';
 import { showToast } from '@/src/state/toast-store';
@@ -36,6 +36,8 @@ export default function CreateEvent() {
   // Clinics & schools. The database forces that regardless of what is sent.
   const { data: producerProfile } = useMyProducerProfile();
   const clinic = !!producerProfile?.is_clinician;
+  // Null = team roping; other disciplines get a note at the top of the tile.
+  const [clinicDiscipline, setClinicDiscipline] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const [date, setDate] = useState<string | null>(null);
@@ -111,6 +113,7 @@ export default function CreateEvent() {
         entry_fee: fee.trim() || 'See listing',
         divisions: clinic ? [19] : divisions,
         is_clinic: clinic,
+        clinic_discipline: clinic ? clinicDiscipline : null,
         description: description.trim() || 'No description provided.',
         flier_path: flierPath,
         division_details: clinic ? null : buildDivisionDetailsPayload(divisions, divisionDetails),
@@ -138,6 +141,17 @@ export default function CreateEvent() {
           reaching the Pressable's onPress. */}
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <TextField label={clinic ? 'Clinic or school name' : 'Event name'} value={name} onChangeText={setName} placeholder={clinic ? 'e.g. Two-Day Heeling School' : 'e.g. Fall Qualifier'} />
+        {clinic ? (
+          <>
+            <Text style={styles.label}>What do you teach?</Text>
+            <View style={styles.pillWrap}>
+              <Pill label="Team roping" selected={clinicDiscipline === null} onPress={() => setClinicDiscipline(null)} />
+              {CLINIC_DISCIPLINES.map((d) => (
+                <Pill key={d} label={d} selected={clinicDiscipline === d} onPress={() => setClinicDiscipline(d)} />
+              ))}
+            </View>
+          </>
+        ) : null}
         <DateField label={endDate ? 'Start date' : 'Date'} value={date} onChange={setDate} minimumDate={new Date()} />
 
         {/* NEW, added 2026-07-29 alongside migration 0039 - real ask: "sometimes

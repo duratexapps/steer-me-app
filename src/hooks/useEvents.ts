@@ -81,7 +81,11 @@ export type EventRow = {
   // flier). Not a jackpot: no classes, partners or attendance, and kept out of the main Events list; it only shows
   // under the "Clinics & schools" chip. See event-filters.ts and EventCard.tsx.
   is_clinic: boolean;
+  // Discipline of a clinic that is NOT team roping (migration 0108); null = team roping. Shown as a note at the top of the tile.
+  clinic_discipline: string | null;
 };
+
+export const CLINIC_DISCIPLINES = ['Tie-down roping', 'Breakaway roping', 'Big loop / ranch roping'] as const;
 
 export type EventWithProducer = EventRow & {
   producer_org_name: string | null;
@@ -217,6 +221,7 @@ export function useCreateEvent() {
       entry_phone?: string | null;
       // A clinician's events are always clinics (the database enforces it regardless; migration 0107).
       is_clinic?: boolean;
+      clinic_discipline?: string | null;
     }) => {
       const { error } = await supabase.from('events').insert(input);
       if (error) throw error;
@@ -263,6 +268,7 @@ export function useCreateAdminEvent() {
       entry_phone?: string | null;
       // Clinic or school listing (migration 0106). Uses the one-placeholder divisions array.
       is_clinic?: boolean;
+      clinic_discipline?: string | null;
     }) => {
       const { error } = await supabase.from('events').insert({
         ...input,
