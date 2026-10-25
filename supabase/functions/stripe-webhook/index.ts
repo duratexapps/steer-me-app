@@ -140,17 +140,28 @@ async function activateFeatured(admin: Admin, session: any) {
   }
   if (purchase.status === 'paid') return;
 
-  const table = purchase.target_type === 'event' ? 'events' : 'layover_spots';
-  const { data: target } = await admin.from(table).select('featured_until').eq('id', purchase.target_id).maybeSingle();
-  const now = Date.now();
-  const current = target?.featured_until ? new Date(target.featured_until).getTime() : 0;
-  const until = new Date(Math.max(now, current) + purchase.days * 24 * 60 * 60 * 1000).toISOString();
-
-  const { error: updError } = await admin.from(table).update({ featured_until: until }).eq('id', purchase.target_id);
-  if (updError) throw updError;
-  const { error: payError } = await admin
+  // Claim the purchase first, atomically (pending -> paid). Stripe can deliver this event twice, even at the same moment;
+  // only the delivery that wins the claim extends featured_until, so the days are never added twice.
+  const { data: claimed, error: claimError } = await admin
     .from('featured_purchases')
     .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_session_id: session.id })
-    .eq('id', purchaseId);
-  if (payError) throw payError;
+    .eq('id', purchaseId)
+    .eq('status', 'pending')
+    .select('id');
+  if (claimError) throw claimError;
+  if (!claimed || claimed.length === 0) return;
+
+  const table = purchase.target_type === 'event' ? 'events' : 'layover_spots';
+  try {
+    const { data: target } = await admin.from(table).select('featured_until').eq('id', purchase.target_id).maybeSingle();
+    const now = Date.now();
+    const current = target?.featured_until ? new Date(target.featured_until).getTime() : 0;
+    const until = new Date(Math.max(now, current) + purchase.days * 24 * 60 * 60 * 1000).toISOString();
+    const { error: updError } = await admin.from(table).update({ featured_until: until }).eq('id', purchase.target_id);
+    if (updError) throw updError;
+  } catch (err) {
+    // Put the purchase back so Stripe's retry (we return 500) can try again.
+    await admin.from('featured_purchases').update({ status: 'pending', paid_at: null }).eq('id', purchaseId);
+    throw err;
+  }
 }

@@ -9,12 +9,10 @@ import { ToggleRow } from '@/src/components/ui/ToggleRow';
 import { Pill } from '@/src/components/ui/Pill';
 import { Button } from '@/src/components/ui/Button';
 import { DividerNote } from '@/src/components/ui/DividerNote';
-import { FeaturedToggle } from '@/src/components/FeaturedOption';
 import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
-import { goToCheckout, startFeaturedCheckout } from '@/src/lib/featured';
 import { useMyProducerProfile } from '@/src/hooks/useProducerProfile';
 import { useSubmitLayoverListing, type LayoverKind } from '@/src/hooks/useLayoverListings';
 
@@ -48,7 +46,6 @@ export default function CreateLayover() {
   // null = not answered yet; hotels must answer.
   const [parkingSecure, setParkingSecure] = useState<boolean | null>(null);
   const [parkingDetail, setParkingDetail] = useState('');
-  const [wantFeatured, setWantFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const isHotel = kind === 'hotel';
@@ -73,7 +70,7 @@ export default function CreateLayover() {
     }
     setSaving(true);
     try {
-      const id = await submit.mutateAsync({
+      await submit.mutateAsync({
         name: name.trim(),
         kind,
         city,
@@ -91,17 +88,6 @@ export default function CreateLayover() {
         parking_secure: trailerParking ? parkingSecure : null,
         parking_detail: trailerParking ? parkingDetail.trim() : '',
       });
-      if (wantFeatured) {
-        try {
-          showToast(`"${name.trim()}" saved - taking you to checkout`);
-          goToCheckout(await startFeaturedCheckout('layover_spot', id));
-          return;
-        } catch (err) {
-          showToast(err instanceof Error ? err.message : "Saved, but we couldn't start checkout. Open it from your dashboard to feature it.");
-          router.back();
-          return;
-        }
-      }
       showToast(`"${name.trim()}" submitted - we will review it before it goes live`);
       router.back();
     } catch (err) {
@@ -164,8 +150,6 @@ export default function CreateLayover() {
         <TextField label="Anything else ropers should know (optional)" value={notes} onChangeText={setNotes} placeholder="e.g. arrival hours, Coggins required, trailer parking" multiline />
 
         <DividerNote>A listing on Steer Me is not an endorsement by Steer Me. Ropers are told to call ahead and confirm everything with you.</DividerNote>
-
-        <FeaturedToggle target="layover_spot" value={wantFeatured} onToggle={() => setWantFeatured((v) => !v)} />
 
         <Button label="Submit listing" onPress={handleSubmit} loading={saving} style={{ marginTop: 8 }} />
       </ScrollView>

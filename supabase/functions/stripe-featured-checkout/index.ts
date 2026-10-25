@@ -7,7 +7,7 @@
 //  * The price and the number of days come from app_settings (featured_price_clinic_cents / featured_price_stop_cents /
 //    featured_days), never from the caller.
 //  * Only the owner of the listing can buy it: events.producer_id (and the event must be a clinic) or
-//    layover_spots.owner_id. A rejected layover listing cannot be featured.
+//    layover_spots.owner_id. Only a live listing can be featured: a published clinic or an approved layover listing.
 //  * Card only. The price is sent as price_data, so no product has to be created in the Stripe dashboard.
 //
 // Secrets: STRIPE_SECRET_KEY (same one the subscription functions use). Optional: APP_URL.
@@ -67,11 +67,18 @@ serveWithCors(async (req) => {
     if (!ev || ev.producer_id !== user.id || !ev.is_clinic || ev.status === 'removed') {
       return Response.json({ error: "You can only feature your own clinic or school." }, { status: 403 });
     }
+    // Pay only for something that is live. A clinic from an unverified profile stays pending until we verify it.
+    if (ev.status !== 'published') {
+      return Response.json({ error: 'Your clinic can be featured once our team verifies your profile and it goes live.' }, { status: 409 });
+    }
     listingName = ev.name;
   } else {
     const { data: spot } = await admin.from('layover_spots').select('name, owner_id, review_status').eq('id', targetId).maybeSingle();
     if (!spot || spot.owner_id !== user.id || spot.review_status === 'rejected') {
       return Response.json({ error: "You can only feature your own layover spot or hotel." }, { status: 403 });
+    }
+    if (spot.review_status !== 'approved') {
+      return Response.json({ error: 'Your listing can be featured once our team approves it.' }, { status: 409 });
     }
     listingName = spot.name;
   }

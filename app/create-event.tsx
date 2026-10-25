@@ -126,7 +126,7 @@ export default function CreateEvent() {
         entry_method: entryMethod,
         entry_phone: entryMethod ? entryPhone.trim() || null : null,
       });
-      if (clinic && wantFeatured) {
+      if (clinic && wantFeatured && producerProfile?.verification_status === 'verified') {
         try {
           showToast(`"${name.trim()}" saved - taking you to checkout`);
           goToCheckout(await startFeaturedCheckout('event', eventId));
@@ -279,7 +279,7 @@ export default function CreateEvent() {
           )}
         </Pressable>
 
-        {clinic ? <FeaturedToggle target="event" value={wantFeatured} onToggle={() => setWantFeatured((v) => !v)} /> : null}
+        {clinic && producerProfile?.verification_status === 'verified' ? <FeaturedToggle target="event" value={wantFeatured} onToggle={() => setWantFeatured((v) => !v)} /> : null}
 
         <Button label={clinic ? 'Post clinic or school' : 'Post event'} onPress={handleSubmit} loading={submitting} style={{ marginTop: 8 }} />
       </ScrollView>

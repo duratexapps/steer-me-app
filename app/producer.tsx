@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -33,6 +33,12 @@ export default function Producer() {
   const setHasProducerProfile = useSessionStore((s) => s.setHasProducerProfile);
   const { data: producer, isLoading } = useMyProducerProfile();
   const invalidateProducer = useInvalidateProducerProfile();
+  // Stripe sends the buyer back here after a featured-listing checkout.
+  const { featured } = useLocalSearchParams<{ featured?: string }>();
+  useEffect(() => {
+    if (featured === 'success') showToast('Payment received - your listing is featured. It can take a minute to show.');
+    else if (featured === 'cancelled') showToast('Checkout cancelled - you were not charged');
+  }, [featured]);
 
   // hasProducerProfile flips true at session bootstrap, slightly before
   // useMyProducerProfile's own fetch resolves - without this guard, that
@@ -314,7 +320,7 @@ function ProducerDashboard({ producer }: { producer: { org_name: string; verific
               counts={counts}
               producerView
             />
-            {clinician ? <FeatureNowButton target="event" id={e.id} featuredUntil={e.featured_until ?? null} /> : null}
+            {clinician && e.status === 'published' ? <FeatureNowButton target="event" id={e.id} featuredUntil={e.featured_until ?? null} /> : null}
             </View>
           ))
         )}
