@@ -7,6 +7,7 @@
 // creation (coggins_shares_force_expiry trigger) - this function can only
 // ever reveal what a real, still-valid share token points to, nothing more.
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
+import { callerIpScope, checkRateLimit } from '../_shared/rate-limit.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +24,12 @@ Deno.serve(async (req) => {
   const token = new URL(req.url).searchParams.get('token');
   if (!token) {
     return new Response(JSON.stringify({ error: 'Missing token' }), { status: 400, headers: CORS_HEADERS });
+  }
+
+  // Tokens are random UUIDs (guessing one is not feasible), but this endpoint needs no sign-in, so cap lookups per caller anyway:
+  // a staff member scanning a handful of QR codes never gets near 120 an hour.
+  if (!(await checkRateLimit(await callerIpScope(req), 'get_coggins_share', 120, 60))) {
+    return new Response(JSON.stringify({ error: 'Too many requests - try again later.' }), { status: 429, headers: CORS_HEADERS });
   }
 
   try {

@@ -77,6 +77,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Only plain "City, ST" labels are looked up (the form every real event location and home area takes). Anything else -
+    // a long address, free text - is never sent to the paid API or stored; the caller treats null as "distance unknown".
+    const TOWN_FORMAT = /^[\p{L}0-9 .'\u2019&-]{2,60}, [A-Z]{2}$/u;
+    if (typeof townA !== 'string' || typeof townB !== 'string' || !TOWN_FORMAT.test(townA) || !TOWN_FORMAT.test(townB)) {
+      return new Response(JSON.stringify({ miles: null, cached: false, invalid: true }), {
+        headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+      });
+    }
+
     // Canonical, order-independent pair - see file header for why.
     const [origin, destination] = [townA, townB].sort();
 
@@ -104,6 +113,17 @@ Deno.serve(async (req) => {
     const rateLimitScope = await callerIpScope(req);
     const allowed = await checkRateLimit(rateLimitScope, 'get_town_distance', 200, 1440);
     if (!allowed) {
+      return new Response(JSON.stringify({ miles: null, cached: false, error: 'Too many requests - try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Cost ceiling across ALL callers: the per-visitor limit above can be dodged by many addresses, and each paid lookup is
+    // billed. Real use is about 20 new town pairs a day (1,228 since August); 300 a day is a hard stop well above that.
+    const underGlobalCap = await checkRateLimit('global', 'get_town_distance_global', 300, 1440);
+    if (!underGlobalCap) {
+      console.error('[get-town-distance] global daily cap reached - failing soft');
       return new Response(JSON.stringify({ miles: null, cached: false, error: 'Too many requests - try again later.' }), {
         status: 429,
         headers: { ...corsHeaders(), 'Content-Type': 'application/json' },

@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
   let query = '';
   try {
     const body = await req.json();
-    query = typeof body?.query === 'string' ? body.query : '';
+    // A real place name is short; capping the length keeps a scripted caller from making the scan do more work per request.
+    query = typeof body?.query === 'string' ? body.query.slice(0, 60) : '';
   } catch {
     // no body / invalid JSON - treat as empty query
   }
