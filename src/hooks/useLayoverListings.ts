@@ -47,6 +47,10 @@ export type NewLayoverListing = {
   rv_hookups: boolean;
   rv_detail: string;
   notes: string;
+  // Hotels must have trailer parking and say whether it is secure (migration 0110).
+  trailer_parking: boolean | null;
+  parking_secure: boolean | null;
+  parking_detail: string;
 };
 
 // Saves a pending listing through submit_layover_listing (migration 0109) and returns its id.
@@ -68,6 +72,9 @@ export function useSubmitLayoverListing() {
         p_rv_hookups: l.rv_hookups,
         p_rv_detail: l.rv_detail,
         p_notes: l.notes,
+        p_trailer_parking: l.trailer_parking,
+        p_parking_secure: l.parking_secure,
+        p_parking_detail: l.parking_detail,
       });
       if (error) throw error;
       return data as string;

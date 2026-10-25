@@ -18,7 +18,7 @@ export function FeaturedToggle({ target, value, onToggle }: { target: FeaturedTa
   return (
     <ToggleRow
       title={`Feature this listing - ${formatPrice(cents)} for ${pricing.days} days`}
-      description="Featured listings appear first and carry a Featured label. You pay securely with Stripe after the listing is saved."
+      description="Featured listings appear first and carry a Featured label. Featuring is advertising, not an endorsement by Steer Me. You pay securely with Stripe after the listing is saved."
       value={value}
       onToggle={onToggle}
     />

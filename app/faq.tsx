@@ -165,11 +165,11 @@ const SECTIONS: FaqSection[] = [
       },
       {
         q: 'I own a layover spot, horse motel or hotel. Can I list it?',
-        a: "Yes. When you create your account choose I own a layover spot or hotel, or open List your business from Home and pick A layover spot or hotel. After a quick verification (a photo of your sign or a screenshot of your website or business listing works), add your listing with your address, phone, stalls or pens and RV hookups. Our team approves each listing before it appears in the Layover Finder. Listing is free.",
+        a: "Yes. When you create your account choose I own a layover spot or hotel, or open List your business from Home and pick A layover spot or hotel. After a quick verification (a photo of your sign or a screenshot of your website or business listing works), add your listing with your address, phone, stalls or pens and RV hookups. Hotels must have parking for horse trailers, and every owner must say whether that parking is secure; ropers are shown plainly when it is not. Our team approves each listing before it appears in the Layover Finder. Listing is free.",
       },
       {
         q: 'Can I pay to have my clinic, layover spot or hotel featured?',
-        a: "Yes, on the Steer Me website. A featured clinic appears first under Clinics & schools, and a featured layover spot or hotel appears in its own Featured block at the top of the Layover Finder results for its route, both with a Featured label. You pay once through Stripe for a set number of days (the price and length are shown before you pay), and it does not renew on its own. Open your dashboard on steerme.ropingtools.com and tap Feature this listing. Featuring does not change what a listing says, and all listings still go through the same review.",
+        a: "Yes, on the Steer Me website. A featured clinic appears first under Clinics & schools, and a featured layover spot or hotel appears in its own Featured block at the top of the Layover Finder results for its route, both with a Featured label. You pay once through Stripe for a set number of days (the price and length are shown before you pay), and it does not renew on its own. Open your dashboard on steerme.ropingtools.com and tap Feature this listing. Featuring is advertising only: a listing on Steer Me, featured or not, is not an endorsement by Steer Me. Featuring does not change what a listing says, and all listings still go through the same review.",
       },
       {
         q: "I list events on Steer Me. Is that the same thing as Draw Pro?",

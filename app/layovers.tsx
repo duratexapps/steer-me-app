@@ -24,6 +24,7 @@ type Spot = {
   has_stalls: boolean; has_pens: boolean; housing_detail: string | null; rv_hookups: boolean; rv_detail: string | null;
   requirements: string | null; season_note: string | null; notes: string | null;
   featured_until: string | null;
+  trailer_parking: boolean | null; parking_secure: boolean | null; parking_detail: string | null;
   verification: 'unverified' | 'confirmed'; confirmed_on: string | null; source_name: string; source_url: string; verified_on: string;
 };
 type StateRow = { code: string; name: string };
@@ -119,10 +120,20 @@ function SpotCard({ spot, onAction }: { spot: Spot; onAction: (event: string) =>
       ) : spot.rv_detail ? (
         <Text style={styles.detail}><Text style={styles.bold}>RV: </Text>{spot.rv_detail}</Text>
       ) : null}
+      {spot.trailer_parking ? (
+        <Text style={styles.detail}>
+          <Text style={styles.bold}>Trailer parking: </Text>
+          {spot.parking_secure === false ? <Text style={styles.warn}>NOT secure. Park at your own risk. </Text> : spot.parking_secure ? 'Secure. ' : ''}
+          {spot.parking_detail ?? ''}
+        </Text>
+      ) : null}
       {spot.requirements ? <Text style={styles.detail}><Text style={styles.bold}>Good to know: </Text>{spot.requirements}</Text> : null}
       {spot.season_note ? <Text style={styles.detail}><Text style={styles.bold}>Timing: </Text>{spot.season_note}</Text> : null}
       {spot.notes ? <Text style={styles.detail}>{spot.notes}</Text> : null}
 
+      {spot.source_name === 'Submitted by the owner' ? (
+        <Text style={styles.src}>Submitted by the owner. A listing on Steer Me is not an endorsement by Steer Me.</Text>
+      ) : null}
       <Text style={spot.verification === 'confirmed' ? styles.confirmed : styles.callAhead}>
         {spot.verification === 'confirmed' && spot.confirmed_on
           ? `Confirmed with the facility ${fmtDate(spot.confirmed_on)}`
@@ -295,7 +306,7 @@ function Layovers() {
             <View style={styles.notice}>
               <Text style={styles.noticeTitle}>Please read first</Text>
               <Text style={styles.noticeText}>
-                We pulled these together from public listings so you do not have to search for them one by one. Listings can be out of date: stalls fill up for events, prices change, and outbreaks such as EHV can close them to travelers. Call ahead and ask about stalls, hay and bedding, whether they need a Coggins or health certificate, and your arrival time. Distances are straight-line, not driving. Steer Me does not book or guarantee any stop.
+                We pulled these together from public listings so you do not have to search for them one by one. Listings can be out of date: stalls fill up for events, prices change, and outbreaks such as EHV can close them to travelers. Call ahead and ask about stalls, hay and bedding, whether they need a Coggins or health certificate, and your arrival time. Distances are straight-line, not driving. Steer Me does not book or guarantee any stop, and a listing on Steer Me is not an endorsement.
               </Text>
             </View>
 
@@ -427,6 +438,7 @@ const styles = StyleSheet.create({
   address: { fontFamily: fonts.body, fontSize: 13, color: colors.espresso, marginTop: 2 },
   src: { fontFamily: fonts.body, fontSize: 11.5, color: colors.saddle, marginTop: 4, lineHeight: 16 },
   link: { fontFamily: fonts.bodySemiBold, color: colors.saddle, textDecorationLine: 'underline' },
+  warn: { fontFamily: fonts.bodyBold, color: colors.oxblood },
   bold: { fontFamily: fonts.bodyBold, color: colors.espresso },
   gap: { fontFamily: fonts.body, fontStyle: 'italic', fontSize: 12, color: colors.saddle, textAlign: 'center', marginVertical: 6 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },

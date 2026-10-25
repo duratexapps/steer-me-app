@@ -44,6 +44,10 @@ export default function CreateLayover() {
   const [rv, setRv] = useState(false);
   const [rvDetail, setRvDetail] = useState('');
   const [notes, setNotes] = useState('');
+  const [trailerParking, setTrailerParking] = useState(false);
+  // null = not answered yet; hotels must answer.
+  const [parkingSecure, setParkingSecure] = useState<boolean | null>(null);
+  const [parkingDetail, setParkingDetail] = useState('');
   const [wantFeatured, setWantFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -57,6 +61,14 @@ export default function CreateLayover() {
     }
     if (!phone.trim() && !website.trim()) {
       showToast('Add a phone number or website so ropers can reach you');
+      return;
+    }
+    if (isHotel && !trailerParking) {
+      showToast('Hotels can be listed only if they have parking for horse trailers');
+      return;
+    }
+    if (trailerParking && parkingSecure === null) {
+      showToast('Say whether your trailer parking is secure');
       return;
     }
     setSaving(true);
@@ -75,6 +87,9 @@ export default function CreateLayover() {
         rv_hookups: rv,
         rv_detail: rvDetail.trim(),
         notes: notes.trim(),
+        trailer_parking: trailerParking,
+        parking_secure: trailerParking ? parkingSecure : null,
+        parking_detail: trailerParking ? parkingDetail.trim() : '',
       });
       if (wantFeatured) {
         try {
@@ -127,7 +142,28 @@ export default function CreateLayover() {
         ) : null}
         <ToggleRow title="RV hookups" description="Power, water or sewer for a living-quarters trailer or RV" value={rv} onToggle={() => setRv((v) => !v)} />
         {rv ? <TextField label="Hookup details (optional)" value={rvDetail} onChangeText={setRvDetail} placeholder="e.g. 50-amp, water, full hookups $45/night" /> : null}
+        <ToggleRow
+          title={isHotel ? 'Parking for horse trailers (required)' : 'Parking for horse trailers'}
+          description={isHotel ? 'A hotel can be listed only if guests can park a truck and horse trailer' : 'Room to park a truck and horse trailer overnight'}
+          value={trailerParking}
+          onToggle={() => setTrailerParking((v) => !v)}
+        />
+        {trailerParking ? (
+          <>
+            <Text style={styles.label}>Is the trailer parking secure? <Text style={styles.required}>*required</Text></Text>
+            <View style={styles.pillWrap}>
+              <Pill label="Yes, secure (gated, fenced, lit or watched)" selected={parkingSecure === true} onPress={() => setParkingSecure(true)} />
+              <Pill label="No, not secure" selected={parkingSecure === false} onPress={() => setParkingSecure(false)} />
+            </View>
+            {parkingSecure === false ? (
+              <DividerNote>Ropers will see that your trailer parking is not secure, so they can decide before they stop.</DividerNote>
+            ) : null}
+            <TextField label="Parking details (optional)" value={parkingDetail} onChangeText={setParkingDetail} placeholder="e.g. fenced gravel lot behind the hotel, room for 6 rigs, camera on the lot" />
+          </>
+        ) : null}
         <TextField label="Anything else ropers should know (optional)" value={notes} onChangeText={setNotes} placeholder="e.g. arrival hours, Coggins required, trailer parking" multiline />
+
+        <DividerNote>A listing on Steer Me is not an endorsement by Steer Me. Ropers are told to call ahead and confirm everything with you.</DividerNote>
 
         <FeaturedToggle target="layover_spot" value={wantFeatured} onToggle={() => setWantFeatured((v) => !v)} />
 
@@ -141,6 +177,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
   content: { padding: 20, paddingBottom: 36, ...webMaxWidth },
   pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  required: { color: colors.brass, textTransform: 'none' },
   label: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 11.5,
