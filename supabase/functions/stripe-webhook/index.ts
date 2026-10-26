@@ -140,28 +140,9 @@ async function activateFeatured(admin: Admin, session: any) {
   }
   if (purchase.status === 'paid') return;
 
-  // Claim the purchase first, atomically (pending -> paid). Stripe can deliver this event twice, even at the same moment;
-  // only the delivery that wins the claim extends featured_until, so the days are never added twice.
-  const { data: claimed, error: claimError } = await admin
-    .from('featured_purchases')
-    .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_session_id: session.id })
-    .eq('id', purchaseId)
-    .eq('status', 'pending')
-    .select('id');
-  if (claimError) throw claimError;
-  if (!claimed || claimed.length === 0) return;
-
-  const table = purchase.target_type === 'event' ? 'events' : 'layover_spots';
-  try {
-    const { data: target } = await admin.from(table).select('featured_until').eq('id', purchase.target_id).maybeSingle();
-    const now = Date.now();
-    const current = target?.featured_until ? new Date(target.featured_until).getTime() : 0;
-    const until = new Date(Math.max(now, current) + purchase.days * 24 * 60 * 60 * 1000).toISOString();
-    const { error: updError } = await admin.from(table).update({ featured_until: until }).eq('id', purchase.target_id);
-    if (updError) throw updError;
-  } catch (err) {
-    // Put the purchase back so Stripe's retry (we return 500) can try again.
-    await admin.from('featured_purchases').update({ status: 'pending', paid_at: null }).eq('id', purchaseId);
-    throw err;
-  }
+  // One database transaction marks the purchase paid AND extends the listing (apply_featured_purchase, migration 0118), so a
+  // crash can never leave a paid purchase with no days. A duplicate delivery changes nothing. A thrown error returns 500 and
+  // Stripe retries.
+  const { error: applyError } = await admin.rpc('apply_featured_purchase', { p_purchase_id: purchaseId, p_session_id: session.id });
+  if (applyError) throw applyError;
 }
