@@ -118,8 +118,17 @@ serveWithCors(async (req) => {
   }
 
   const imageBytes = new Uint8Array(await imageData.arrayBuffer());
-  const base64Image = btoa(String.fromCharCode(...imageBytes));
   const mediaType = imageData.type || 'image/jpeg';
+  // The vision model reads JPEG, PNG, GIF and WebP only. An iPhone HEIC photo can arrive here (seen live 2026-10-26); do not
+  // send it, flag the profile for a person to look at instead.
+  if (!/^image\/(jpeg|png|gif|webp)$/.test(mediaType)) {
+    return Response.json({ skipped: true, reason: `Image type ${mediaType} cannot be read automatically` });
+  }
+  // Built in chunks: spreading a whole photo into String.fromCharCode(...) overflows the call stack for anything over a few
+  // hundred KB, which made large photos fail outright instead of being checked.
+  let binary = '';
+  for (let i = 0; i < imageBytes.length; i += 8192) binary += String.fromCharCode(...imageBytes.subarray(i, i + 8192));
+  const base64Image = btoa(binary);
 
   let extracted: ExtractedCard;
   try {
