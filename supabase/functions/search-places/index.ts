@@ -9,6 +9,25 @@
 // cost is one network round trip, already covered by the 200ms debounce
 // AutocompleteField already had.
 import { HOME_AREAS } from '../_shared/home-areas.ts';
+import { CANADA_AREAS } from '../_shared/canada-areas.ts';
+
+// Accents and periods are ignored on both sides, so "montreal" finds
+// Montréal, QC and "fort st john" finds Fort St. John, BC.
+function normalize(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\./g, '').toLowerCase();
+}
+
+// US + Canada merged into one alphabetical list (2026-10-28). The scan
+// below stops at the first 8 prefix matches, so a plain concat would bury
+// Canadian towns behind every same-named US town ("Brooks" -> 8 US hits,
+// never Brooks, AB). Within one name, US towns come first (most users are
+// US), then Canadian. Sorted and normalized once per cold start.
+const PLACES = [
+  ...HOME_AREAS.map((e) => ({ ...e, ca: 0 })),
+  ...CANADA_AREAS.map((e) => ({ ...e, ca: 1 })),
+]
+  .map((e) => ({ city: e.city, state: e.state, ca: e.ca, key: normalize(e.city), label: normalize(`${e.city}, ${e.state}`) }))
+  .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.ca - b.ca || (a.state < b.state ? -1 : a.state > b.state ? 1 : 0)));
 
 // Same CORS shape as get-town-distance - this is called from the web build
 // (browser origin), not just native, so the preflight OPTIONS request and
@@ -34,19 +53,19 @@ Deno.serve(async (req) => {
     // no body / invalid JSON - treat as empty query
   }
 
-  const q = query.trim().toLowerCase();
+  const q = normalize(query.trim());
   if (!q) {
     return Response.json({ results: [] }, { headers: corsHeaders() });
   }
 
   const startsWith: { city: string; state: string }[] = [];
   const contains: { city: string; state: string }[] = [];
-  for (const entry of HOME_AREAS) {
-    const city = entry.city.toLowerCase();
-    if (city.startsWith(q)) {
+  for (const entry of PLACES) {
+    // Prefix on the full "city, st" label, so "red deer, ab" ranks Red Deer, AB first.
+    if (entry.label.startsWith(q)) {
       startsWith.push(entry);
       if (startsWith.length >= 8) break;
-    } else if (contains.length < 8 && `${city}, ${entry.state.toLowerCase()}`.includes(q)) {
+    } else if (contains.length < 8 && entry.label.includes(q)) {
       contains.push(entry);
     }
   }

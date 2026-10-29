@@ -47,6 +47,14 @@
 // format (AutocompleteField-constrained town names).
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 import { callerIpScope, checkRateLimit } from '../_shared/rate-limit.ts';
+import { CANADA_PROVINCES } from '../_shared/provinces.ts';
+
+// Canadian towns are stored as "City, PROV" (2026-10-28). Naming the country
+// keeps Google from guessing a same-named US place; the cache key stays the
+// plain stored label.
+function googleAddress(town: string): string {
+  return CANADA_PROVINCES.has(town.slice(-2)) ? `${town}, Canada` : town;
+}
 
 const ROUTE_MATRIX_URL = 'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
 const METERS_PER_MILE = 1609.344;
@@ -153,8 +161,8 @@ Deno.serve(async (req) => {
         'X-Goog-FieldMask': 'originIndex,destinationIndex,distanceMeters,condition,status',
       },
       body: JSON.stringify({
-        origins: [{ waypoint: { address: origin } }],
-        destinations: [{ waypoint: { address: destination } }],
+        origins: [{ waypoint: { address: googleAddress(origin) } }],
+        destinations: [{ waypoint: { address: googleAddress(destination) } }],
         travelMode: 'DRIVE',
       }),
     });
