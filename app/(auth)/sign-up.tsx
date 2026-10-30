@@ -162,8 +162,8 @@ export default function SignUp() {
     assessment.catchOutOf10 != null &&
     assessment.winMoreThanSpend != null;
 
-  // 2026-10-30: the list of what is still missing, in the order the fields appear. The profile photo is no longer
-  // on it (see src/lib/profile-photo.ts); the button used to just stay grey with no word on what was left.
+  // 2026-10-30: the list of what is still missing, in the order the fields appear. The profile photo is optional
+  // now (Home asks for it once the account is active); the button used to just stay grey with no word on what was left.
   const missing: string[] = [];
   if (hasCard === null) missing.push('whether you have a Global Handicap card');
   if (fullName.trim().length === 0) missing.push('your full name');
@@ -376,7 +376,7 @@ export default function SignUp() {
             detection method that's realistically how impersonation gets
             caught today - a required, visible photo makes that easier,
             not just a nice-to-have. */}
-        <Text style={styles.label}>Profile photo <Text style={styles.required}>add now or later</Text></Text>
+        <Text style={styles.label}>Profile photo <Text style={styles.required}>optional</Text></Text>
         <Pressable style={styles.avatarRow} onPress={() => setPhotoTarget('avatar')}>
           <View style={styles.avatarCircle}>
             {avatarUri ? (
@@ -388,8 +388,8 @@ export default function SignUp() {
           <View style={{ flex: 1 }}>
             <Text style={styles.avatarTitle}>{uploading === 'avatar' ? 'Uploading...' : avatarUri ? 'Change photo' : 'Add a photo'}</Text>
             <Text style={styles.avatarSub}>
-              Helps other ropers recognize you, and helps prevent someone else from using your identity. You'll need
-              one before you send or accept a partner request.
+              Helps other ropers recognize you, and helps prevent someone else from using your identity. Optional, and
+              you can add it any time.
             </Text>
           </View>
         </Pressable>

@@ -194,12 +194,7 @@ function RequestCard({
           <View style={styles.actionRow}>
             <Pressable
               style={[styles.actionBtn, styles.acceptBtn]}
-              onPress={() =>
-                respond.mutate(
-                  { requestId: request.id, status: 'accepted' },
-                  { onError: (err) => showToast(err instanceof Error ? err.message : 'Could not accept this request') }
-                )
-              }
+              onPress={() => respond.mutate({ requestId: request.id, status: 'accepted' })}
             >
               <Text style={styles.acceptText}>Accept</Text>
             </Pressable>

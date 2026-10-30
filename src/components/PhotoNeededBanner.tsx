@@ -1,21 +1,42 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { DividerNote } from '@/src/components/ui/DividerNote';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { colors, fonts } from '@/src/theme/theme';
 
-// Added 2026-10-30 with the profile photo moved from "required to create a profile" to "required before a
-// request is sent or accepted" (see src/lib/profile-photo.ts). Shown on Home until the photo is added.
+const DISMISS_KEY = 'photo-banner-dismissed';
+
+// Added 2026-10-30. The profile photo is optional and asked for here once the account is active, not at sign-up
+// (21 of 22 confirmed-but-unfinished accounts never added one). "Not now" hides it for good on this device.
 export function PhotoNeededBanner({ padded }: { padded?: boolean }) {
   const { data: profile } = useMyProfile();
-  if (!profile || profile.avatar_url) return null;
+  const [dismissed, setDismissed] = useState(true);
+
+  useEffect(() => {
+    AsyncStorage.getItem(DISMISS_KEY)
+      .then((v) => setDismissed(v === '1'))
+      .catch(() => setDismissed(false));
+  }, []);
+
+  if (!profile || profile.avatar_url || dismissed) return null;
   const note = (
     <DividerNote>
-      <Text style={{ fontFamily: fonts.bodyBold }}>One more step. </Text>
-      Add a profile photo so partners can see who they are working with. You'll need it before you send or accept a
-      partner request.{' '}
+      <Text style={{ fontFamily: fonts.bodyBold }}>Add a photo? </Text>
+      A profile photo helps other ropers recognize you. It's optional.{' '}
       <Text style={styles.link} onPress={() => router.push('/edit-profile')}>
         Add photo
+      </Text>
+      {'   '}
+      <Text
+        style={styles.link}
+        onPress={() => {
+          setDismissed(true);
+          AsyncStorage.setItem(DISMISS_KEY, '1').catch(() => {});
+        }}
+      >
+        Not now
       </Text>
     </DividerNote>
   );

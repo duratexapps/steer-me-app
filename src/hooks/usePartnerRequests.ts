@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/state/session-store';
 import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
-import { requireOwnPhoto } from '@/src/lib/profile-photo';
 
 export type PartnerRequestRow = {
   id: string;
@@ -107,7 +106,6 @@ export function useSendRequest() {
       needPostId?: string;
       isGoatRoping?: boolean;
     }) => {
-      await requireOwnPhoto();
       const { error } = await supabase.from('partner_requests').insert({
         recipient_id: recipientId,
         division,
@@ -127,7 +125,6 @@ export function useRespondToRequest() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ requestId, status }: { requestId: string; status: 'accepted' | 'declined' }) => {
-      if (status === 'accepted') await requireOwnPhoto();
       const { error } = await supabase.from('partner_requests').update({ status }).eq('id', requestId);
       if (error) throw error;
     },
