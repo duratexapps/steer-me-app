@@ -3,7 +3,7 @@
 // stripped; keep in sync with DOCS/privacy-policy.md by hand).
 export const PRIVACY_POLICY = `# Privacy Policy
 
-*Effective date: July 28, 2026 · Last updated: October 8, 2026*
+*Effective date: July 28, 2026 · Last updated: October 30, 2026*
 
 ## 1. Who we are
 
@@ -120,7 +120,7 @@ Several places in the app let you add a photo: your Global Handicap verification
 
 ## 10. Profile photos
 
-A profile photo is required to create an athlete profile. This is a fraud-deterrence measure — a real, visible photo gives other users who may know you in person a way to help confirm you are who your profile claims to be.
+A profile photo is optional. We ask for one after your account is active, because a real, visible photo helps other users who may know you in person recognize you and helps deter anyone from using your identity. You can skip it and add it later.
 
 - Profile photos are public to other users of the app.
 - You can update or remove your profile photo at any time. Deleting your profile removes it along with everything else described in this policy.
