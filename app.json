@@ -2,7 +2,7 @@
   "expo": {
     "name": "Steer Me",
     "slug": "steer-me",
-    "version": "1.3.5",
+    "version": "1.3.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "steerme",
@@ -78,7 +78,9 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/5ff51a37-0d3c-4579-8da6-670f6683ec11"
+      "url": "https://u.expo.dev/5ff51a37-0d3c-4579-8da6-670f6683ec11",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 5000
     }
   }
 }
