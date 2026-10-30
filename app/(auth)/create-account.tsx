@@ -79,7 +79,7 @@ export default function CreateAccount() {
             <Button label="I've confirmed - sign in" onPress={() => router.replace('/(auth)/sign-in')} />
           </>
         ) : null}
-        {awaitingConfirm ? null : <Text style={styles.helper}>This is what you'll use to sign back in to Steer Me. To finish your profile you'll need your Global Handicap card - a screenshot is fine, and it takes about two minutes.</Text>}
+        {awaitingConfirm ? null : <Text style={styles.helper}>This is what you'll use to sign back in to Steer Me. Next is your roper profile. Have a Global Handicap card? A screenshot is fine. Don't have one? You're just as welcome: answer a few quick questions about how you rope instead. Either way it takes about two minutes.</Text>}
         {awaitingConfirm ? null : <>
         <TextField
           label="Email"

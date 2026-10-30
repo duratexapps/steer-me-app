@@ -8,6 +8,7 @@ import { Tag } from '@/src/components/ui/Tag';
 import { HelpModal } from '@/src/components/HelpModal';
 import { AndroidTesterBanner } from '@/src/components/AndroidTesterBanner';
 import { FixNoteBanner } from '@/src/components/FixNoteBanner';
+import { PhotoNeededBanner } from '@/src/components/PhotoNeededBanner';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
@@ -109,6 +110,7 @@ export default function Home() {
         )}
 
         {hasAthleteProfile ? <FixNoteBanner padded /> : null}
+        {hasAthleteProfile ? <PhotoNeededBanner padded /> : null}
 
         <View style={styles.tiles}>
           {/* NEW, added 2026-07-31 - moved here from a Profile button per

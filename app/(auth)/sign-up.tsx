@@ -42,6 +42,10 @@ export default function SignUp() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  // 2026-10-30: the preview now appears only after the upload succeeds, and a failed upload leaves a visible
+  // note instead of a photo that looks attached next to a button that never turns on.
+  const [uploading, setUploading] = useState<'avatar' | 'screenshot' | null>(null);
+  const [uploadError, setUploadError] = useState<{ target: 'avatar' | 'screenshot'; message: string } | null>(null);
 
   // NEW 2026-10-22: ropers without a Global card can sign up with a self-reported number (migration 0094).
   // null = not answered yet; the card-specific and no-card blocks below depend on it.
@@ -92,27 +96,42 @@ export default function SignUp() {
   const [referralCode, setReferralCode] = useState('');
 
   async function handlePicked(image: PickedImage) {
+    const target = photoTarget;
+    if (!target) return;
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      showToast('Session expired - sign in again');
+      router.replace('/(auth)/sign-in');
+      return;
+    }
 
-    if (photoTarget === 'avatar') {
-      setAvatarUri(image.uri);
-      try {
+    setUploading(target);
+    setUploadError(null);
+    try {
+      if (target === 'avatar') {
         const path = await uploadUserFile('avatars', user.id, image, 'avatar');
         setAvatarPath(path);
-      } catch (err) {
-        showToast('Could not upload photo - try again');
-      }
-    } else if (photoTarget === 'screenshot') {
-      setScreenshotUri(image.uri);
-      try {
+        setAvatarUri(image.uri);
+        void logSignupEvent('photo_added');
+      } else {
         const path = await uploadUserFile('verification-screenshots', user.id, image, 'global-handicap');
         setScreenshotPath(path);
-      } catch (err) {
-        showToast('Could not upload screenshot - try again');
+        setScreenshotUri(image.uri);
+        void logSignupEvent('card_screenshot_added');
       }
+    } catch (err) {
+      setUploadError({
+        target,
+        message:
+          target === 'avatar'
+            ? "Your photo didn't upload. Check your connection and tap it again to retry. You can also add it later."
+            : "Your screenshot didn't upload. Check your connection and tap it again to retry.",
+      });
+      void logSignupEvent(target === 'avatar' ? 'photo_failed' : 'card_screenshot_failed', err instanceof Error ? err.message.slice(0, 120) : undefined);
+    } finally {
+      setUploading(null);
     }
   }
 
@@ -143,19 +162,41 @@ export default function SignUp() {
     assessment.catchOutOf10 != null &&
     assessment.winMoreThanSpend != null;
 
-  const canSubmit =
-    hasCard !== null &&
-    !!avatarPath && // CHANGED 2026-07-27: was optional - see the label change above
-    fullName.trim().length > 0 &&
-    homeArea.trim().length > 0 &&
-    (hasCard === 'yes'
-      ? !!screenshotPath && globalMembershipId.trim().length > 0
-      : assessmentComplete && (!phoneRequired || phoneVerified)) &&
-    classificationValid &&
-    guidelinesAccepted &&
-    (isMinor
-      ? guardianName.trim().length > 0 && guardianContact.trim().length > 0 && guardianConsent
-      : contact.trim().length > 0);
+  // 2026-10-30: the list of what is still missing, in the order the fields appear. The profile photo is no longer
+  // on it (see src/lib/profile-photo.ts); the button used to just stay grey with no word on what was left.
+  const missing: string[] = [];
+  if (hasCard === null) missing.push('whether you have a Global Handicap card');
+  if (fullName.trim().length === 0) missing.push('your full name');
+  if (isMinor && !(guardianName.trim().length > 0 && guardianContact.trim().length > 0 && guardianConsent)) {
+    missing.push('the parent or guardian details and consent');
+  }
+  if (hasCard === 'yes') {
+    if (!screenshotPath) missing.push('your card screenshot');
+    if (globalMembershipId.trim().length === 0) missing.push('your Global membership ID');
+  }
+  if (!classificationValid) missing.push(position === 'Switch' ? 'both classification numbers' : 'your classification number');
+  if (noCard) {
+    if (!assessmentComplete) missing.push('the five questions about how you rope');
+    if (phoneRequired && !phoneVerified) missing.push('your phone code');
+  }
+  if (homeArea.trim().length === 0) missing.push('your home area');
+  if (!isMinor && contact.trim().length === 0) missing.push('your phone or email');
+  if (!guidelinesAccepted) missing.push('the Community Guidelines box');
+
+  const canSubmit = missing.length === 0 && uploading === null;
+
+  function handleCreatePress() {
+    if (uploading) {
+      showToast('Hang on, your upload is still finishing');
+      return;
+    }
+    if (missing.length > 0) {
+      showToast(`Still needed: ${missing.slice(0, 2).join(', ')}${missing.length > 2 ? ` and ${missing.length - 2} more` : ''}`);
+      void logSignupEvent('submit_blocked', missing.join('; ').slice(0, 200));
+      return;
+    }
+    void handleSubmit();
+  }
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -201,6 +242,7 @@ export default function SignUp() {
 
     if (!noCard && !verifyResult.verified && !verifyResult.skipped) {
       setSubmitting(false);
+      void logSignupEvent('card_mismatch', (verifyResult.mismatches[0] ?? '').slice(0, 120));
       showToast(verifyResult.mismatches[0] ?? 'Could not verify your card - check your information and try again');
       return;
     }
@@ -216,6 +258,7 @@ export default function SignUp() {
       });
       if (referralError || !resolvedId) {
         setSubmitting(false);
+        void logSignupEvent('referral_invalid');
         showToast("That referral code doesn't look right - check it and try again, or leave it blank.");
         return;
       }
@@ -254,6 +297,7 @@ export default function SignUp() {
     setSubmitting(false);
 
     if (error) {
+      void logSignupEvent('submit_error', `${error.code ?? ''} ${error.hint ?? ''} ${error.message}`.trim().slice(0, 120));
       if (error.hint === 'phone_not_verified') {
         setPhoneVerified(false);
         showToast('Verify your phone number first, then create your profile.');
@@ -280,6 +324,7 @@ export default function SignUp() {
       return;
     }
 
+    void logSignupEvent('profile_created');
     setHasAthleteProfile(true);
     // NEW, added 2026-07-27 - one toast, not two: the expired-card notice
     // takes priority over the generic "Profile created" when both would
@@ -331,7 +376,7 @@ export default function SignUp() {
             detection method that's realistically how impersonation gets
             caught today - a required, visible photo makes that easier,
             not just a nice-to-have. */}
-        <Text style={styles.label}>Profile photo <Text style={styles.required}>*required</Text></Text>
+        <Text style={styles.label}>Profile photo <Text style={styles.required}>add now or later</Text></Text>
         <Pressable style={styles.avatarRow} onPress={() => setPhotoTarget('avatar')}>
           <View style={styles.avatarCircle}>
             {avatarUri ? (
@@ -341,10 +386,14 @@ export default function SignUp() {
             )}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.avatarTitle}>Add a photo</Text>
-            <Text style={styles.avatarSub}>Helps other ropers recognize you, and helps prevent someone else from using your identity.</Text>
+            <Text style={styles.avatarTitle}>{uploading === 'avatar' ? 'Uploading...' : avatarUri ? 'Change photo' : 'Add a photo'}</Text>
+            <Text style={styles.avatarSub}>
+              Helps other ropers recognize you, and helps prevent someone else from using your identity. You'll need
+              one before you send or accept a partner request.
+            </Text>
           </View>
         </Pressable>
+        {uploadError?.target === 'avatar' ? <DividerNote>{uploadError.message}</DividerNote> : null}
 
         <TextField label="Full name" value={fullName} onChangeText={setFullName} placeholder="e.g. Colt Bracken" required />
 
@@ -387,7 +436,9 @@ export default function SignUp() {
           Global Handicap screenshot <Text style={styles.required}>*required</Text>
         </Text>
         <Pressable style={styles.dropzone} onPress={() => setPhotoTarget('screenshot')}>
-          {screenshotUri ? (
+          {uploading === 'screenshot' ? (
+            <Text style={styles.dropzoneText}>Uploading...</Text>
+          ) : screenshotUri ? (
             <>
               <Image source={{ uri: screenshotUri }} style={styles.dropzoneImage} />
               <Text style={styles.dropzoneDone}>✓ Screenshot attached</Text>
@@ -400,6 +451,7 @@ export default function SignUp() {
             </>
           )}
         </Pressable>
+        {uploadError?.target === 'screenshot' ? <DividerNote>{uploadError.message}</DividerNote> : null}
         <Text style={styles.retentionNote}>
           We keep this screenshot only to confirm your classification. It's deleted the moment you update
           your classification or delete your profile.
@@ -515,13 +567,13 @@ export default function SignUp() {
           .
         </Checkbox>
 
-        <Button
-          label="Create profile"
-          onPress={handleSubmit}
-          disabled={!canSubmit}
-          loading={submitting}
-          style={styles.submit}
-        />
+        {missing.length > 0 ? (
+          <DividerNote>
+            <Text style={{ fontFamily: fonts.bodyBold }}>Still needed: </Text>
+            {missing.join(', ')}.
+          </DividerNote>
+        ) : null}
+        <Button label="Create profile" onPress={handleCreatePress} loading={submitting} style={styles.submit} />
       </ScrollView>
 
       <PhotoChooserSheet
