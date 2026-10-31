@@ -229,7 +229,9 @@ password_requirements = "letters_digits"
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+# RAISED 2026-10-31 from the CLI default of 2: at 2 per hour a third sign-up, resend or password reset in the same hour
+# failed for everyone. Justin set the live value to 100 in the dashboard; this keeps a config push from putting it back.
+email_sent = 100
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
