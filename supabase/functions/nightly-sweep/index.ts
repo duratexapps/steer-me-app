@@ -2,6 +2,7 @@
 // so it never depends on anyone's computer or an AI agent being awake. Emails the result to ropingtools@duratex-ie.com
 // EVERY night, including "all clear": no email by ~7 PM Central means this job (or email delivery) is broken.
 //
+// Checks 15-23 (platform health, added 2026-10-31) watch whether the platform itself is working, not just queues.
 // Port of tools/triage/triage.py `sweep`, Steer Me checks only (Draw Pro is a separate database, see
 // DOCS/triage-system-handoff-for-drawpro.md). Read-only: this function never changes user data and never
 // contacts users - it only emails Justin. Auth: shared x-webhook-secret (same db_webhook_secret as the other webhooks).
@@ -237,6 +238,110 @@ Deno.serve(async (req) => {
     if (missing.length) urgent.push(`${missing.length} paid featured purchase(s) have no matching featured_until - check the Stripe webhook log`);
     if (week.length) urgent.push(`${week.length} featured listing(s) bought in the last 7 days - FYI, nothing to do unless one needs a refund`);
   });
+
+  // ---- PLATFORM HEALTH (added 2026-10-31) ------------------------------------------------------------------
+  // Checks 1-14 watch queues Justin acts on. These watch whether the platform itself is working, because the
+  // missing push tokens, the sign-up drop-off and the issue-report blind spot were each found by accident.
+  // Numbers come from public.platform_health() (migration 0120); the probes below call each outside service the
+  // app depends on. Anything that cannot be checked is listed under COULD NOT CHECK, never silently skipped.
+  const pct = (a: number, b: number) => (b > 0 ? `${Math.round((a * 100) / b)}%` : 'n/a');
+  let hh: Record<string, number> | null = null;
+  await check('15. Platform numbers', async () => {
+    const { data, error } = await admin.rpc('platform_health');
+    if (error) throw new Error(error.message);
+    hh = data as Record<string, number>;
+    const h = hh;
+    lines.push(`15. Sign-ups and activity: ${h.accounts_new_24h} new account(s) in 24h, ${h.accounts_new_7d} in 7d, and ${h.new_7d_finished} of those ${h.accounts_new_7d} finished a profile (${pct(h.new_7d_finished, h.accounts_new_7d)}); signed-in app activity (a floor; very short opens may not register): ${h.active_24h} in the last 24h, ${h.active_7d} in 7d, out of ${h.profiles_total} real profiles`);
+    if (h.accounts_new_7d >= 3 && h.new_7d_finished * 2 < h.accounts_new_7d) urgent.push(`Only ${h.new_7d_finished} of ${h.accounts_new_7d} sign-ups this week finished a profile - something may be blocking sign-up`);
+    if (h.profiles_total >= 5 && h.active_7d === 0) urgent.push('No real roper has had any app activity in 7 days');
+
+    lines.push(`16. Push notifications: ${h.profiles_with_token} of ${h.profiles_total} real profiles can receive a push (${pct(h.profiles_with_token, h.profiles_total)}); new profiles in 7d: ${h.new_profiles_7d}, ${h.new_profiles_7d_with_token} with a token`);
+    if (h.profiles_total >= 5 && h.profiles_with_token * 2 < h.profiles_total) urgent.push(`Only ${h.profiles_with_token} of ${h.profiles_total} real profiles can receive push notifications`);
+
+    lines.push(`17. Partner requests between real ropers, last 7 days: ${h.req_sent_7d} sent, ${h.req_accepted_7d} accepted; ${h.req_pending_total} pending (${h.req_pending_24h} older than 24h, ${h.req_pending_72h} older than 72h, oldest ${h.req_oldest_pending_days}d), ${h.req_pending_recipient_no_token} of them to someone who cannot get a push`);
+    if (h.req_pending_72h > 0) urgent.push(`${h.req_pending_72h} partner request(s) between real ropers have waited 72h+ with no answer`);
+
+    lines.push(`18. Test and demo profiles visible in Browse: ${h.fake_profiles_visible} test/demo/staff profile(s) are visible next to ${h.real_profiles_visible} real ones; ${h.req_real_to_fake_pending} pending request(s) sent by real ropers to them`);
+    if (h.fake_profiles_visible > 0 && h.real_profiles_visible > 0) urgent.push(`Real ropers can see ${h.fake_profiles_visible} test/demo/staff profiles in Browse (only ${h.real_profiles_visible} real); ${h.req_real_to_fake_pending} real roper request(s) are sitting with fake profiles`);
+
+    lines.push(`19. Email confirmation, sign-ups from the last 14 days older than 24h: ${h.confirm_window_unconfirmed} of ${h.confirm_window_total} never confirmed (${pct(h.confirm_window_unconfirmed, h.confirm_window_total)}); Gmail ${h.confirm_window_gmail_unconfirmed} of ${h.confirm_window_gmail_total}, other providers ${h.confirm_window_unconfirmed - h.confirm_window_gmail_unconfirmed} of ${h.confirm_window_total - h.confirm_window_gmail_total}`);
+    if (h.confirm_window_total >= 5 && h.confirm_window_unconfirmed * 100 > h.confirm_window_total * 30) urgent.push(`${h.confirm_window_unconfirmed} of ${h.confirm_window_total} recent sign-ups never confirmed their email - check Resend delivery and the Supabase email rate limit`);
+
+    lines.push(`20. Text-message codes (no-card sign-up), last 7 days: ${h.phone_codes_7d} requested, ${h.phone_confirmed_7d} confirmed`);
+    if (h.phone_codes_7d >= 2 && h.phone_confirmed_7d === 0) urgent.push(`URGENT - ${h.phone_codes_7d} text-message codes requested this week and none confirmed: Twilio may be failing, and no-card ropers cannot create a profile`);
+
+    lines.push(`21. Events and flier scan: ${h.events_upcoming_30d} published events in the next 30 days; ${h.events_posted_7d} posted by the scan in 7d; last scan post ${h.hours_since_admin_post}h ago`);
+    if (h.hours_since_admin_post > 60) urgent.push(`No event has been posted by the flier scan in ${h.hours_since_admin_post} hours - the scan may be failing`);
+    if (h.events_upcoming_30d < 15) urgent.push(`Only ${h.events_upcoming_30d} events in the next 30 days - the event list is thin`);
+
+    lines.push(`22. Scheduled jobs: ${h.cron_failures_7d ? 'ATTENTION - ' + h.cron_failures_7d + ' failed run(s) in the last 7 days' : 'no failed runs in 7 days'}`);
+    if (h.cron_failures_7d > 0) urgent.push(`${h.cron_failures_7d} scheduled database job run(s) failed in the last 7 days`);
+  });
+
+  // 23 outside services the app depends on, each probed for real
+  const probes: string[] = [];
+  const probe = async (name: string, fn: () => Promise<string>) => {
+    try { probes.push(`${name}: ${await fn()}`); } catch (e) { probes.push(`${name}: COULD NOT CHECK (${e instanceof Error ? e.message : 'error'})`); failed.push(`23 ${name}`); }
+  };
+  const timed = async (url: string, init?: RequestInit) => {
+    const t0 = Date.now();
+    const r = await fetch(url, { ...init, signal: AbortSignal.timeout(12000) });
+    return { r, ms: Date.now() - t0 };
+  };
+  await probe('website', async () => {
+    const parts: string[] = [];
+    for (const path of ['/', '/get']) {
+      const { r, ms } = await timed(`https://steerme.ropingtools.com${path}`);
+      parts.push(`${path} ${r.status} in ${ms}ms`);
+      if (r.status !== 200) urgent.push(`URGENT - steerme.ropingtools.com${path} answered ${r.status}`);
+    }
+    return parts.join('; ');
+  });
+  await probe('App Store listing', async () => {
+    const { r } = await timed('https://itunes.apple.com/lookup?id=6805227345&country=us');
+    const j = await r.json().catch(() => ({}));
+    const a = j?.results?.[0];
+    if (!a) { urgent.push('URGENT - the App Store lookup does not find Steer Me (removed or not live?)'); return 'NOT FOUND'; }
+    return `live, version ${a.version}, released ${String(a.currentVersionReleaseDate).slice(0, 10)}`;
+  });
+  await probe('Google Play listing', async () => {
+    const { r } = await timed('https://play.google.com/store/apps/details?id=com.duratexapplications.steerme');
+    if (r.status !== 200) urgent.push(`URGENT - the Google Play listing answered ${r.status}`);
+    return `HTTP ${r.status}`;
+  });
+  await probe('AI card check (Anthropic)', async () => {
+    const key = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!key) throw new Error('key not set');
+    const { r } = await timed('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1, messages: [{ role: 'user', content: 'ok' }] }),
+    });
+    if (r.ok) return 'key works and has credit';
+    const body = await r.text();
+    urgent.push(`URGENT - the AI card check cannot run (${r.status}${/credit/i.test(body) ? ', out of Anthropic credit' : ''}); new card sign-ups will land in manual review`);
+    return `FAILING ${r.status}`;
+  });
+  await probe('email sending (Resend)', async () => {
+    const key = Deno.env.get('RESEND_API_KEY');
+    if (!key) throw new Error('key not set');
+    const { r } = await timed('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${key}` } });
+    if (r.status === 401 || r.status === 403) return 'key is send-only, so the domain status cannot be read here (this very email arriving proves sending works)';
+    const j = await r.json().catch(() => ({}));
+    const d = (j?.data ?? []).find((x: Row) => x.name === 'ropingtoolsmail.com');
+    if (!d) { urgent.push('The sending domain ropingtoolsmail.com is not listed in Resend'); return 'domain not found'; }
+    if (d.status !== 'verified') urgent.push(`URGENT - the sending domain ropingtoolsmail.com is "${d.status}" in Resend; confirmation emails may not send`);
+    return `ropingtoolsmail.com is ${d.status}`;
+  });
+  await probe('payments (Stripe)', async () => {
+    const key = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!key) throw new Error('key not set');
+    const { r } = await timed('https://api.stripe.com/v1/balance', { headers: { Authorization: `Bearer ${key}` } });
+    if (!r.ok) { urgent.push(`The Stripe key was rejected (${r.status}); web checkout will fail`); return `FAILING ${r.status}`; }
+    const j = await r.json().catch(() => ({}));
+    return `key works (${j.livemode ? 'live mode' : 'TEST mode'})`;
+  });
+  lines.push(`23. Outside services: ${probes.join(' | ')}`);
 
   const when = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' });
   const subject = urgent.length
