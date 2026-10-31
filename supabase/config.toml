@@ -555,3 +555,7 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+# Partner request notices (migration 0122): called by a database trigger with the shared secret, not by the app.
+[functions.notify-partner-request]
+verify_jwt = false

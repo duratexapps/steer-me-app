@@ -26,6 +26,7 @@ import { verifyClassificationCard, reportMembershipConflict } from '@/src/lib/ve
 import { SelfAssessmentForm } from '@/src/components/SelfAssessmentForm';
 import { PhoneVerifyStep } from '@/src/components/PhoneVerifyStep';
 import { logSignupEvent } from '@/src/lib/signup-events';
+import { registerForPushNotifications } from '@/src/lib/push-notifications';
 import { EMPTY_ASSESSMENT, checkClaim, type SelfAssessment } from '@/src/lib/self-rating';
 
 type PhotoTarget = 'avatar' | 'screenshot' | null;
@@ -326,6 +327,8 @@ export default function SignUp() {
 
     void logSignupEvent('profile_created');
     setHasAthleteProfile(true);
+    // The profile row exists now, so the push token can be saved onto it (see push-notifications.ts).
+    void registerForPushNotifications(user.id);
     // NEW, added 2026-07-27 - one toast, not two: the expired-card notice
     // takes priority over the generic "Profile created" when both would
     // otherwise fire back to back (showToast only shows one at a time).

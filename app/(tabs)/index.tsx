@@ -9,6 +9,7 @@ import { HelpModal } from '@/src/components/HelpModal';
 import { AndroidTesterBanner } from '@/src/components/AndroidTesterBanner';
 import { FixNoteBanner } from '@/src/components/FixNoteBanner';
 import { PhotoNeededBanner } from '@/src/components/PhotoNeededBanner';
+import { RequestsWaitingBanner } from '@/src/components/RequestsWaitingBanner';
 import { colors, fonts, radii } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
@@ -110,6 +111,7 @@ export default function Home() {
         )}
 
         {hasAthleteProfile ? <FixNoteBanner padded /> : null}
+        {hasAthleteProfile ? <RequestsWaitingBanner padded /> : null}
         {hasAthleteProfile ? <PhotoNeededBanner padded /> : null}
 
         <View style={styles.tiles}>

@@ -279,6 +279,33 @@ Deno.serve(async (req) => {
     if (h.cron_failures_7d > 0) urgent.push(`${h.cron_failures_7d} scheduled database job run(s) failed in the last 7 days`);
   });
 
+  // 24 app errors reported by the app itself (migration 0123) and 25 request notices (migration 0122)
+  await check('24. App errors', async () => {
+    const since24 = new Date(Date.now() - 24 * HOUR).toISOString();
+    const since7 = new Date(Date.now() - 7 * 24 * HOUR).toISOString();
+    const rows = await q(admin.from('app_errors').select('created_at,message,platform,app_version,fatal,context').gte('created_at', since7).order('created_at', { ascending: false }).limit(500));
+    const day = rows.filter((x) => x.created_at >= since24);
+    const groups = new Map<string, { n: number; fatal: boolean; where: string }>();
+    for (const x of day) {
+      const k = String(x.message).slice(0, 90);
+      const g = groups.get(k) ?? { n: 0, fatal: false, where: `${x.platform} ${x.app_version ?? ''} ${x.context ?? ''}`.trim() };
+      g.n++; g.fatal = g.fatal || x.fatal; groups.set(k, g);
+    }
+    const top = [...groups.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 3).map(([m, g]) => `"${m}" x${g.n} (${g.where})`);
+    lines.push(`24. Errors reported by the app: ${day.length} in 24h (${groups.size} different), ${rows.length} in 7d${top.length ? '; top: ' + top.join(' | ') : ''}. The app cannot report a crash that kills it outright; check App Store Connect and Play Console crash reports weekly.`);
+    if (day.some((x) => x.fatal)) urgent.push(`${day.filter((x) => x.fatal).length} screen crash(es) reported by the app in the last 24h - see check 24`);
+    else if (day.length >= 5) urgent.push(`${day.length} app errors reported in the last 24h - see check 24`);
+  });
+
+  await check('25. Request notices', async () => {
+    const since7 = new Date(Date.now() - 7 * 24 * HOUR).toISOString();
+    const rows = await q(admin.from('notification_log').select('kind,push_status,email_status,detail,created_at').gte('created_at', since7).limit(1000));
+    const real = rows.filter((x) => !String(x.detail ?? '').startsWith('demo') && !String(x.detail ?? '').startsWith('TEST'));
+    const failed = real.filter((x) => x.push_status === 'failed' || x.email_status === 'failed');
+    lines.push(`25. Partner request notices, last 7 days: ${real.length} handled (${real.filter((x) => x.push_status === 'sent').length} pushes sent, ${real.filter((x) => x.email_status === 'sent').length} emails sent, ${real.filter((x) => x.push_status === 'no_token').length} with no push token); ${failed.length ? 'ATTENTION - ' + failed.length + ' failed: ' + failed.slice(0, 2).map((x) => String(x.detail).slice(0, 80)).join(' | ') : 'no failures'}`);
+    if (failed.length) urgent.push(`${failed.length} partner request notice(s) failed to send - see check 25`);
+  });
+
   // 23 outside services the app depends on, each probed for real
   const probes: string[] = [];
   const probe = async (name: string, fn: () => Promise<string>) => {

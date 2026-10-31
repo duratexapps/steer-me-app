@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
-import { Slot, usePathname, router } from 'expo-router';
+import { Slot, usePathname, router, ErrorBoundary as DefaultErrorBoundary, type ErrorBoundaryProps } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
@@ -27,6 +27,7 @@ import { useSessionStore } from '@/src/state/session-store';
 import { checkProfileStatus } from '@/src/lib/profile-status';
 import { configurePurchases } from '@/src/lib/purchases';
 import { registerForPushNotifications } from '@/src/lib/push-notifications';
+import { installGlobalErrorReporting, reportError } from '@/src/lib/error-reporting';
 import { colors } from '@/src/theme/theme';
 import { ToastHost } from '@/src/components/ui/ToastHost';
 import { GlobalCardNeededModal } from '@/src/components/GlobalCardNeededModal';
@@ -34,6 +35,17 @@ import { GlobalCardNeededModal } from '@/src/components/GlobalCardNeededModal';
 SplashScreen.preventAutoHideAsync().catch(() => {
   // no-op - safe to ignore if already hidden
 });
+
+// Report uncaught errors to the app_errors table (migration 0123) so the nightly check can see them.
+installGlobalErrorReporting();
+
+// A screen that throws while rendering lands here: report it, then show expo-router's normal error screen.
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  useEffect(() => {
+    void reportError(props.error, { fatal: true, context: 'render' });
+  }, [props.error]);
+  return <DefaultErrorBoundary {...props} />;
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -91,8 +103,10 @@ export default function RootLayout() {
       // Fire-and-forget, same reasoning as configurePurchases() above - a
       // notification-permission prompt or registration failure should
       // never hold up session bootstrap.
-      registerForPushNotifications(userId);
       const { hasAthleteProfile, hasProducerProfile } = await checkProfileStatus(userId);
+      // Only once a profile row exists (the token is saved onto it). A new roper is registered right after the profile
+      // is created, in sign-up.tsx, so the permission prompt also comes with some context.
+      if (hasAthleteProfile) registerForPushNotifications(userId);
       setHasAthleteProfile(hasAthleteProfile);
       setHasProducerProfile(hasProducerProfile);
       setProfileStatusChecked(true);
@@ -212,6 +226,10 @@ export default function RootLayout() {
 
     function handleResponse(response: Notifications.NotificationResponse) {
       const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+      if (data?.type === 'partner_request') {
+        router.push('/my-requests');
+        return;
+      }
       if (data?.type === 'partner_cancelled' && typeof data.entryId === 'string' && typeof data.eventId === 'string') {
         router.push({
           pathname: '/partner-cancelled',

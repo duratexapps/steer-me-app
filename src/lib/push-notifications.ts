@@ -79,11 +79,16 @@ export async function registerForPushNotifications(
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
 
-    const { error } = await supabase
+    // select('id') so a save that matched no row is noticed. A brand-new roper registers at login, before their
+    // profile row exists; that update used to match nothing, report no error, and mark registration done for the whole
+    // session, so only about 1 in 5 real profiles ever got a token (found 2026-10-31).
+    const { data: updated, error } = await supabase
       .from('profiles')
       .update({ expo_push_token: token, push_opted_out: false })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('id');
     if (error) throw error;
+    if (!updated || updated.length === 0) return 'error';
 
     registeredForUserId = userId;
     return 'granted';
