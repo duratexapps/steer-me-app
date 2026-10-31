@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { TextField } from '@/src/components/ui/TextField';
 import { Button } from '@/src/components/ui/Button';
 import { colors, fonts } from '@/src/theme/theme';
 import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
+import { parseAuthLink, useIncomingAuthUrl } from '@/src/lib/auth-link';
+import { PASSWORD_HINT, passwordProblem } from '@/src/lib/password-rules';
+import { reportError } from '@/src/lib/error-reporting';
 
 // Landing screen for Supabase's password-recovery link (see
 // forgot-password.tsx's resetPasswordForEmail() call, which sets
@@ -26,56 +28,58 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const url = useIncomingAuthUrl();
+  const [waited, setWaited] = useState(false);
+  const handled = useRef(false);
+
+  // The link can arrive a moment after this screen opens (and, if the app was already open, only as a later URL event).
   useEffect(() => {
-    let cancelled = false;
+    const t = setTimeout(() => setWaited(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
 
-    async function establishRecoverySession() {
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (cancelled) return;
-        if (error) {
-          setStatus('error');
-          setErrorMessage(error.message);
-          return;
-        }
-      } else {
-        // FIXED 2026-09-01, confirmed live against the real deployed page
-        // (not just docs, which don't cover this): Linking.getInitialURL()
-        // does not reliably include the URL's hash fragment on web - a
-        // real access_token#... link still fell through to "missing
-        // required information" here. window.location.href always has the
-        // full URL including the hash, so read that directly on web
-        // instead of trusting Linking for this one case.
-        const initialUrl =
-          Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.href : null) : await Linking.getInitialURL();
-        const tokens = parseHashTokens(initialUrl);
-        if (!tokens) {
-          if (cancelled) return;
-          setStatus('error');
-          setErrorMessage('This reset link is missing required information. Request a new one from the sign-in screen.');
-          return;
-        }
-        const { error } = await supabase.auth.setSession(tokens);
-        if (cancelled) return;
-        if (error) {
-          setStatus('error');
-          setErrorMessage(error.message);
-          return;
-        }
-      }
+  useEffect(() => {
+    if (handled.current) return;
 
-      if (!cancelled) setStatus('ready');
+    function fail(m: string) {
+      handled.current = true;
+      setErrorMessage(m);
+      setStatus('error');
     }
 
-    establishRecoverySession();
-    return () => {
-      cancelled = true;
-    };
-  }, [code]);
+    async function run() {
+      try {
+        if (code) {
+          handled.current = true;
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) return fail(error.message);
+        } else {
+          const link = parseAuthLink(url);
+          if (link.errorCode) {
+            return fail('This reset link was already used or has expired. Request a new one from the sign-in screen.');
+          }
+          if (!link.tokens) {
+            if (!waited) return;
+            return fail('This reset link is missing required information. Request a new one from the sign-in screen.');
+          }
+          handled.current = true;
+          const { error } = await supabase.auth.setSession(link.tokens);
+          if (error) return fail(error.message);
+        }
+        setStatus('ready');
+      } catch (err) {
+        void reportError(err, { context: 'reset-password' });
+        fail('Something went wrong on our end. Request a new reset link from the sign-in screen.');
+      }
+    }
+
+    void run();
+  }, [code, url, waited]);
 
   async function handleSave() {
-    if (password.length < 6) {
-      showToast('Password must be at least 6 characters');
+    const problem = passwordProblem(password);
+    if (problem) {
+      showToast(problem);
       return;
     }
     if (password !== confirmPassword) {
@@ -116,7 +120,7 @@ export default function ResetPassword() {
             onChangeText={setPassword}
             secureTextEntry
             textContentType="newPassword"
-            placeholder="At least 6 characters"
+            placeholder={PASSWORD_HINT}
           />
           <TextField
             label="Confirm password"
@@ -131,22 +135,6 @@ export default function ResetPassword() {
       )}
     </SafeAreaView>
   );
-}
-
-// Supabase's implicit-flow redirect puts tokens after a `#`, e.g.
-// steerme://reset-password#access_token=xxx&refresh_token=yyy&type=recovery
-// - a real URL fragment, not a query string, so it has to be parsed
-// manually rather than via expo-router's query-param parsing.
-function parseHashTokens(url: string | null): { access_token: string; refresh_token: string } | null {
-  if (!url) return null;
-  const hashIndex = url.indexOf('#');
-  if (hashIndex === -1) return null;
-
-  const params = new URLSearchParams(url.slice(hashIndex + 1));
-  const access_token = params.get('access_token');
-  const refresh_token = params.get('refresh_token');
-  if (!access_token || !refresh_token) return null;
-  return { access_token, refresh_token };
 }
 
 const styles = StyleSheet.create({

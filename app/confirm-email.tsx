@@ -1,86 +1,88 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { Button } from '@/src/components/ui/Button';
 import { colors, fonts } from '@/src/theme/theme';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
+import { parseAuthLink, useIncomingAuthUrl } from '@/src/lib/auth-link';
+import { reportError } from '@/src/lib/error-reporting';
 
-// Landing screen for Supabase's email-confirmation link (see
-// create-account.tsx's signUp() call, which sets emailRedirectTo to
-// point here). Built 2026-07-25 - "Confirm email" was previously left
-// off in the Supabase project deliberately, specifically because this
-// screen didn't exist yet (see that earlier comment in
-// create-account.tsx, which should be revisited once "Confirm email" is
-// actually turned on in the Supabase dashboard).
+// Landing screen for Supabase's email-confirmation link (create-account.tsx sets emailRedirectTo to point here).
 //
-// Supabase can redirect here in either of two shapes depending on the
-// project's Auth flow setting:
-//  - PKCE flow (current Supabase default for new projects): a `code`
-//    query param, exchanged via exchangeCodeForSession(). expo-router's
-//    useLocalSearchParams() sees this fine, since it's a normal query
-//    param.
-//  - Implicit flow (older projects): access_token/refresh_token in the
-//    URL's HASH fragment, not a query param - useLocalSearchParams()
-//    can't see this, so it's parsed manually from the raw incoming URL
-//    as a fallback.
-// Handling both means this works regardless of which flow this specific
-// Supabase project ends up configured for, without needing to know for
-// certain ahead of time.
+// REWRITTEN 2026-10-31 after the platform audit. Supabase redirects here in one of three shapes:
+//  - a `code` query param (PKCE flow): exchanged for a session;
+//  - access_token/refresh_token in the URL fragment (implicit flow, what this project uses): read with parseAuthLink;
+//  - an error in the fragment (#error_code=otp_expired ...) when the link was already used or has expired. Email
+//    scanners can use a link before the person taps it, so "expired" very often means "already confirmed".
+// Fixed here: the link is read from the latest incoming URL, so it works when the app was already open (it used to read
+// only the URL the app was launched with); a used or expired link gets a plain explanation instead of "missing required
+// information"; and any exception ends in the error state instead of an endless spinner.
 export default function ConfirmEmail() {
   const { code } = useLocalSearchParams<{ code?: string }>();
+  const url = useIncomingAuthUrl();
   const [status, setStatus] = useState<'working' | 'error'>('working');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [title, setTitle] = useState("That link didn't work");
+  const [message, setMessage] = useState('');
+  const [waited, setWaited] = useState(false);
+  const handled = useRef(false);
+
+  // On a phone the URL can arrive a moment after this screen opens; give it a couple of seconds before giving up.
+  useEffect(() => {
+    const t = setTimeout(() => setWaited(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    if (handled.current) return;
 
-    async function confirm() {
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (cancelled) return;
-        if (error) {
-          setStatus('error');
-          setErrorMessage(error.message);
-          return;
-        }
-      } else {
-        // No `code` query param - check for implicit-flow hash tokens
-        // instead, from whichever URL actually brought us here (cold
-        // start vs. already-running gives different APIs for "the
-        // current URL", so check both).
-        const initialUrl = await Linking.getInitialURL();
-        const tokens = parseHashTokens(initialUrl);
-        if (!tokens) {
-          if (cancelled) return;
-          setStatus('error');
-          setErrorMessage('This confirmation link is missing required information. Try signing in directly instead.');
-          return;
-        }
-        const { error } = await supabase.auth.setSession(tokens);
-        if (cancelled) return;
-        if (error) {
-          setStatus('error');
-          setErrorMessage(error.message);
-          return;
-        }
-      }
-
-      showToast('Email confirmed - signing you in.');
-      // onAuthStateChange (already wired up globally in app/_layout.tsx)
-      // picks up the new session automatically from setSession()/
-      // exchangeCodeForSession() above - this redirect just gets the
-      // user off this intermediate screen once that's settled.
-      router.replace('/');
+    async function fail(t: string, m: string) {
+      handled.current = true;
+      setTitle(t);
+      setMessage(m);
+      setStatus('error');
     }
 
-    confirm();
-    return () => {
-      cancelled = true;
-    };
-  }, [code]);
+    async function run() {
+      try {
+        if (code) {
+          handled.current = true;
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) return fail("Couldn't confirm your email", error.message);
+        } else {
+          const link = parseAuthLink(url);
+          if (link.errorCode) {
+            const used = link.errorCode === 'otp_expired' || /expired|invalid/i.test(link.errorDescription ?? '');
+            return fail(
+              used ? 'This link was already used or has expired' : "That link didn't work",
+              used
+                ? "If you already tapped it once, your email is confirmed: just sign in. If not, sign in and we'll offer to send you a new link."
+                : (link.errorDescription ?? 'Please sign in and we will help you from there.')
+            );
+          }
+          if (!link.tokens) {
+            if (!waited) return; // the link may still be arriving; this effect runs again when it does
+            return fail(
+              "We couldn't read that link",
+              "Your email may already be confirmed. Sign in, and if it says to confirm your email first, we'll send you a new link."
+            );
+          }
+          handled.current = true;
+          const { error } = await supabase.auth.setSession(link.tokens);
+          if (error) return fail("Couldn't confirm your email", error.message);
+        }
+        showToast('Email confirmed - signing you in.');
+        // onAuthStateChange (wired up in app/_layout.tsx) picks the new session up; this just leaves the screen.
+        router.replace('/');
+      } catch (err) {
+        void reportError(err, { context: 'confirm-email' });
+        await fail("Couldn't confirm your email", 'Something went wrong on our end. Your email may already be confirmed: try signing in.');
+      }
+    }
+
+    void run();
+  }, [code, url, waited]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -92,8 +94,8 @@ export default function ConfirmEmail() {
           </>
         ) : (
           <>
-            <Text style={styles.errorTitle}>Couldn't confirm your email</Text>
-            <Text style={styles.text}>{errorMessage}</Text>
+            <Text style={styles.errorTitle}>{title}</Text>
+            <Text style={styles.text}>{message}</Text>
             <Button label="Go to sign in" onPress={() => router.replace('/(auth)/sign-in')} style={styles.button} />
           </>
         )}
@@ -102,26 +104,10 @@ export default function ConfirmEmail() {
   );
 }
 
-// Supabase's implicit-flow redirect puts tokens after a `#`, e.g.
-// steerme://confirm-email#access_token=xxx&refresh_token=yyy&type=signup -
-// a real URL fragment, not a query string, so it has to be parsed
-// manually rather than via expo-router's query-param parsing.
-function parseHashTokens(url: string | null): { access_token: string; refresh_token: string } | null {
-  if (!url) return null;
-  const hashIndex = url.indexOf('#');
-  if (hashIndex === -1) return null;
-
-  const params = new URLSearchParams(url.slice(hashIndex + 1));
-  const access_token = params.get('access_token');
-  const refresh_token = params.get('refresh_token');
-  if (!access_token || !refresh_token) return null;
-  return { access_token, refresh_token };
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bone },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  text: { fontFamily: fonts.body, fontSize: 14, color: colors.saddle, textAlign: 'center' },
+  text: { fontFamily: fonts.body, fontSize: 14, color: colors.saddle, textAlign: 'center', lineHeight: 20 },
   errorTitle: { fontFamily: fonts.displayBold, fontSize: 20, color: colors.espresso, textAlign: 'center' },
   button: { marginTop: 12 },
 });

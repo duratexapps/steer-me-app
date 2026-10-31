@@ -13,6 +13,8 @@ import { webMaxWidth } from '@/src/theme/web-layout';
 import { supabase } from '@/src/lib/supabase';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
+import { PASSWORD_HINT, passwordProblem } from '@/src/lib/password-rules';
+import { DividerNote } from '@/src/components/ui/DividerNote';
 
 // Built 2026-07-25: this used to assume the Supabase project had
 // "Confirm email" turned off entirely, specifically because there was no
@@ -33,21 +35,58 @@ export default function CreateAccount() {
   // instead of a toast that disappears in a second.
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
 
-  async function handleCreate() {
-    if (!email.trim() || password.length < 8) {
-      showToast('Enter an email and an 8+ character password');
+  // A typo in the email (gmial.com) makes a permanent dead account: the confirmation goes nowhere and the person never learns why.
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+
+  function typoSuggestion(value: string): string | null {
+    const [local, domain] = value.toLowerCase().split('@');
+    if (!local || !domain) return null;
+    const fixes: Record<string, string> = {
+      'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gmal.com': 'gmail.com', 'gmail.con': 'gmail.com', 'gmail.co': 'gmail.com', 'gamil.com': 'gmail.com',
+      'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com', 'yahoo.con': 'yahoo.com', 'yhoo.com': 'yahoo.com',
+      'hotmial.com': 'hotmail.com', 'hotmail.con': 'hotmail.com', 'outlok.com': 'outlook.com', 'outlook.con': 'outlook.com',
+      'icloud.con': 'icloud.com', 'iclod.com': 'icloud.com', 'aol.con': 'aol.com', 'comcast.nte': 'comcast.net',
+    };
+    return fixes[domain] ? `${local}@${fixes[domain]}` : null;
+  }
+
+  async function handleCreate(skipTypoCheck = false) {
+    const trimmed = email.trim();
+    if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
+      showToast('Enter your email address');
       return;
     }
+    const problem = passwordProblem(password);
+    if (problem) {
+      showToast(problem);
+      return;
+    }
+    const fix = skipTypoCheck ? null : typoSuggestion(trimmed);
+    if (fix) {
+      setSuggestion(fix);
+      return;
+    }
+    setSuggestion(null);
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: trimmed,
       password,
       options: { emailRedirectTo: Linking.createURL('confirm-email') },
     });
     setLoading(false);
 
     if (error) {
-      showToast(error.message);
+      if (error.code === 'over_email_send_rate_limit') showToast("We're sending a lot of emails right now. Please try again in a few minutes.");
+      else if (error.code === 'weak_password') showToast(PASSWORD_HINT);
+      else showToast(error.message);
+      return;
+    }
+
+    // When an account with this email already exists, Supabase answers as if it worked but sends nothing (and returns a
+    // user with no identities). Say so, instead of leaving the person waiting for an email that is never coming.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      showToast('That email already has a Steer Me account. Sign in, or use Forgot password if you need a new one.');
+      router.replace('/(auth)/sign-in');
       return;
     }
 
@@ -84,7 +123,7 @@ export default function CreateAccount() {
         <TextField
           label="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(v) => { setEmail(v); setSuggestion(null); }}
           autoCapitalize="none"
           keyboardType="email-address"
           textContentType="emailAddress"
@@ -96,9 +135,18 @@ export default function CreateAccount() {
           onChangeText={setPassword}
           secureTextEntry
           textContentType="newPassword"
-          placeholder="At least 8 characters"
+          placeholder={PASSWORD_HINT}
         />
-        <Button label="Create account" onPress={handleCreate} loading={loading} style={styles.submit} />
+        <Text style={styles.hint}>Password: {PASSWORD_HINT.toLowerCase()}.</Text>
+        {suggestion ? (
+          <DividerNote>
+            Did you mean <Text style={{ fontFamily: fonts.bodyBold }}>{suggestion}</Text>?{'  '}
+            <Text style={styles.link} onPress={() => { setEmail(suggestion); setSuggestion(null); }}>Yes, use that</Text>
+            {'   '}
+            <Text style={styles.link} onPress={() => void handleCreate(true)}>No, it's right</Text>
+          </DividerNote>
+        ) : null}
+        <Button label="Create account" onPress={() => void handleCreate()} loading={loading} style={styles.submit} />
         </>}
       </ScrollView>
           <HelpModal visible={helpOpen} onClose={() => setHelpOpen(false)} topic="create-account" />
@@ -111,4 +159,6 @@ const styles = StyleSheet.create({
   content: { padding: 20, ...webMaxWidth },
   helper: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, marginBottom: 16, lineHeight: 17 },
   submit: { marginTop: 8 },
+  hint: { fontFamily: fonts.body, fontSize: 11.5, color: colors.saddle, marginTop: -8, marginBottom: 12 },
+  link: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.saddle, textDecorationLine: 'underline' },
 });
