@@ -47,9 +47,9 @@ function buildSmsUrl(phone: string, body: string): string {
   return `sms:${number}${separator}body=${encodeURIComponent(body)}`;
 }
 
-function buildEntryMessage(event: { name: string; is_clinic?: boolean }, me: { full_name: string; position: string; global_classification: number | null; header_classification: number | null; heeler_classification: number | null } | null | undefined): string {
+function buildEntryMessage(event: { name: string; is_clinic?: boolean; is_practice?: boolean }, me: { full_name: string; position: string; global_classification: number | null; header_classification: number | null; heeler_classification: number | null } | null | undefined): string {
   // A clinic or school is signed up for, not entered.
-  const verb = event.is_clinic ? 'sign up for' : 'enter';
+  const verb = event.is_clinic ? 'sign up for' : event.is_practice ? 'come to' : 'enter';
   if (!me) return `Hi, I'd like to ${verb} ${event.name}.`;
   const classification = formatClassificationTag({
     position: me.position as 'Header' | 'Heeler' | 'Switch',
@@ -98,6 +98,8 @@ export function EventCard({
   // roping "past" the moment its first day ended, even while it was
   // still actively running.
   const isPast = !isEventStillUpcoming(event.event_date, event.event_end_date);
+  // Clinics and practices have no classes, partners, attendance or ratings.
+  const noClasses = !!(event.is_clinic || event.is_practice);
   const attendedAnyDivision = event.divisions.some((d) => myAttendance?.has(`${event.id}:${d}`));
   const canRate = !producerView && isPast && attendedAnyDivision && !alreadyRated;
   // Rendered at 160px tall in this card - width=400 covers up to a
@@ -203,6 +205,7 @@ export function EventCard({
           {event.clinic_discipline ? `CLINIC OR SCHOOL · ${event.clinic_discipline.toUpperCase()}` : 'CLINIC OR SCHOOL'}
         </Text>
       ) : null}
+      {event.is_practice ? <Text style={styles.clinicBadge}>PRACTICE</Text> : null}
       <Text style={styles.name}>{event.name}</Text>
       <Text style={styles.producerLine}>
         {event.producer_org_name ?? 'Posted via Draw Pro'} · {formatDateRangeDisplay(event.event_date, event.event_end_date)}
@@ -216,7 +219,7 @@ export function EventCard({
           the event's own rating below) - shown as an honest low-confidence
           note rather than hidden outright, since "1 rating so far" is
           still more informative than nothing for a brand-new producer. */}
-      {event.producer_rating_count > 0 && !event.is_clinic ? (
+      {event.producer_rating_count > 0 && !noClasses ? (
         <Text style={styles.producerRatingLine}>
           {event.producer_avg_stars != null
             ? `Producer rating: ★ ${event.producer_avg_stars.toFixed(1)} (${event.producer_rating_count})`
@@ -231,7 +234,7 @@ export function EventCard({
           Draw-Pro-synced events use) - this is just the clarifier. */}
       {event.posted_by_admin ? (
         <View style={styles.adminPostedRow}>
-          <Text style={styles.adminPostedLine}>{event.is_clinic ? "Posted by RopingTools on the instructor's behalf" : "Posted by RopingTools on this producer's behalf"}</Text>
+          <Text style={styles.adminPostedLine}>{event.is_clinic ? "Posted by RopingTools on the instructor's behalf" : event.is_practice ? "Posted by RopingTools on the host's behalf" : "Posted by RopingTools on this producer's behalf"}</Text>
           {/* NEW, added 2026-07-29 - real gap flagged directly by the user: nobody had
               any way to fix a typo or attach a flier to an event that already exists.
               Scoped to admin-posted events only, matching the events_update_admin RLS
@@ -270,7 +273,7 @@ export function EventCard({
           ) : null}
         </View>
       ) : null}
-      {!producerView && !event.is_clinic ? (
+      {!producerView && !noClasses ? (
         <Text style={[styles.rating, ratingSummary && ratingSummary.rating_count >= RATING_MIN_TO_SHOW ? styles.ratingActive : styles.ratingMuted]}>
           {ratingText}
         </Text>
@@ -282,7 +285,7 @@ export function EventCard({
         </Pressable>
       ) : null}
 
-      {!event.is_clinic ? (
+      {!noClasses ? (
       <View style={styles.divisionRow}>
         {event.divisions.map((d) => {
           const key = `${event.id}:${d}`;
@@ -344,7 +347,7 @@ export function EventCard({
         <>
           <Pressable style={styles.enterDrawBtn} onPress={handlePhoneEntry}>
             <Ionicons name={event.entry_method === 'text' ? 'chatbubble-outline' : 'call-outline'} size={14} color={colors.bone} />
-            <Text style={styles.enterDrawBtnText}>{event.is_clinic ? (event.entry_method === 'text' ? 'Text to Sign Up' : 'Call to Sign Up') : event.entry_method === 'text' ? 'Text to Enter' : 'Call to Enter'}</Text>
+            <Text style={styles.enterDrawBtnText}>{event.is_clinic ? (event.entry_method === 'text' ? 'Text to Sign Up' : 'Call to Sign Up') : event.is_practice ? (event.entry_method === 'text' ? 'Text the Host' : 'Call the Host') : event.entry_method === 'text' ? 'Text to Enter' : 'Call to Enter'}</Text>
           </Pressable>
           {event.producer_contact_info ? <Text style={styles.entryMethodNote}>{event.producer_contact_info}</Text> : null}
         </>
@@ -364,6 +367,10 @@ export function EventCard({
             {event.is_clinic ? (
               <Text style={styles.noDrawProNoteText}>
                 {event.producer_contact_info ? `To sign up: ${event.producer_contact_info}` : 'See the flier for how to sign up.'}
+              </Text>
+            ) : event.is_practice ? (
+              <Text style={styles.noDrawProNoteText}>
+                {event.producer_contact_info ? `To ask about the practice: ${event.producer_contact_info}` : 'See the listing for the time and place.'}
               </Text>
             ) : (
               <Text style={styles.noDrawProNoteText}>

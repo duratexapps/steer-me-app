@@ -144,12 +144,15 @@ export const TYPE_OPTIONS: { value: string; label: string }[] = [
   // Not an association tag: clinics are a separate flag (events.is_clinic). They never show in the main list,
   // only under this chip.
   { value: 'clinic', label: 'Clinics & schools' },
+  // Same idea (events.is_practice): open practices and practice nights, listed only under this chip.
+  { value: 'practice', label: 'Practices' },
 ];
 
 export function distinctTypes(events: EventWithProducer[]): { value: string; label: string }[] {
   const present = new Set<string>();
   for (const e of events) {
     if (e.is_clinic) present.add('clinic');
+    if (e.is_practice) present.add('practice');
     for (const t of e.tags ?? []) present.add(t);
   }
   return TYPE_OPTIONS.filter((o) => present.has(o.value));
@@ -177,11 +180,14 @@ export function applyEventFilters(
     if (filters.state && parseStateFromLocation(event.location) !== filters.state) {
       return false;
     }
-    // Clinics & schools live only under their own chip, never mixed into the ropings.
+    // Clinics & schools and Practices live only under their own chips, never mixed into the ropings.
     if (filters.type === 'clinic' ? !event.is_clinic : event.is_clinic) {
       return false;
     }
-    if (filters.type && filters.type !== 'clinic' && !(event.tags ?? []).includes(filters.type)) {
+    if (filters.type === 'practice' ? !event.is_practice : event.is_practice) {
+      return false;
+    }
+    if (filters.type && filters.type !== 'clinic' && filters.type !== 'practice' && !(event.tags ?? []).includes(filters.type)) {
       return false;
     }
     if (activeHotspot && !inHotspot(event.location, activeHotspot)) {

@@ -75,6 +75,10 @@ const SECTIONS: FaqSection[] = [
         a: "Open Events and tap Clinics & schools in the Type row. They are kept out of the main list of ropings, so you only see them when you choose that chip. Each one shows the instructor, dates, cost and how to sign up.",
       },
       {
+        q: 'Where are the practices?',
+        a: "Open Events and tap Practices in the Type row. Practices are kept out of the main list of ropings, so you only see them when you choose that chip. Each one shows the host, the day and time, the place, the cost and how to reach them. Not every practice has a flier, so check the time and place on the card and contact the host if you have a question.",
+      },
+      {
         q: 'What happens when I favorite someone?',
         a: "It's private - they're never notified. Favoriting just gives you quick access to them later, and lets you choose \"My Favorites\" or \"Select Favorites\" as the audience when you post a need.",
       },

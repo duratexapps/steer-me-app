@@ -62,6 +62,8 @@ export default function AdminPostEvent() {
   const [divisions, setDivisions] = useState<number[]>([]);
   // Clinic or school (migration 0106): no classes, no partners; listed only under Clinics & schools.
   const [isClinic, setIsClinic] = useState(false);
+  // Practice (migration 0124): no classes, no partners; listed only under Practices. Cannot also be a clinic.
+  const [isPractice, setIsPractice] = useState(false);
   // Null = team roping; only the other disciplines get a note on the tile.
   const [clinicDiscipline, setClinicDiscipline] = useState<string | null>(null);
   // NEW, added 2026-07-30 alongside migration 0041 - see create-event.tsx's
@@ -136,8 +138,8 @@ export default function AdminPostEvent() {
 
   async function handleSubmit() {
     if (!me) return;
-    if (!producerName.trim() || !name.trim() || !date || !location.trim() || (!isClinic && divisions.length === 0)) {
-      showToast(isClinic ? 'Fill in instructor name, clinic name, date and location' : 'Fill in producer name, event name, date, location, and at least one division');
+    if (!producerName.trim() || !name.trim() || !date || !location.trim() || (!isClinic && !isPractice && divisions.length === 0)) {
+      showToast(isClinic ? 'Fill in instructor name, clinic name, date and location' : isPractice ? 'Fill in host name, practice name, date and location' : 'Fill in producer name, event name, date, location, and at least one division');
       return;
     }
     if (endDate && endDate < date) {
@@ -154,14 +156,15 @@ export default function AdminPostEvent() {
         location: location.trim(),
         entry_fee: fee.trim() || 'See listing',
         // A clinic carries the one-placeholder divisions array (same convention as round-robin ropings).
-        divisions: isClinic ? [19] : divisions,
+        divisions: isClinic || isPractice ? [19] : divisions,
         is_clinic: isClinic,
+        is_practice: isPractice,
         clinic_discipline: isClinic ? clinicDiscipline : null,
         description: description.trim() || 'No description provided.',
         flier_path: flierPath,
         external_producer_name: producerName.trim(),
         admin_poster_id: me.id,
-        division_details: isClinic ? null : buildDivisionDetailsPayload(divisions, divisionDetails),
+        division_details: isClinic || isPractice ? null : buildDivisionDetailsPayload(divisions, divisionDetails),
         producer_contact_info: contactInfo.trim() || null,
         booking_link: bookingLink.trim() || null,
         booking_phone: bookingPhone.trim() || null,
@@ -205,7 +208,19 @@ export default function AdminPostEvent() {
           title="This is a clinic or school"
           description="Taught by an instructor. Shows only under Clinics & schools, with no classes or partner matching."
           value={isClinic}
-          onToggle={() => setIsClinic((v) => !v)}
+          onToggle={() => {
+            setIsClinic((v) => !v);
+            setIsPractice(false);
+          }}
+        />
+        <ToggleRow
+          title="This is a practice"
+          description="An open practice or practice night. Shows only under Practices, with no classes or partner matching. A flier is optional."
+          value={isPractice}
+          onToggle={() => {
+            setIsPractice((v) => !v);
+            setIsClinic(false);
+          }}
         />
         {isClinic ? (
           <>
@@ -250,7 +265,7 @@ export default function AdminPostEvent() {
           keyboardType="phone-pad"
         />
 
-        {!isClinic ? (
+        {!isClinic && !isPractice ? (
           <>
         <Text style={styles.label}>Divisions / classification caps</Text>
         <View style={styles.pillWrap}>

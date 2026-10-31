@@ -102,9 +102,9 @@ export default function Events() {
     () => applyEventFilters(events ?? [], filters, distances, hotspots ?? []),
     [events, filters, distances, hotspots]
   );
-  // State chips only list states that have something in the group being viewed (ropings, or clinics & schools).
+  // State chips only list states that have something in the group being viewed (ropings, clinics & schools, or practices).
   const states = useMemo(
-    () => distinctStates((events ?? []).filter((e) => !!e.is_clinic === (filters.type === 'clinic'))),
+    () => distinctStates((events ?? []).filter((e) => !!e.is_clinic === (filters.type === 'clinic') && !!e.is_practice === (filters.type === 'practice'))),
     [events, filters.type]
   );
   const types = useMemo(() => distinctTypes(events ?? []), [events]);

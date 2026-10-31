@@ -83,6 +83,9 @@ export type EventRow = {
   is_clinic: boolean;
   // Discipline of a clinic that is NOT team roping (migration 0108); null = team roping. Shown as a note at the top of the tile.
   clinic_discipline: string | null;
+  // NEW, added 2026-10-31 alongside migration 0124 - an open practice or practice night. Like a clinic: no classes,
+  // partners or attendance, and kept out of the main Events list; it only shows under the "Practices" chip.
+  is_practice: boolean;
   // Paid Featured placement (migration 0109): a clinic is featured while this is in the future.
   featured_until: string | null;
 };
@@ -272,6 +275,8 @@ export function useCreateAdminEvent() {
       // Clinic or school listing (migration 0106). Uses the one-placeholder divisions array.
       is_clinic?: boolean;
       clinic_discipline?: string | null;
+      // Practice listing (migration 0124). Uses the one-placeholder divisions array.
+      is_practice?: boolean;
     }) => {
       const { error } = await supabase.from('events').insert({
         ...input,
@@ -373,6 +378,7 @@ export function useSearchPublishedEvents(query: string) {
         .select('*')
         .eq('status', 'published')
         .eq('is_clinic', false)
+        .eq('is_practice', false)
         .ilike('name', `%${query.trim()}%`)
         .order('event_date', { ascending: true })
         .limit(10);
