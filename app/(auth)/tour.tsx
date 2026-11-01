@@ -96,15 +96,23 @@ import { goBackOrHome } from '@/src/lib/navigation';
 // the draw -> Finale partners -> Coggins -> paperwork -> layovers ->
 // results, rest unchanged. Samples use invented names; the stops are
 // real listings and every slide keeps the "guide, call ahead" framing.
+// UPDATED 2026-10-31 - three slides for what shipped since the 2026-10-23 audit: Clinics & schools (own Type chip,
+// instructors list free), Practices (own Type chip, any member can post one, no flier needed) and "List your
+// business" (producer, instructor, layover spot or hotel; all free and reviewed). Images (clinics.png,
+// practices.png, list-business.png) are hand-built HTML mockups in the same convention (ropingtools-site's
+// docs/mockups/steer-me/steerme-{clinics,practices,list-business}-mockup.html, 2x render autocropped). Also: the
+// first slide no longer says "message them directly" (Steer Me sends partner requests, not messages) and gained the
+// new request notifications; the events slide mentions Canada; the layover slide mentions hotels.
 const SLIDES = [
   {
     icon: 'people-outline' as const,
     image: require('@/assets/tour/browse.png'),
     title: 'Find Your Own Partner',
-    body: 'Browse ropers by classification and event, message them directly, and skip the ~$40 draw-in fee producers charge for a blind draw.',
+    body: 'Browse ropers by classification and event, send them a partner request, and skip the ~$40 draw-in fee producers charge for a blind draw.',
     hints: [
       'Filter by classification cap, or toggle on nearby-now location.',
       'Report/Block are one tap away on every card, not buried in a menu.',
+      'Get a notification when a roper sends you a request, and see requests waiting on your Home screen.',
     ],
   },
   {
@@ -126,6 +134,29 @@ const SLIDES = [
     hints: [
       'See real attendance counts per division before you commit.',
       '"Partners" jumps straight into Browse, pre-filtered to that event.',
+      'Ropings across the US and Canada, not just your own state.',
+    ],
+  },
+  {
+    icon: 'school-outline' as const,
+    image: require('@/assets/tour/clinics.png'),
+    title: 'Find a Clinic or School',
+    body: 'Roping clinics and schools taught by pro ropers have their own spot on Events, so they never get buried in the list of ropings.',
+    hints: [
+      'Tap Clinics & schools in the Type row to see every one.',
+      'Team roping, tie-down, breakaway, and big loop and ranch roping are all listed.',
+      'Text or call the instructor to sign up, with your name already filled in.',
+    ],
+  },
+  {
+    icon: 'fitness-outline' as const,
+    image: require('@/assets/tour/practices.png'),
+    title: 'Find a Practice, or Post Your Own',
+    body: 'Practice nights and open practices are listed with the day, time, place and cost. Hosting one? Any member can post it free, no flier needed.',
+    hints: [
+      'Tap Practices in the Type row, then pick your state.',
+      'Weekly practice? Pick the last date and it stays listed until then.',
+      'Practice times can change, so call or text the host before you haul.',
     ],
   },
   {
@@ -178,6 +209,7 @@ const SLIDES = [
     hints: [
       'Say whether you want an RV hookup. If you do not, every stop has a hotels-nearby button.',
       'Starting with routes between Montana and Arizona, Nevada and Texas, with more to come.',
+      'Hotels that take horse trailers are listed too.',
       'Listings come from public sources, so call ahead to confirm.',
     ],
   },
@@ -240,6 +272,17 @@ const SLIDES = [
     hints: [
       'Already have events posted under your name? Claim them - ratings and history carry right over.',
       'New events stay visible only to you until your producer profile is verified.',
+    ],
+  },
+  {
+    icon: 'storefront-outline' as const,
+    image: require('@/assets/tour/list-business.png'),
+    title: 'Teach Clinics or Own a Layover Spot?',
+    body: 'Instructors, layover spots and hotels can list free too. Pick what you are when you sign up, or open List your business from Home.',
+    hints: [
+      'Instructors post clinics and schools under their own chip on Events.',
+      'Layover spots and hotels show up in the Layover Finder for ropers hauling your way.',
+      'Every listing is reviewed before it goes public. A listing is not an endorsement by Steer Me.',
     ],
   },
   {

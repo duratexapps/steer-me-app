@@ -29,6 +29,9 @@ export default function Get() {
           <Image source={require('@/assets/logo.png')} style={styles.logo} contentFit="contain" />
           <Text style={styles.h1}>Get Steer Me</Text>
           <Text style={styles.tagline}>The team roping partner app. Free to download.</Text>
+          <Text style={styles.summary}>
+            Find partners and ropings, clinics and schools, practices, and a place to stop on the haul. Check your paperwork before you go.
+          </Text>
         </View>
 
         <Pressable style={styles.tourBtn} onPress={() => router.push('/tour')}>
@@ -86,6 +89,14 @@ const styles = StyleSheet.create({
     color: colors.saddle,
     textAlign: 'center',
     marginTop: 8,
+  },
+  summary: {
+    fontFamily: fonts.body,
+    fontSize: 13.5,
+    color: colors.saddle,
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 19,
   },
   tourBtn: {
     flexDirection: 'row',

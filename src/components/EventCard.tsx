@@ -8,10 +8,11 @@ import { formatDivision, formatClassificationTag } from '@/src/lib/matching';
 import { formatDateRangeDisplay, isEventStillUpcoming } from '@/src/lib/date';
 import { publicUrlFor } from '@/src/lib/storage-upload';
 import { FlierViewerModal } from '@/src/components/FlierViewerModal';
-import type { EventWithProducer, RatingSummary } from '@/src/hooks/useEvents';
+import { useRemoveUserPractice, type EventWithProducer, type RatingSummary } from '@/src/hooks/useEvents';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useCreateEntryHandoff, withHandoffParam, useCreateDrawProEntryLink, withEntryLinkParam } from '@/src/hooks/useEntryHandoff';
 import { isFeatured } from '@/src/lib/date';
+import { showToast } from '@/src/state/toast-store';
 
 const RATING_MIN_TO_SHOW = 3;
 
@@ -124,6 +125,10 @@ export function EventCard({
   // back to the plain, un-prefilled link if this fails for any reason -
   // a failed prefill should never block someone from entering at all.
   const { data: me } = useMyProfile();
+  // A member can take down a practice they posted (migration 0125). Two taps, so it is never an accident.
+  const myPractice = !producerView && !!me?.id && event.posted_by_user_id === me.id;
+  const removePractice = useRemoveUserPractice();
+  const [confirmTakeDown, setConfirmTakeDown] = useState(false);
   const createHandoff = useCreateEntryHandoff();
   // NEW, added 2026-07-31 - the durable counterpart to the handoff above
   // (see useEntryHandoff.ts's matching comment). Best-effort and
@@ -279,6 +284,29 @@ export function EventCard({
         </Text>
       ) : null}
       {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+      {myPractice ? (
+        <View style={styles.adminPostedRow}>
+          <Text style={styles.adminPostedLine}>You posted this practice.</Text>
+          <Pressable
+            disabled={removePractice.isPending}
+            onPress={async () => {
+              if (!confirmTakeDown) {
+                setConfirmTakeDown(true);
+                return;
+              }
+              try {
+                await removePractice.mutateAsync(event.id);
+                showToast('Practice taken down');
+              } catch (err) {
+                showToast(err instanceof Error ? err.message : 'Could not take it down');
+              }
+              setConfirmTakeDown(false);
+            }}
+          >
+            <Text style={styles.adminEditLink}>{confirmTakeDown ? 'Tap again to take it down' : 'Take down'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {flierUrl ? (
         <Pressable onPress={() => setFlierViewerOpen(true)}>
           <Image source={{ uri: flierUrl }} style={styles.flier} contentFit="cover" />

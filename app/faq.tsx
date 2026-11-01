@@ -79,6 +79,10 @@ const SECTIONS: FaqSection[] = [
         a: "Open Events and tap Practices in the Type row. Practices are kept out of the main list of ropings, so you only see them when you choose that chip. Each one shows the host, the day and time, the place, the cost and how to reach them. Not every practice has a flier, so check the time and place on the card and contact the host if you have a question.",
       },
       {
+        q: 'Can I post a practice?',
+        a: "Yes, any member can, and it is free. Open Events and tap Host a practice? Post it free. Add the town, the date (or turn on Repeats every week and pick the last date), the time and the cost. A phone number and a Text the Host or Call the Host button are optional. Your practice goes live right away under Practices, you can have three listed at a time, and you can take one down from its card. Everything you enter, including the address and phone number, is visible to all members. Steer Me does not verify or endorse practices.",
+      },
+      {
         q: 'What happens when I favorite someone?',
         a: "It's private - they're never notified. Favoriting just gives you quick access to them later, and lets you choose \"My Favorites\" or \"Select Favorites\" as the audience when you post a need.",
       },

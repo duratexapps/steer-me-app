@@ -86,6 +86,8 @@ export type EventRow = {
   // NEW, added 2026-10-31 alongside migration 0124 - an open practice or practice night. Like a clinic: no classes,
   // partners or attendance, and kept out of the main Events list; it only shows under the "Practices" chip.
   is_practice: boolean;
+  // NEW, added 2026-10-31 alongside migration 0125 - set when a member (not a producer or admin) posted a practice.
+  posted_by_user_id: string | null;
   // Paid Featured placement (migration 0109): a clinic is featured while this is in the future.
   featured_until: string | null;
 };
@@ -196,6 +198,65 @@ export function useMyEvents() {
         .order('event_date', { ascending: true });
       if (error) throw error;
       return data as EventRow[];
+    },
+  });
+}
+
+// A member's own practice (migration 0125): everything is validated and filled in by the database function, which also
+// enforces the limits (3 live, 5 per day) and returns a plain-language message when something is wrong.
+export type PracticeInput = {
+  name: string;
+  host: string;
+  location: string;
+  venueAddress: string;
+  date: string;
+  weekly: boolean;
+  endDate: string | null;
+  time: string;
+  cost: string;
+  notes: string;
+  contact: string;
+  entryMethod: 'text' | 'call' | null;
+  entryPhone: string;
+};
+
+export function useCreateUserPractice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: PracticeInput) => {
+      const { data, error } = await supabase.rpc('create_user_practice', {
+        p_name: p.name,
+        p_host: p.host,
+        p_location: p.location,
+        p_venue_address: p.venueAddress || null,
+        p_date: p.date,
+        p_weekly: p.weekly,
+        p_end_date: p.weekly ? p.endDate : null,
+        p_time: p.time,
+        p_cost: p.cost,
+        p_notes: p.notes || null,
+        p_contact: p.contact || null,
+        p_entry_method: p.entryMethod,
+        p_entry_phone: p.entryMethod ? p.entryPhone : null,
+      });
+      if (error) throw new Error(error.message);
+      return data as string;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+export function useRemoveUserPractice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (practiceId: string) => {
+      const { error } = await supabase.rpc('remove_user_practice', { p_id: practiceId });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
     },
   });
 }

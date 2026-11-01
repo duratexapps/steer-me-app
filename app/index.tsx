@@ -156,6 +156,10 @@ export default function Landing() {
             body="Once you've got a partner, hand off straight into Draw Pro's entry form with your info already filled in - no retyping, no confusion about who's paired with who."
           />
           <Feature
+            title="Clinics, practices and a place to stop"
+            body="Find roping clinics and schools and practice nights near you, post your own practice free, check the paperwork rules for your route, and see stalls, pens and RV hookups along the way."
+          />
+          <Feature
             title="Built for real ropers, by real ropers"
             body="Steer Me exists because finding a partner shouldn't cost you a draw-in fee or a wasted trip. It's free to download and browse, your first 3 matches are on us, and it's built specifically for team roping."
           />

@@ -306,6 +306,17 @@ Deno.serve(async (req) => {
     if (failed.length) urgent.push(`${failed.length} partner request notice(s) failed to send - see check 25`);
   });
 
+  // 26 practices posted by members (migration 0125): live on posting with no review, so they are listed here to look over
+  await check('26. Member-posted practices', async () => {
+    const since24 = new Date(Date.now() - 24 * HOUR).toISOString();
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = await q(admin.from('events').select('id,name,external_producer_name,location,event_date,event_end_date,status,created_at').not('posted_by_user_id', 'is', null).order('created_at', { ascending: false }).limit(200));
+    const fresh = rows.filter((x) => x.created_at > since24 && x.status === 'published');
+    const live = rows.filter((x) => x.status === 'published' && String(x.event_end_date ?? x.event_date) >= today);
+    lines.push(`26. Practices posted by members: ${fresh.length} new in 24h, ${live.length} live now, ${rows.filter((x) => x.status === 'removed').length} taken down${fresh.length ? '; new: ' + fresh.slice(0, 5).map((x) => `"${x.name}" by ${x.external_producer_name} in ${x.location} (${String(x.id).slice(0, 8)})`).join(' | ') : ''}`);
+    if (fresh.length) urgent.push(`${fresh.length} new member-posted practice(s) went live without review - look them over in check 26 and remove any that look wrong (set status to removed)`);
+  });
+
   // 23 outside services the app depends on, each probed for real
   const probes: string[] = [];
   const probe = async (name: string, fn: () => Promise<string>) => {

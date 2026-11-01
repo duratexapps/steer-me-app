@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
@@ -9,7 +9,7 @@ import { EventCard } from '@/src/components/EventCard';
 import { EventFiltersBar } from '@/src/components/EventFiltersBar';
 import { ReportModal } from '@/src/components/ReportModal';
 import { RatingModal } from '@/src/components/RatingModal';
-import { colors } from '@/src/theme/theme';
+import { colors, fonts } from '@/src/theme/theme';
 import { useSessionStore } from '@/src/state/session-store';
 import {
   usePublishedEvents,
@@ -178,17 +178,24 @@ export default function Events() {
           setTimeout(() => listRef.current?.scrollToIndex({ index: info.index, animated: false, viewPosition: 0.3 }), 100);
         }}
         ListHeaderComponent={
-          events && events.length > 0 ? (
-            <EventFiltersBar
-              filters={filters}
-              onChange={setFilters}
-              states={states}
-              types={types}
-              hotspots={hotspots ?? []}
-              homeArea={profile?.home_area}
-              resultCount={filteredEvents.length}
-            />
-          ) : null
+          <>
+            {/* Any member can post a practice (migration 0125), so the way in is always here, not only when the
+                Practices chip exists. */}
+            <Pressable onPress={() => router.push('/post-practice')} style={styles.postPracticeRow}>
+              <Text style={styles.postPracticeText}>Host a practice? Post it free</Text>
+            </Pressable>
+            {events && events.length > 0 ? (
+              <EventFiltersBar
+                filters={filters}
+                onChange={setFilters}
+                states={states}
+                types={types}
+                hotspots={hotspots ?? []}
+                homeArea={profile?.home_area}
+                resultCount={filteredEvents.length}
+              />
+            ) : null}
+          </>
         }
         renderItem={({ item: event }) => (
           <View style={numColumns > 1 ? styles.gridItem : undefined}>
@@ -277,4 +284,6 @@ const styles = StyleSheet.create({
   content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
   columnWrapper: { gap: 14 },
   gridItem: { flex: 1 },
+  postPracticeRow: { alignSelf: 'flex-end', paddingVertical: 4, marginBottom: 8 },
+  postPracticeText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.brass, textDecorationLine: 'underline' },
 });
