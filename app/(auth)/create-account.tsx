@@ -15,6 +15,7 @@ import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
 import { PASSWORD_HINT, passwordProblem } from '@/src/lib/password-rules';
 import { DividerNote } from '@/src/components/ui/DividerNote';
+import { AgeGate } from '@/src/components/AgeGate';
 
 // Built 2026-07-25: this used to assume the Supabase project had
 // "Confirm email" turned off entirely, specifically because there was no
@@ -34,6 +35,8 @@ export default function CreateAccount() {
   // pending) - swaps the form for the standard check-your-email notice
   // instead of a toast that disappears in a second.
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  // 2026-11-06: nothing (not even an email address) is collected until the age screen is passed. See src/lib/age-gate.ts.
+  const [ageOk, setAgeOk] = useState(false);
 
   // A typo in the email (gmial.com) makes a permanent dead account: the confirmation goes nowhere and the person never learns why.
   const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -112,14 +115,15 @@ export default function CreateAccount() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Create Account" subtitle="Sets up your login - your profile comes next" onBack={() => goBackOrHome()} onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {awaitingConfirm ? (
+        {!ageOk ? <AgeGate onPassed={() => setAgeOk(true)} onLeave={() => goBackOrHome()} /> : null}
+        {ageOk && awaitingConfirm ? (
           <>
             <CheckEmailNotice email={email.trim()} />
             <Button label="I've confirmed - sign in" onPress={() => router.replace('/(auth)/sign-in')} />
           </>
         ) : null}
-        {awaitingConfirm ? null : <Text style={styles.helper}>This is what you'll use to sign back in to Steer Me. Next is your roper profile. Have a Global Handicap card? A screenshot is fine. Don't have one? You're just as welcome: answer a few quick questions about how you rope instead. Either way it takes about two minutes.</Text>}
-        {awaitingConfirm ? null : <>
+        {!ageOk || awaitingConfirm ? null : <Text style={styles.helper}>This is what you'll use to sign back in to Steer Me. Next is your roper profile. Have a Global Handicap card? A screenshot is fine. Don't have one? You're just as welcome: answer a few quick questions about how you rope instead. Either way it takes about two minutes.</Text>}
+        {!ageOk || awaitingConfirm ? null : <>
         <TextField
           label="Email"
           value={email}

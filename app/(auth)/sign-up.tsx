@@ -26,6 +26,8 @@ import { verifyClassificationCard, reportMembershipConflict } from '@/src/lib/ve
 import { SelfAssessmentForm } from '@/src/components/SelfAssessmentForm';
 import { PhoneVerifyStep } from '@/src/components/PhoneVerifyStep';
 import { logSignupEvent } from '@/src/lib/signup-events';
+import { AgeGate } from '@/src/components/AgeGate';
+import { hasPassedAgeGate, isAgeLocked } from '@/src/lib/age-gate';
 import { registerForPushNotifications } from '@/src/lib/push-notifications';
 import { EMPTY_ASSESSMENT, checkClaim, type SelfAssessment } from '@/src/lib/self-rating';
 
@@ -36,7 +38,35 @@ type PhotoTarget = 'avatar' | 'screenshot' | null;
 // staged setTimeout "scan"). Per the confirmed v1 decision, this is manual
 // entry instead - the screenshot is stored as supporting evidence, not fed
 // through a vision API.
+// 2026-11-06: new accounts pass the age screen on the create-account step. An account made BEFORE that screen existed
+// (or on another device) reaches this profile step without a "passed" mark, so it is asked once here, before any
+// profile detail is collected. See src/lib/age-gate.ts.
 export default function SignUp() {
+  const [gate, setGate] = useState<'checking' | 'ask' | 'ok'>('checking');
+  useEffect(() => {
+    let alive = true;
+    void Promise.all([hasPassedAgeGate(), isAgeLocked()]).then(([passed, locked]) => {
+      if (alive) setGate(passed && !locked ? 'ok' : 'ask');
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (gate === 'checking') return null;
+  if (gate === 'ask') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bone }} edges={['bottom']}>
+        <ScreenHeader title="Your profile" subtitle="One quick question first" />
+        <ScrollView contentContainerStyle={{ padding: 20, ...webMaxWidth }} keyboardShouldPersistTaps="handled">
+          <AgeGate onPassed={() => setGate('ok')} onLeave={() => router.replace('/(auth)/sign-in')} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+  return <SignUpForm />;
+}
+
+function SignUpForm() {
   const setHasAthleteProfile = useSessionStore((s) => s.setHasAthleteProfile);
 
   const [photoTarget, setPhotoTarget] = useState<PhotoTarget>(null);
