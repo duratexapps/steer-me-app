@@ -116,6 +116,22 @@ const SLIDES = [
     ],
   },
   {
+    // Added 2026-11-07 (Justin): the tour and /get never said what Steer Me costs. Facts checked the same day: the
+    // paywall setting is on with free_matches = 3 (a match is an accepted partner request), the App Store lists
+    // Annual Membership $39.99 and Monthly Membership $6.99, and the gated actions are sending partner requests,
+    // marking attendance, posting a need and goat-roping interest. Everything else stays free. No image: this slide
+    // is words only, so the image is optional.
+    icon: 'pricetag-outline' as const,
+    image: null,
+    title: 'What It Costs',
+    body: "Steer Me is free to download and free to use. Your first 3 partner matches are free. After that, keep finding partners with a membership: $39.99 a year, less than one typical $40 draw-in fee. Monthly is $6.99.",
+    hints: [
+      'A match counts when a partner request is accepted, whether you sent it or received it.',
+      'Browsing ropings, clinics and practices, the paperwork check, the layover finder, and entering and tracking your Draw Pro results stay free.',
+      'Pay through the App Store or Google Play, or on the website. Producers, instructors and layover spots list free.',
+    ],
+  },
+  {
     icon: 'card-outline' as const,
     image: require('@/assets/tour/no-card.png'),
     title: "No Global Card? You're Welcome",
@@ -319,7 +335,7 @@ export default function Tour() {
             docs/ARCHITECTURE.md 2026-07-27 entry); scrolling here avoids
             the same class of problem rather than waiting to hit it. */}
         <ScrollView style={styles.slideScroll} contentContainerStyle={styles.slide} showsVerticalScrollIndicator={false}>
-          <Image source={SLIDES[index].image} style={styles.screenshot} contentFit="contain" />
+          {SLIDES[index].image ? <Image source={SLIDES[index].image} style={styles.screenshot} contentFit="contain" /> : null}
           <View style={styles.iconCircle}>
             <Ionicons name={SLIDES[index].icon} size={28} color={colors.bone} />
           </View>

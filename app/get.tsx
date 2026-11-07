@@ -32,6 +32,9 @@ export default function Get() {
           <Text style={styles.summary}>
             Find partners and ropings, clinics and schools, practices, and a place to stop on the haul. Check your paperwork before you go.
           </Text>
+          <Text style={styles.priceNote}>
+            Free to use, and your first 3 partner matches are free. After that it's $39.99 a year, less than one typical $40 draw-in fee.
+          </Text>
         </View>
 
         <Pressable style={styles.tourBtn} onPress={() => router.push('/tour')}>
@@ -94,6 +97,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 13.5,
     color: colors.saddle,
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 19,
+  },
+  priceNote: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13.5,
+    color: colors.espresso,
     textAlign: 'center',
     marginTop: 10,
     lineHeight: 19,
