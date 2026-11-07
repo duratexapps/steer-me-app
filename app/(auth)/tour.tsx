@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -103,6 +103,15 @@ import { goBackOrHome } from '@/src/lib/navigation';
 // docs/mockups/steer-me/steerme-{clinics,practices,list-business}-mockup.html, 2x render autocropped). Also: the
 // first slide no longer says "message them directly" (Steer Me sends partner requests, not messages) and gained the
 // new request notifications; the events slide mentions Canada; the layover slide mentions hotels.
+// Payment wording on the "What It Costs" slide. Web-only (Justin, 2026-11-07: drive payments to Stripe): the website
+// sends people to Stripe checkout. The iOS and Android apps must NOT mention the website, Stripe, or either store by
+// name: the stores restrict steering app users to an outside payment, and Apple rejected build 1.3.4 under 2.3.10 for
+// naming the other platform's store (see app/subscription.tsx). Revisit native wording once the link-out rules settle.
+const COST_PAY_HINT =
+  Platform.OS === 'web'
+    ? 'Subscribe right here on the website in about a minute: secure checkout by Stripe, and your membership follows your account on any device.'
+    : 'Membership follows your account, so you keep it if you switch phones.';
+
 const SLIDES = [
   {
     icon: 'people-outline' as const,
@@ -128,7 +137,8 @@ const SLIDES = [
     hints: [
       'A match counts when a partner request is accepted, whether you sent it or received it.',
       'Browsing ropings, clinics and practices, the paperwork check, the layover finder, and entering and tracking your Draw Pro results stay free.',
-      'Pay through the App Store or Google Play, or on the website. Producers, instructors and layover spots list free.',
+      COST_PAY_HINT,
+      'Producers, instructors and layover spots list free.',
     ],
   },
   {

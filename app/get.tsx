@@ -1,4 +1,4 @@
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import Head from 'expo-router/head';
@@ -34,6 +34,7 @@ export default function Get() {
           </Text>
           <Text style={styles.priceNote}>
             Free to use, and your first 3 partner matches are free. After that it's $39.99 a year, less than one typical $40 draw-in fee.
+            {Platform.OS === 'web' ? ' Subscribe on the website with secure checkout by Stripe, and your membership works in the app too.' : ''}
           </Text>
         </View>
 
