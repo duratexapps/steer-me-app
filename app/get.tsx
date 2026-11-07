@@ -34,7 +34,7 @@ export default function Get() {
           </Text>
           <Text style={styles.priceNote}>
             Free to use, and your first 3 partner matches are free. After that it's $39.99 a year, less than one typical $40 draw-in fee.
-            {Platform.OS === 'web' ? ' Subscribe on the website with secure checkout by Stripe, and your membership works in the app too.' : ''}
+            {Platform.OS === 'web' ? ' Subscribe on the website and your first month is free, with secure checkout by Stripe. Your membership works in the app too.' : ''}
           </Text>
         </View>
 

@@ -109,7 +109,7 @@ import { goBackOrHome } from '@/src/lib/navigation';
 // naming the other platform's store (see app/subscription.tsx). Revisit native wording once the link-out rules settle.
 const COST_PAY_HINT =
   Platform.OS === 'web'
-    ? 'Subscribe right here on the website in about a minute: secure checkout by Stripe, and your membership follows your account on any device.'
+    ? 'Subscribe right here on the website and your first month is free. Secure checkout by Stripe takes about a minute, and your membership follows your account on any device.'
     : 'Membership follows your account, so you keep it if you switch phones.';
 
 const SLIDES = [
