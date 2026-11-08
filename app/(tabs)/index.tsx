@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionTile } from '@/src/components/ui/ActionTile';
 import { Tag } from '@/src/components/ui/Tag';
+import { Button } from '@/src/components/ui/Button';
 import { HelpModal } from '@/src/components/HelpModal';
 import { AndroidTesterBanner } from '@/src/components/AndroidTesterBanner';
 import { FixNoteBanner } from '@/src/components/FixNoteBanner';
@@ -105,8 +106,19 @@ export default function Home() {
             <Text style={styles.role}>
               {hasProducerProfile
                 ? "You haven't set up an athlete profile yet - you're using Steer Me for your business only."
-                : 'Set up a profile to get started.'}
+                : 'Your email is confirmed. One step left: set up your roper profile (about two minutes).'}
             </Text>
+            {/* 2026-11-08: after the email link, a new account lands here, not in the profile form. The only way forward
+                used to be a small tile far down the page; 12 of 15 recent confirmed-but-unfinished accounts never
+                opened the profile screen. Producers, instructors and hotels have their own door right below. */}
+            {!hasProducerProfile ? (
+              <View style={styles.finishBlock}>
+                <Button label="Finish my roper profile" onPress={() => router.push('/(auth)/sign-up')} />
+                <Pressable onPress={() => router.push('/producer')} hitSlop={8} style={styles.finishLink}>
+                  <Text style={styles.finishLinkText}>I run ropings, teach, or own a layover spot or hotel instead</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         )}
 
@@ -253,6 +265,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
     letterSpacing: 0.4,
   },
+  finishBlock: { marginTop: 18, gap: 12 },
+  finishLink: { alignSelf: 'center' },
+  finishLinkText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.saddle, textDecorationLine: 'underline', textAlign: 'center' },
   statRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
   stat: {
     flex: 1,
