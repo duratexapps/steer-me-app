@@ -144,6 +144,17 @@ export default function Home() {
           </View>
 
           {hasAthleteProfile ? (
+            <View style={{ width: tileWidth }}>
+              <ActionTile
+                icon="notifications-outline"
+                title="Roping alerts"
+                description="A free weekly list of ropings near you, in the distance and types you pick"
+                onPress={() => router.push('/alerts')}
+              />
+            </View>
+          ) : null}
+
+          {hasAthleteProfile ? (
             <>
               <View style={{ width: tileWidth }}>
                 <ActionTile

@@ -543,6 +543,15 @@ verify_jwt = false
 [functions.nightly-sweep]
 verify_jwt = false
 
+# Weekly roping list (roping alerts phase 1): called by pg_cron through run_weekly_roping_list() with the shared
+# db_webhook_secret header, no user JWT. alerts-unsubscribe is opened from an email link with no sign-in; its unguessable
+# per-member token is the credential.
+[functions.weekly-roping-list]
+verify_jwt = false
+
+[functions.alerts-unsubscribe]
+verify_jwt = false
+
 # Stripe web subscriptions (migration 0098). The browser calls checkout and portal, so they answer the CORS
 # preflight and check the caller themselves; the webhook is called by Stripe and checks Stripe's signature.
 [functions.stripe-checkout]
