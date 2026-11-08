@@ -552,6 +552,10 @@ verify_jwt = false
 [functions.alerts-unsubscribe]
 verify_jwt = false
 
+# Instant roping alerts for paying members (phase 2, migration 0129): same cron + shared-secret pattern as the weekly list.
+[functions.instant-roping-alerts]
+verify_jwt = false
+
 # Stripe web subscriptions (migration 0098). The browser calls checkout and portal, so they answer the CORS
 # preflight and check the caller themselves; the webhook is called by Stripe and checks Stripe's signature.
 [functions.stripe-checkout]

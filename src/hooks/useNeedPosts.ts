@@ -4,6 +4,7 @@ import { useSessionStore } from '@/src/state/session-store';
 import { useMyProfile, type MyProfile } from '@/src/hooks/useMyProfile';
 import { canPair } from '@/src/lib/matching';
 import { toClassification, type PublicProfile } from '@/src/hooks/useEligiblePartners';
+import { toLimitError } from '@/src/lib/free-tier';
 
 export type NeedPostVisibility = 'everyone' | 'favorites' | 'selected';
 
@@ -101,7 +102,7 @@ export function useCreateNeedPost() {
     }) => {
       const { selected_favorite_ids, ...postFields } = input;
       const { data, error } = await supabase.from('need_posts').insert(postFields).select('id').single();
-      if (error) throw error;
+      if (error) throw toLimitError(error);
 
       // Only meaningful for visibility='selected' - the RLS policy on
       // need_posts checks this table to decide who else can see the row,
@@ -114,6 +115,7 @@ export function useCreateNeedPost() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['need-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['free-tier-status'] });
     },
   });
 }
@@ -127,6 +129,7 @@ export function useDeleteNeedPost() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['need-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['free-tier-status'] });
     },
   });
 }

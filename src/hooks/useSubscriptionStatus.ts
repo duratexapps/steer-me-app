@@ -86,6 +86,14 @@ export type FreeTierStatus = {
   matches_used: number;
   subscribed: boolean;
   allowed: boolean;
+  // Migration 0129: the free-member limits. limits_apply is false for subscribers, comped and test accounts, and while the
+  // paywall is off; the database enforces them either way, these numbers only let the screens explain them first.
+  limits_apply: boolean;
+  open_requests_limit: number;
+  open_requests_used: number;
+  need_posts_limit: number;
+  need_posts_used: number;
+  request_expiry_days: number;
 };
 
 export function useFreeTierStatus() {

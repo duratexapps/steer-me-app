@@ -14,6 +14,7 @@ import {
   useSentRequests,
   useReceivedRequests,
   useRespondToRequest,
+  useWithdrawRequest,
   fetchRequestContact,
   type PartnerRequestWithProfile,
 } from '@/src/hooks/usePartnerRequests';
@@ -26,6 +27,8 @@ import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { useCreateEntryHandoff, withHandoffParam, useCreateDrawProEntryLink, withEntryLinkParam } from '@/src/hooks/useEntryHandoff';
 import { showToast } from '@/src/state/toast-store';
 import { goBackOrHome } from '@/src/lib/navigation';
+import { useFreeTierStatus } from '@/src/hooks/useSubscriptionStatus';
+import { Button } from '@/src/components/ui/Button';
 
 const STATUS_LABEL: Record<PartnerRequestWithProfile['status'], string> = {
   pending: 'Pending',
@@ -50,6 +53,8 @@ function RequestCard({
   onToggleFavorite: () => void;
 }) {
   const respond = useRespondToRequest();
+  const withdraw = useWithdrawRequest();
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const { data: contact } = useQuery({
     queryKey: ['request-contact', request.id],
     enabled: request.status === 'accepted',
@@ -207,6 +212,32 @@ function RequestCard({
           </View>
         ) : null}
 
+        {mode === 'sent' && (request.status === 'pending' || request.status === 'pending_guardian') ? (
+          <View style={styles.actionRow}>
+            <Pressable
+              style={[styles.actionBtn, styles.declineBtn]}
+              disabled={withdraw.isPending}
+              onPress={async () => {
+                if (!confirmWithdraw) {
+                  setConfirmWithdraw(true);
+                  return;
+                }
+                try {
+                  await withdraw.mutateAsync(request.id);
+                  showToast('Request withdrawn');
+                } catch (err) {
+                  setConfirmWithdraw(false);
+                  showToast(err instanceof Error ? err.message : 'Could not withdraw the request');
+                }
+              }}
+            >
+              <Text style={styles.declineText}>
+                {withdraw.isPending ? 'Withdrawing…' : confirmWithdraw ? 'Tap again to withdraw' : 'Withdraw request'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {request.status === 'accepted' && contact?.contact ? (
           <View style={styles.contactRow}>
             {contact.is_guardian ? (
@@ -257,6 +288,7 @@ export default function MyRequests() {
   const { data: sent, isLoading: sentLoading } = useSentRequests();
   const { data: received, isLoading: receivedLoading } = useReceivedRequests();
   const { data: favorites } = useFavorites();
+  const { data: tier } = useFreeTierStatus();
   const toggleFavorite = useToggleFavorite();
   const favoriteIds = new Set((favorites ?? []).map((f) => f.id));
   const numColumns = useResponsiveColumns();
@@ -273,6 +305,19 @@ export default function MyRequests() {
         <Pill label="Received" selected={tab === 'received'} onPress={() => setTab('received')} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
+        {tab === 'sent' && tier ? (
+          <View style={styles.limitBox}>
+            <Text style={styles.limitText}>
+              {tier.limits_apply
+                ? `Free members can have ${tier.open_requests_limit} requests open at a time (${tier.open_requests_used} of ${tier.open_requests_limit} in use). Withdraw one to free a spot, or subscribe for no limit. `
+                : ''}
+              {`A request nobody answers closes by itself after ${tier.request_expiry_days} days, so you can ask someone else.`}
+            </Text>
+            {tier.limits_apply && tier.open_requests_used >= tier.open_requests_limit ? (
+              <Button label="Subscribe for no limit" variant="outline" onPress={() => router.push('/subscription')} />
+            ) : null}
+          </View>
+        ) : null}
         {isLoading ? (
           <ActivityIndicator color={colors.brass} style={{ marginTop: 20 }} />
         ) : !list || list.length === 0 ? (
@@ -309,6 +354,8 @@ const styles = StyleSheet.create({
   tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 16 },
   content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  limitBox: { marginBottom: 14, gap: 10 },
+  limitText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.saddle, lineHeight: 18 },
   card: {
     flexDirection: 'row',
     gap: 14,

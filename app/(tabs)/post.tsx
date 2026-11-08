@@ -14,7 +14,7 @@ import { useOpenNeedPosts, useMyNeedPosts, useDeleteNeedPost, type NeedPostWithP
 import { useSentRequests, useSendRequest } from '@/src/hooks/usePartnerRequests';
 import { useBlockUser } from '@/src/hooks/useBlocking';
 import { useSubmitUserReport, USER_REPORT_OFFENSES } from '@/src/hooks/useReporting';
-import { useRequireSubscription } from '@/src/hooks/useSubscriptionStatus';
+import { useRequireSubscription, useFreeTierStatus } from '@/src/hooks/useSubscriptionStatus';
 import { useResponsiveColumns, gridItemWidthPercent } from '@/src/hooks/useResponsiveColumns';
 import { getCurrentCity } from '@/src/lib/location';
 import { showToast } from '@/src/state/toast-store';
@@ -35,6 +35,8 @@ export default function Post() {
   const blockUser = useBlockUser();
   const submitReport = useSubmitUserReport();
   const requireSubscription = useRequireSubscription();
+  const { data: tier } = useFreeTierStatus();
+  const atNeedLimit = !!tier && tier.limits_apply && tier.need_posts_used >= tier.need_posts_limit;
   const numColumns = useResponsiveColumns();
   const itemWidth = gridItemWidthPercent(numColumns);
 
@@ -99,7 +101,18 @@ export default function Post() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScreenHeader title="Post a Need" subtitle="Post your event, or find one to fill" onHelp={() => setHelpOpen(true)} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Button label="+ Post a need" onPress={() => router.push('/create-need-post')} style={{ marginBottom: 20 }} />
+        <Button
+          label={atNeedLimit ? 'Subscribe to post more' : '+ Post a need'}
+          onPress={() => router.push(atNeedLimit ? '/subscription' : '/create-need-post')}
+          style={{ marginBottom: tier?.limits_apply ? 8 : 20 }}
+        />
+        {tier?.limits_apply ? (
+          <Text style={styles.limitNote}>
+            {atNeedLimit
+              ? `Free members can have ${tier.need_posts_limit} need post up at a time. Take your current one down below, or subscribe to post as many as you like.`
+              : `Free members can have ${tier.need_posts_limit} need post up at a time (${tier.need_posts_used} of ${tier.need_posts_limit} in use). Subscribers can post as many as they like.`}
+          </Text>
+        ) : null}
 
         {myPosts && myPosts.length > 0 ? (
           <>
@@ -179,5 +192,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
   },
+  limitNote: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, lineHeight: 17, marginBottom: 20 },
   locationNote: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, marginBottom: 14 },
 });

@@ -5,6 +5,7 @@ import { useSessionStore } from '@/src/state/session-store';
 // Roping alert settings (migration 0128). A member with no row yet sees the defaults; the first save creates the row.
 export type AlertPrefs = {
   weekly: boolean;
+  instant: boolean; // instant alerts: paying members only, enforced by the sender
   radius_miles: number | null; // null = any distance
   include_jackpots: boolean;
   include_clinics: boolean;
@@ -15,6 +16,7 @@ export type AlertPrefs = {
 
 export const DEFAULT_ALERT_PREFS: AlertPrefs = {
   weekly: true,
+  instant: false,
   radius_miles: 250,
   include_jackpots: true,
   include_clinics: true,
@@ -31,7 +33,7 @@ export function useAlertPrefs() {
     queryFn: async (): Promise<{ prefs: AlertPrefs; saved: boolean }> => {
       const { data, error } = await supabase
         .from('alert_prefs')
-        .select('weekly, radius_miles, include_jackpots, include_clinics, include_practices, class_min, class_max')
+        .select('weekly, instant, radius_miles, include_jackpots, include_clinics, include_practices, class_min, class_max')
         .eq('user_id', userId!)
         .maybeSingle();
       if (error) throw error;
@@ -40,6 +42,7 @@ export function useAlertPrefs() {
         saved: true,
         prefs: {
           weekly: data.weekly,
+          instant: data.instant,
           radius_miles: data.radius_miles,
           include_jackpots: data.include_jackpots,
           include_clinics: data.include_clinics,

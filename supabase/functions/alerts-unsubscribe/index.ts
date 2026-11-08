@@ -1,4 +1,4 @@
-// One-tap unsubscribe from the weekly roping list (link in every email; also the List-Unsubscribe header). No sign-in:
+// One-tap unsubscribe from the weekly roping list and instant alerts (link in every email; also the List-Unsubscribe header). No sign-in:
 // the unguessable per-member token in alert_prefs is the credential. GET shows a confirmation page and unsubscribes (mail
 // clients that pre-fetch links are why the page only ever turns the list OFF, never on); POST handles the one-click
 // header. Turning it back on is in the app under Profile, Roping alerts.
@@ -23,5 +23,5 @@ Deno.serve(async (req) => {
   if (error) return page('Something went wrong', 'We could not update your settings. Please try again, or turn the list off in Steer Me under Profile, Roping alerts.', 500);
   if (req.method === 'POST') return new Response(null, { status: 200 });
   if (!data || data.length === 0) return page('That link did not work', 'We could not find that subscription. You can turn the weekly list off in Steer Me under Profile, Roping alerts.', 404);
-  return page("You're unsubscribed", "You won't get the weekly roping list anymore. If you change your mind, turn it back on in Steer Me under Profile, Roping alerts.");
+  return page("You're unsubscribed", "You won't get the weekly roping list or instant roping alerts by email anymore. If you change your mind, turn them back on in Steer Me under Profile, Roping alerts.");
 });

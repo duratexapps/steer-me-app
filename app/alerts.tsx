@@ -15,6 +15,7 @@ import { showToast } from '@/src/state/toast-store';
 import { DEFAULT_ALERT_PREFS, useAlertPrefs, useSaveAlertPrefs, type AlertPrefs } from '@/src/hooks/useAlertPrefs';
 import { useMyProfile } from '@/src/hooks/useMyProfile';
 import { MILES_OPTIONS } from '@/src/lib/event-filters';
+import { useFreeTierStatus } from '@/src/hooks/useSubscriptionStatus';
 
 // Roping alerts, phase 1 (Justin, 2026-11-07; plan in DOCS/plan-a-roping-alerts-first-paid-feature-2026-11-07.md): the free
 // weekly list of ropings near the member's home area, emailed Mondays at 7 AM Central. Instant alerts for paying members
@@ -33,6 +34,8 @@ export default function Alerts() {
   const { data, isLoading } = useAlertPrefs();
   const save = useSaveAlertPrefs();
   const { data: profile } = useMyProfile();
+  const { data: tier } = useFreeTierStatus();
+  const isMember = tier?.subscribed === true;
   const [prefs, setPrefs] = useState<AlertPrefs>(DEFAULT_ALERT_PREFS);
   const [minText, setMinText] = useState('');
   const [maxText, setMaxText] = useState('');
@@ -86,6 +89,23 @@ export default function Alerts() {
               onToggle={() => set('weekly', !prefs.weekly)}
             />
 
+            {isMember ? (
+              <ToggleRow
+                title="Instant alerts, member perk"
+                description="A push and an email the moment a roping that matches your settings below is added. Nothing between 9 PM and 7 AM, and no more than 2 messages a day: anything extra comes as one email in the evening."
+                value={prefs.instant}
+                onToggle={() => set('instant', !prefs.instant)}
+              />
+            ) : (
+              <View style={styles.lockedBox}>
+                <Text style={styles.lockedTitle}>Instant alerts, for members</Text>
+                <Text style={styles.hint}>
+                  Members get a push and an email the moment a roping that matches the settings below is posted, so you hear first. The weekly list stays free for everyone.
+                </Text>
+                <Button label="Become a member" variant="outline" onPress={() => router.push('/subscription')} />
+              </View>
+            )}
+
             <Text style={styles.label}>How far will you haul?</Text>
             <View style={styles.pills}>
               {MILES_OPTIONS.map((o) => (
@@ -125,7 +145,7 @@ export default function Alerts() {
             />
 
             <DividerNote>
-              Instant alerts the moment a roping is posted are coming for members. The weekly list stays free.
+              Your distance, types and classes apply to both the weekly list and instant alerts. Confirm details with the producer before you haul.
             </DividerNote>
           </>
         )}
@@ -141,4 +161,6 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.body, fontSize: 12, color: colors.saddle, lineHeight: 17, marginBottom: 10 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
   classRow: { flexDirection: 'row', gap: 12 },
+  lockedBox: { borderWidth: 1, borderColor: colors.saddle, borderRadius: 10, padding: 14, marginBottom: 18, gap: 6 },
+  lockedTitle: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.espresso },
 });

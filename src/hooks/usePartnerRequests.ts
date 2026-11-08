@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/state/session-store';
 import type { PublicProfile } from '@/src/hooks/useEligiblePartners';
+import { toLimitError } from '@/src/lib/free-tier';
 
 export type PartnerRequestRow = {
   id: string;
@@ -113,10 +114,27 @@ export function useSendRequest() {
         need_post_id: needPostId ?? null,
         is_goat_roping: isGoatRoping ?? false,
       });
-      if (error) throw error;
+      if (error) throw toLimitError(error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sent-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['free-tier-status'] });
+    },
+  });
+}
+
+// Take back a request nobody has answered yet (migration 0129). Silent for the other person; frees one of a free member's
+// open-request slots.
+export function useWithdrawRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await supabase.rpc('withdraw_partner_request', { request_id: requestId });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sent-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['free-tier-status'] });
     },
   });
 }
