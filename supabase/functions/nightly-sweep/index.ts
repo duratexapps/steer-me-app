@@ -299,11 +299,25 @@ Deno.serve(async (req) => {
 
   await check('25. Request notices', async () => {
     const since7 = new Date(Date.now() - 7 * 24 * HOUR).toISOString();
-    const rows = await q(admin.from('notification_log').select('kind,push_status,email_status,detail,created_at').gte('created_at', since7).limit(1000));
+    // Only partner-request notices (received / accepted). Roping-alert sends share this table and are reported in check 27.
+    const rows = await q(admin.from('notification_log').select('kind,push_status,email_status,detail,created_at').gte('created_at', since7).not('kind', 'in', '(weekly_list,instant_alert,instant_digest)').limit(1000));
     const real = rows.filter((x) => !String(x.detail ?? '').startsWith('demo') && !String(x.detail ?? '').startsWith('TEST'));
     const failed = real.filter((x) => x.push_status === 'failed' || x.email_status === 'failed');
     lines.push(`25. Partner request notices, last 7 days: ${real.length} handled (${real.filter((x) => x.push_status === 'sent').length} pushes sent, ${real.filter((x) => x.email_status === 'sent').length} emails sent, ${real.filter((x) => x.push_status === 'no_token').length} with no push token); ${failed.length ? 'ATTENTION - ' + failed.length + ' failed: ' + failed.slice(0, 2).map((x) => String(x.detail).slice(0, 80)).join(' | ') : 'no failures'}`);
     if (failed.length) urgent.push(`${failed.length} partner request notice(s) failed to send - see check 25`);
+  });
+
+  // 27 roping alerts (weekly list from 0128, instant alerts and the request limits from 0129)
+  await check('27. Roping alerts', async () => {
+    const since7 = new Date(Date.now() - 7 * 24 * HOUR).toISOString();
+    const logs = await q(admin.from('notification_log').select('kind,push_status,email_status,detail,created_at').in('kind', ['weekly_list', 'instant_alert', 'instant_digest']).gte('created_at', since7).limit(2000));
+    const prefs = await q(admin.from('alert_prefs').select('weekly,instant'));
+    const closed = await q(admin.from('partner_request_closures').select('reason').gte('closed_at', since7));
+    const weekly = logs.filter((x) => x.kind === 'weekly_list');
+    const inst = logs.filter((x) => x.kind !== 'weekly_list');
+    const bad = logs.filter((x) => x.email_status === 'failed' || x.push_status === 'failed');
+    lines.push(`27. Roping alerts, last 7 days: weekly list ${weekly.filter((x) => x.email_status === 'sent').length} sent, ${weekly.filter((x) => x.email_status === 'failed').length} failed; instant alerts ${inst.filter((x) => x.kind === 'instant_alert').length} messages (${inst.filter((x) => x.push_status === 'sent').length} pushes, ${inst.filter((x) => x.email_status === 'sent').length} emails) plus ${inst.filter((x) => x.kind === 'instant_digest').length} evening digests; ${prefs.filter((x) => x.weekly === false).length} of ${prefs.length} members have the weekly list off (unsubscribes), ${prefs.filter((x) => x.instant).length} have instant on; requests closed: ${closed.filter((x) => x.reason === 'withdrawn').length} withdrawn, ${closed.filter((x) => x.reason === 'expired').length} expired unanswered${bad.length ? '; ATTENTION - ' + bad.length + ' failed: ' + bad.slice(0, 2).map((x) => String(x.detail).slice(0, 80)).join(' | ') : ''}`);
+    if (bad.length) urgent.push(`${bad.length} roping alert message(s) failed to send - see check 27`);
   });
 
   // 26 practices posted by members (migration 0125): live on posting with no review, so they are listed here to look over
