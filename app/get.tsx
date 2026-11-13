@@ -1,10 +1,12 @@
+import { useEffect } from 'react';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radii, spacing } from '@/src/theme/theme';
+import { logFeature } from '@/src/lib/feature-log';
 
 // NEW 2026-09-27 - dedicated QR-code landing page, distinct from the SEO
 // homepage (app/index.tsx). Real ask: physical-world QR codes on shirts and
@@ -16,6 +18,15 @@ const APP_STORE_URL = 'https://apps.apple.com/app/id6805227345';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.duratexapplications.steerme';
 
 export default function Get() {
+  // 2026-11-13: anonymous, web-only count of visits by source tag (?src=fb-okmn-profile and so on), so we can see which kind of
+  // Facebook post brings people. The tag is sanitised to a short word; anything else counts as 'none'. Nothing runs in the apps.
+  const { src } = useLocalSearchParams<{ src?: string }>();
+  const tag = typeof src === 'string' && /^[a-z0-9][a-z0-9_-]{0,39}$/i.test(src) ? src.toLowerCase() : 'none';
+  useEffect(() => {
+    logFeature('get_page', 'view', { src: tag });
+  }, [tag]);
+  const tap = (event: string) => logFeature('get_page', event, { src: tag });
+
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Head>
@@ -38,13 +49,13 @@ export default function Get() {
           </Text>
         </View>
 
-        <Pressable style={styles.tourBtn} onPress={() => router.push('/tour')}>
+        <Pressable style={styles.tourBtn} onPress={() => { tap('get_tour'); router.push('/tour'); }}>
           <Ionicons name="play-circle-outline" size={20} color={colors.espresso} />
           <Text style={styles.tourBtnText}>See How It Works</Text>
         </Pressable>
 
         <View style={styles.storeRow}>
-          <Pressable style={styles.storeBtn} onPress={() => Linking.openURL(APP_STORE_URL)}>
+          <Pressable style={styles.storeBtn} onPress={() => { tap('get_ios'); Linking.openURL(APP_STORE_URL); }}>
             <Ionicons name="logo-apple" size={30} color={colors.bone} />
             <View style={styles.storeBtnText}>
               <Text style={styles.storeBtnSmall}>Download on the</Text>
@@ -52,7 +63,7 @@ export default function Get() {
             </View>
           </Pressable>
 
-          <Pressable style={styles.storeBtn} onPress={() => Linking.openURL(PLAY_STORE_URL)}>
+          <Pressable style={styles.storeBtn} onPress={() => { tap('get_android'); Linking.openURL(PLAY_STORE_URL); }}>
             <Ionicons name="logo-google-playstore" size={26} color={colors.bone} />
             <View style={styles.storeBtnText}>
               <Text style={styles.storeBtnSmall}>Get it on</Text>
@@ -61,7 +72,7 @@ export default function Get() {
           </Pressable>
         </View>
 
-        <Pressable onPress={() => router.push('/')} style={styles.webLink}>
+        <Pressable onPress={() => { tap('get_web'); router.push('/'); }} style={styles.webLink}>
           <Text style={styles.webLinkText}>Prefer your browser? Continue to steerme.ropingtools.com</Text>
         </Pressable>
       </ScrollView>

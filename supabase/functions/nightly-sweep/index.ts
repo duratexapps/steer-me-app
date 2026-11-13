@@ -182,6 +182,18 @@ Deno.serve(async (req) => {
   });
 
   // Layover finder use (information only), plus how many signed-out visitors met the sign-in wall on either travel tool.
+  // 11c landing page visits by source tag (migration 0130): which Facebook posts bring people to /get
+  await check('11c. Landing page', async () => {
+    const since = new Date(Date.now() - 7 * 24 * HOUR).toISOString();
+    const ev = await q(admin.from('feature_events').select('event,props,visitor_id').eq('feature', 'get_page').gte('created_at', since).limit(5000));
+    const views = ev.filter((x) => x.event === 'view');
+    const bySrc = new Map<string, { v: Set<string>; n: number }>();
+    for (const x of views) { const k = String(x.props?.src ?? 'none'); const o = bySrc.get(k) ?? { v: new Set<string>(), n: 0 }; o.n++; o.v.add(String(x.visitor_id)); bySrc.set(k, o); }
+    const top = [...bySrc.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 6).map(([k, o]) => `${k} ${o.n} visits from ${o.v.size}`).join(' | ');
+    const taps = (e: string) => ev.filter((x) => x.event === e).length;
+    lines.push(`11c. /get landing page, last 7 days (web only): ${views.length} visits${top ? ' (' + top + ')' : ''}; taps: App Store ${taps('get_ios')}, Google Play ${taps('get_android')}, See How It Works ${taps('get_tour')}, continue on web ${taps('get_web')}`);
+  });
+
   await check('11b. Layover finder', async () => {
     const since = new Date(Date.now() - 7 * 24 * HOUR).toISOString();
     const ev = await q(admin.from('feature_events').select('feature,event,props,visitor_id').in('feature', ['layover_finder', 'travel_checker']).gte('created_at', since).limit(5000));

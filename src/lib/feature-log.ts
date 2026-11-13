@@ -1,12 +1,12 @@
 import { Platform } from 'react-native';
 import { supabase } from '@/src/lib/supabase';
 
-// Anonymous usage counts for the members-only travel tools (hauling paperwork checker, layover finder), to tell
+// Anonymous usage counts for the members-only travel tools and the /get landing page (visits by ?src= tag) (hauling paperwork checker, layover finder), to tell
 // us whether a tool earns a bigger build. Website only: the store privacy labels say the apps collect no usage
 // data, so inside the native apps this does nothing. The random visitor id lives in the browser, is not an account
 // id, and the server does not record who is signed in (log_feature_event stores user_id as null).
 
-export type TravelFeature = 'travel_checker' | 'layover_finder';
+export type TravelFeature = 'travel_checker' | 'layover_finder' | 'get_page';
 
 let memoryVisitorId: string | null = null;
 function visitorId(): string {
